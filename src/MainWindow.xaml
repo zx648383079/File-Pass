@@ -1,0 +1,65 @@
+﻿<Window x:Class="File_Pass.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:File_Pass"
+        mc:Ignorable="d"
+        Loaded="Window_Loaded"
+        Title="MainWindow" Height="450" Width="800">
+    <Window.Resources>
+        <Style TargetType="{x:Type TextBlock}">
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style TargetType="{x:Type TextBox}">
+            <Setter Property="MaxLines" Value="1"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="100"/>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="100"/>
+            <ColumnDefinition Width="100"/>
+            <ColumnDefinition Width="100"/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="40"/>
+            <RowDefinition Height="40"/>
+            <RowDefinition Height="40"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="40"/>
+        </Grid.RowDefinitions>
+        <TextBlock Text="当前IP："/>
+        <TextBox x:Name="IpTb" Grid.Column="1" MinLines="1" GotFocus="IpTb_GotFocus"/>
+        <TextBlock Text="目标IP：" Grid.Row="1"/>
+        <ComboBox x:Name="DistTb" Grid.Row="1" Grid.Column="1" IsEditable="True" VerticalAlignment="Center"/>
+
+        <TextBlock Text="监听端口：" Grid.Column="2"/>
+        <TextBox x:Name="ListenPortTb" Grid.Column="3" Text="65530"/>
+        <TextBlock Text="目标端口：" Grid.Row="1" Grid.Column="2"/>
+        <TextBox x:Name="SendPortTb" Grid.Row="1" Grid.Column="3"  Text="65530"/>
+
+        <Button x:Name="ListenBtn" Content="监听" Grid.Column="4" Click="ListenBtn_Click"/>
+        <Button x:Name="ChooseBtn" Content="选择文件" Grid.Column="4" Grid.Row="1" Click="ChooseBtn_Click"/>
+        <ListView x:Name="FileBox" Grid.Row="3" Grid.ColumnSpan="5">
+            <ListView.ContextMenu>
+                <ContextMenu>
+                    <MenuItem x:Name="ChooseFileMenu" Header="选择文件" Click="ChooseFileMenu_Click"/>
+                    <MenuItem x:Name="ChooseFolderMenu" Header="选择文件夹" Click="ChooseFolderMenu_Click"/>
+                    <MenuItem x:Name="ClearMenu" Header="清空" Click="ClearMenu_Click"/>
+                </ContextMenu>
+            </ListView.ContextMenu>
+            <ListView.View>
+                <GridView>
+                    <GridViewColumn Header="文件名" DisplayMemberBinding="{Binding Name}" Width="100"/>
+                    <GridViewColumn Header="状态" DisplayMemberBinding="{Binding Status}" Width="60"/>
+                    <GridViewColumn Header="文件路径" DisplayMemberBinding="{Binding FileName}"/>
+                </GridView>
+            </ListView.View>
+        </ListView>
+        <TextBlock x:Name="NotifyTb" Grid.Row="4" Grid.ColumnSpan="5"/>
+    </Grid>
+</Window>
