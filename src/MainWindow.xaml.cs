@@ -153,6 +153,7 @@ namespace File_Pass
         private void ReceiveFile(TcpClient tc)
         {
             NetworkStream ns;
+            FileItem fileItem = null;
             try
             {
                 ns = tc.GetStream();
@@ -170,7 +171,7 @@ namespace File_Pass
 
                 var filePath = saveFolder + "\\" + fileName;
                 var fileLength = BitConverter.ToInt64(fileLengthBytes, 0);
-                var fileItem = new FileItem()
+                fileItem = new FileItem()
                 {
                     Name = fileName,
                     Status = "开始接收",
@@ -201,6 +202,10 @@ namespace File_Pass
                 Dispatcher.Invoke(new RefreshUI(() =>
                 {
                     MessageBox.Show("出现错误：" + ex.Message + "堆栈信息：" + ex.StackTrace);
+                    if (fileItem != null)
+                    {
+                        fileItem.Status = "接收失败";
+                    }
                 }));
             }
             finally
@@ -214,6 +219,10 @@ namespace File_Pass
                     Dispatcher.Invoke(new RefreshUI(() =>
                     {
                         MessageBox.Show("出现错误：" + ex.Message + "堆栈信息：" + ex.StackTrace);
+                        if (fileItem != null)
+                        {
+                            fileItem.Status = "接收失败";
+                        }
                     }));
                 }
             }
