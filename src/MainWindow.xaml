@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:File_Pass"
         mc:Ignorable="d"
         Loaded="Window_Loaded"
-        Title="MainWindow" Height="450" Width="800">
+        Title="局域网文件传递" Height="450" Width="800">
     <Window.Resources>
         <Style TargetType="{x:Type TextBlock}">
             <Setter Property="HorizontalAlignment" Value="Center"/>
