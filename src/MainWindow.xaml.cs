@@ -1,76 +1,54 @@
 ﻿using Microsoft.Win32;
-using NetFwTypeLib;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.ComponentModel;
-using System.Diagnostics;
-using System.IO;
 using System.Linq;
-using System.Net;
-using System.Net.NetworkInformation;
-using System.Net.Sockets;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Data;
+using System.Windows.Documents;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using System.Windows.Navigation;
+using System.Windows.Shapes;
+using ZoDream.FileTransfer.Models;
+using ZoDream.FileTransfer.Network;
+using ZoDream.FileTransfer.Utils;
+using ZoDream.FileTransfer.ViewModels;
 
-namespace FilePass
+namespace ZoDream.FileTransfer
 {
     /// <summary>
-    /// MainWindow.xaml 的交互逻辑
+    /// Interaction logic for MainWindow.xaml
     /// </summary>
     public partial class MainWindow : Window
     {
-
-        public delegate void RefreshUI();
-
-        private ObservableCollection<FileItem> FileItems = new ObservableCollection<FileItem>();
-        private PassServer server;
-        private PassClient client;
-
         public MainWindow()
         {
             InitializeComponent();
-            FileBox.ItemsSource = FileItems;
+            DataContext = ViewModel;
         }
 
-        /// <summary>
-        /// 获取本机IP地址
-        /// </summary>
-        /// <returns>本机IP地址</returns>
-        public static string GetLocalIP()
-        {
-            try
-            {
-                var HostName = Dns.GetHostName(); //得到主机名
-                var IpEntry = Dns.GetHostEntry(HostName);
-                var ips = IpEntry.AddressList;
-                for (int i = ips.Length - 1; i >= 0; i--)
-                {
-                    //从IP地址列表中筛选出IPv4类型的IP地址
-                    //AddressFamily.InterNetwork表示此IP为IPv4,
-                    //AddressFamily.InterNetworkV6表示此地址为IPv6类型
-                    if (ips[i].AddressFamily == AddressFamily.InterNetwork)
-                    {
-                        return ips[i].ToString();
-                    }
-                }
-                return "";
-            }
-            catch (Exception ex)
-            {
-                return ex.Message;
-            }
-        }
+        public MainViewModel ViewModel = new MainViewModel();
+        private TransferClient? client;
+        private TransferServer? server;
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            IpTb.Text = GetLocalIP();
+            IpTb.Text = Ip.Get();
+        }
+
+        private void IpTb_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(IpTb.Text))
+            {
+                return;
+            }
             DistTb.Text = Regex.Replace(IpTb.Text, @"\d+$", "");
-            LoadAllIp(DistTb.Text, IpTb.Text);
+            ViewModel.Load(DistTb.Text, IpTb.Text);
         }
 
         private void ListenBtn_Click(object sender, RoutedEventArgs e)
@@ -98,53 +76,27 @@ namespace FilePass
             ListenBtn.IsEnabled = false;
             if (server == null)
             {
-                server = new PassServer();
+                server = new TransferServer();
             }
             server.Open(ip, port);
             server.Listen(saveFolder, (name, _, file) =>
             {
-                Dispatcher.Invoke(new RefreshUI(() =>
+                App.Current.Dispatcher.Invoke(() =>
                 {
-                    FileItems.Add(new FileItem()
-                    {
-                        Name = name,
-                        Status = "开始接收",
-                        FileName = file,
-                        Length = 0,
-                    });
-                }));
+                    ViewModel.AddFile(name, file, false);
+                });
             }, (current, total, file) =>
             {
                 if (string.IsNullOrEmpty(file))
                 {
                     return;
                 }
-                Dispatcher.Invoke(new RefreshUI(() =>
+                App.Current.Dispatcher.Invoke(() =>
                 {
-                    foreach (var item in FileItems)
-                    {
-                        if (item.FileName != file)
-                        {
-                            continue;
-                        }
-                        if (total == 0)
-                        {
-                            item.Status = "接受失败";
-                            break;
-                        }
-                        item.Status = total == current ? "接收成功" : "接收中";
-                        if (total > 0)
-                        {
-                            item.Length = total;
-                        }
-                        item.Progress = current;
-                        break;
-                    }
-                }));
+                    ViewModel.UpdateFile(file, current, total, false);
+                });
             });
-            
         }
-
 
         private void ChooseBtn_Click(object sender, RoutedEventArgs e)
         {
@@ -163,7 +115,7 @@ namespace FilePass
             }
             if (client == null)
             {
-                client = new PassClient();
+                client = new TransferClient();
             }
             client.Open(ip, port);
             return true;
@@ -190,48 +142,25 @@ namespace FilePass
             }
             client.SendFolder(openFolderDialog.SelectedPath, (name, _, file) =>
             {
-                Dispatcher.Invoke(new RefreshUI(() =>
+                App.Current.Dispatcher.Invoke(() =>
                 {
                     ChooseBtn.IsEnabled = false;
-                    FileItems.Add(new FileItem()
-                    {
-                        Name = name,
-                        Status = "准备发送",
-                        FileName = file,
-                        Length = 0,
-                    });
-                }));
+                    ViewModel.AddFile(name, file, true);
+                });
             }, (current, total, file) =>
             {
                 if (string.IsNullOrEmpty(file))
                 {
                     return;
                 }
-                Dispatcher.Invoke(new RefreshUI(() =>
+                App.Current.Dispatcher.Invoke(() =>
                 {
-                    foreach (var item in FileItems)
+                    if (current == total)
                     {
-                        if (current == total)
-                        {
-                            ChooseBtn.IsEnabled = true;
-                        }
-                        if (item.FileName != file)
-                        {
-                            continue;
-                        }
-                        if (total == 0)
-                        {
-                            item.Status = "发送失败";
-                            break;
-                        }
-                        item.Status = total == current ? "发送成功" : "发送中";
-                        if (total > 0) {
-                            item.Length = total;
-                        }
-                        item.Progress = current;
-                        break;
+                        ChooseBtn.IsEnabled = true;
                     }
-                }));
+                    ViewModel.UpdateFile(file, current, total, true);
+                });
             });
         }
 
@@ -244,14 +173,7 @@ namespace FilePass
 
         private void ClearMenu_Click(object sender, RoutedEventArgs e)
         {
-            foreach (var item in FileItems)
-            {
-                if (item.Status == "发送中" || item.Status == "接收中")
-                {
-                    continue;
-                }
-                FileItems.Remove(item);
-            }
+            ViewModel.ClearFile();
         }
 
         private void ChooseFolderMenu_Click(object sender, RoutedEventArgs e)
@@ -276,81 +198,33 @@ namespace FilePass
             ChooseBtn.IsEnabled = false;
             client.SendFiles(openFileDialog.FileNames, (name, _, file) =>
             {
-                Dispatcher.Invoke(new RefreshUI(() =>
+                App.Current.Dispatcher.Invoke(() =>
                 {
-                    FileItems.Add(new FileItem()
-                    {
-                        Name = name,
-                        Status = "准备发送",
-                        FileName = file,
-                        Length = 0,
-                    });
-                }));
+                    ChooseBtn.IsEnabled = false;
+                    ViewModel.AddFile(name, file, true);
+                });
             }, (current, total, file) =>
             {
                 if (string.IsNullOrEmpty(file))
                 {
                     return;
                 }
-                Dispatcher.Invoke(new RefreshUI(() =>
+                App.Current.Dispatcher.Invoke(() =>
                 {
-                    foreach (var item in FileItems)
+                    if (current == total)
                     {
-                        if (item.FileName != file)
-                        {
-                            continue;
-                        }
-                        if (total == 0)
-                        {
-                            item.Status = "发送失败";
-                            break;
-                        }
-                        item.Status = total == current ? "发送成功" : "发送中";
-                        if (total > 0)
-                        {
-                            item.Length = total;
-                        }
-                        item.Progress = current;
-                        break;
+                        ChooseBtn.IsEnabled = true;
                     }
-                }));
+                    ViewModel.UpdateFile(file, current, total, true);
+                });
             });
 
         }
 
-        /// <summary>
-        /// 获取局域网的其他ip
-        /// </summary>
-        /// <param name="baseIp"></param>
-        /// <param name="exsits"></param>
-        private void LoadAllIp(string baseIp, string exsits)
-        {
-            for (int i = 1; i <= 255; i++)
-            {
-                var ip = baseIp + i;
-                if (ip == exsits)
-                {
-                    continue;
-                }
-                var ping = new Ping();
-                ping.PingCompleted += Ping_PingCompleted;
-                ping.SendAsync(ip, 2000, null);
-            }
-        }
-
-        private void Ping_PingCompleted(object sender, PingCompletedEventArgs e)
-        {
-            if (e.Reply.Status == IPStatus.Success)
-            {
-                DistTb.Items.Add(e.Reply.Address.ToString());
-            }
-        }
-
         private void Window_Unloaded(object sender, RoutedEventArgs e)
         {
-            server?.Close();
             client?.Close();
+            server?.Close();
         }
     }
-    
 }

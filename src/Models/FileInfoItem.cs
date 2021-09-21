@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace FilePass
+namespace ZoDream.FileTransfer.Models
 {
-    public class FileObject
+    public class FileInfoItem
     {
         public string Name { get; set; }
 

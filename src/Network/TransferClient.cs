@@ -1,18 +1,19 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using ZoDream.FileTransfer.Models;
+using ZoDream.FileTransfer.Utils;
 
-namespace FilePass
+namespace ZoDream.FileTransfer.Network
 {
-    public class PassClient
+    public class TransferClient
     {
-        public string Ip { get; private set; }
+        public string Ip { get; private set; } = "127.0.0.1";
 
         public int Port { get; private set; }
 
@@ -45,7 +46,7 @@ namespace FilePass
             SendFile(fileName, file, progress);
         }
 
-        public void SendFiles(IEnumerable<FileObject> files, Action<string, string, string> init, Action<long, long, string> progress)
+        public void SendFiles(IEnumerable<FileInfoItem> files, Action<string, string, string> init, Action<long, long, string> progress)
         {
             foreach (var item in files)
             {
@@ -68,7 +69,7 @@ namespace FilePass
             SendFiles(files.Select(file =>
             {
                 var name = Path.GetFileName(file);
-                return new FileObject()
+                return new FileInfoItem()
                 {
                     Name = name,
                     RelativeFile = name,
@@ -79,7 +80,7 @@ namespace FilePass
 
         public void SendFolder(string folder, Action<string, string, string> init, Action<long, long, string> progress)
         {
-            SendFiles(GetAllFile(folder, Path.GetFileName(folder) + "\\"), init, progress);
+            SendFiles(Disk.GetAllFile(folder, Path.GetFileName(folder) + "\\"), init, progress);
         }
 
         private void SendFile(string fileName, string file, Action<long, long, string> progress)
@@ -88,8 +89,8 @@ namespace FilePass
             {
                 return;
             }
-            TcpClient tc = null;
-            NetworkStream ns = null;
+            TcpClient? tc = null;
+            NetworkStream? ns = null;
             try
             {
                 tc = new TcpClient();
@@ -151,34 +152,6 @@ namespace FilePass
             }
         }
 
-        /// <summary>
-        /// 遍历文件夹
-        /// </summary>
-        /// <param name="dir"></param>
-        public static List<FileObject> GetAllFile(string dir, string relativeFile = "")
-        {
-            var files = new List<FileObject>();
-            if (string.IsNullOrWhiteSpace(dir))
-            {
-                return files;
-            }
-            var theFolder = new DirectoryInfo(dir);
-            var dirInfo = theFolder.GetDirectories();
-            //遍历文件夹
-            foreach (var nextFolder in dirInfo)
-            {
-                files.AddRange(GetAllFile(nextFolder.FullName, relativeFile + nextFolder.Name + "\\"));
-            }
-
-            var fileInfo = theFolder.GetFiles();
-            //遍历文件
-            files.AddRange(fileInfo.Select(nextFile => new FileObject()
-            {
-                Name = nextFile.Name,
-                File = nextFile.FullName,
-                RelativeFile = relativeFile + nextFile.Name,
-            }));
-            return files;
-        }
+        
     }
 }

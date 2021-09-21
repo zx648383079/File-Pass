@@ -1,23 +1,22 @@
-﻿<Window x:Class="FilePass.MainWindow"
+﻿<Window x:Class="ZoDream.FileTransfer.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:FilePass"
+        xmlns:local="clr-namespace:ZoDream.FileTransfer"
         mc:Ignorable="d"
-        Loaded="Window_Loaded"
-        Unloaded="Window_Unloaded"
-        Title="局域网文件传递" Height="450" Width="800">
+        Title="File Transfer" Height="450" Width="800" 
+        WindowStartupLocation="CenterScreen"
+        Loaded="Window_Loaded" Unloaded="Window_Unloaded">
     <Window.Resources>
-        <Style TargetType="{x:Type TextBlock}">
+        <Style TargetType="TextBlock">
             <Setter Property="HorizontalAlignment" Value="Center"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
         </Style>
-        <Style TargetType="{x:Type TextBox}">
+        <Style TargetType="TextBox">
             <Setter Property="MaxLines" Value="1"/>
         </Style>
     </Window.Resources>
-
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="100"/>
@@ -34,9 +33,12 @@
             <RowDefinition Height="40"/>
         </Grid.RowDefinitions>
         <TextBlock Text="当前IP："/>
-        <TextBox x:Name="IpTb" Grid.Column="1" MinLines="1" GotFocus="IpTb_GotFocus"/>
+        <TextBox x:Name="IpTb" Grid.Column="1" MinLines="1" TextChanged="IpTb_TextChanged"/>
         <TextBlock Text="目标IP：" Grid.Row="1"/>
-        <ComboBox x:Name="DistTb" Grid.Row="1" Grid.Column="1" IsEditable="True" VerticalAlignment="Center"/>
+        <ComboBox x:Name="DistTb" Grid.Row="1" Grid.Column="1" 
+                  ItemsSource="{Binding IpItems}"
+                  IsEditable="True" 
+                  VerticalAlignment="Center"/>
 
         <TextBlock Text="监听端口：" Grid.Column="2"/>
         <TextBox x:Name="ListenPortTb" Grid.Column="3" Text="65530"/>
@@ -45,7 +47,7 @@
 
         <Button x:Name="ListenBtn" Content="监听" Grid.Column="4" Click="ListenBtn_Click"/>
         <Button x:Name="ChooseBtn" Content="选择文件" Grid.Column="4" Grid.Row="1" Click="ChooseBtn_Click"/>
-        <ListView x:Name="FileBox" Grid.Row="3" Grid.ColumnSpan="5">
+        <ListView x:Name="FileBox" Grid.Row="3" Grid.ColumnSpan="5" ItemsSource="{Binding FileItems}">
             <ListView.ContextMenu>
                 <ContextMenu>
                     <MenuItem x:Name="ChooseFileMenu" Header="选择文件" Click="ChooseFileMenu_Click"/>
@@ -60,7 +62,7 @@
                     <GridViewColumn Header="进度" DisplayMemberBinding="{Binding Progress}" Width="60"/>
                     <GridViewColumn Header="总长度" DisplayMemberBinding="{Binding Length}" Width="60"/>
                     <GridViewColumn Header="文件路径" DisplayMemberBinding="{Binding FileName}"/>
-                 </GridView>
+                </GridView>
             </ListView.View>
         </ListView>
         <TextBlock x:Name="NotifyTb" Grid.Row="4" Grid.ColumnSpan="5"/>

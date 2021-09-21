@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -11,11 +10,11 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace FilePass
+namespace ZoDream.FileTransfer.Network
 {
-    public class PassServer
+    public class TransferServer
     {
-        public string Ip { get; private set; }
+        public string Ip { get; private set; } = "127.0.0.1";
 
         public int Port { get; private set; }
 
@@ -35,9 +34,9 @@ namespace FilePass
         public void Close()
         {
             cancellationToken.Cancel();
-            while (!socketItems.TryDequeue(out TcpClient tc))
+            while (!socketItems.TryDequeue(out var tc))
             {
-                tc.Close();
+                tc?.Close();
             }
         }
 
@@ -183,10 +182,12 @@ namespace FilePass
         /// <param name="protocol">协议(TCP、UDP)</param>
         public static void NetFwAddPorts(string name, int port, string protocol)
         {
-            INetFwMgr netFwMgr = (INetFwMgr)Activator.CreateInstance(Type.GetTypeFromProgID("HNetCfg.FwMgr"));
-
-            INetFwOpenPort objPort = (INetFwOpenPort)Activator.CreateInstance(Type.GetTypeFromProgID("HNetCfg.FwOpenPort"));
-
+            var netFwMgr = (INetFwMgr)Activator.CreateInstance(Type.GetTypeFromProgID("HNetCfg.FwMgr"));
+            var objPort = (INetFwOpenPort)Activator.CreateInstance(Type.GetTypeFromProgID("HNetCfg.FwOpenPort"));
+            if (objPort == null || netFwMgr == null)
+            {
+                return;
+            }
             objPort.Name = name;
             objPort.Port = port;
             if (protocol.ToUpper() == "TCP")
@@ -200,7 +201,7 @@ namespace FilePass
             objPort.Scope = NET_FW_SCOPE_.NET_FW_SCOPE_ALL;
             objPort.Enabled = true;
 
-            bool exist = false;
+            var exist = false;
             foreach (INetFwOpenPort mPort in netFwMgr.LocalPolicy.CurrentProfile.GloballyOpenPorts)
             {
                 if (objPort == mPort)
@@ -209,8 +210,10 @@ namespace FilePass
                     break;
                 }
             }
-            if (!exist) netFwMgr.LocalPolicy.CurrentProfile.GloballyOpenPorts.Add(objPort);
+            if (!exist)
+            {
+                netFwMgr.LocalPolicy.CurrentProfile.GloballyOpenPorts.Add(objPort);
+            }
         }
-
     }
 }
