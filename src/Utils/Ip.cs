@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Net.NetworkInformation;
@@ -43,6 +44,7 @@ namespace ZoDream.FileTransfer.Utils
             {
                 var items = new List<string>();
                 var wait = 0;
+                var maxTime = 2000;
                 for (var i = 1; i <= 255; i++)
                 {
                     var ip = baseIp + i;
@@ -50,25 +52,26 @@ namespace ZoDream.FileTransfer.Utils
                     {
                         continue;
                     }
-                    wait++;
                     var ping = new Ping();
                     ping.PingCompleted += (s, e) =>
                     {
+                        wait--;
                         if (e.Reply?.Status == IPStatus.Success)
                         {
                             items.Add(e.Reply.Address.ToString());
-                            wait--;
                         }
                     };
-                    ping.SendAsync(ip, 2000, null);
+                    ping.SendAsync(ip, maxTime, null);
+                    wait++;
                 }
                 while (true)
                 {
-                    if (wait < 1)
+                    if (wait < 1 || maxTime < 0)
                     {
                         break;
                     }
                     Thread.Sleep(100);
+                    maxTime -= 100;
                 }
                 return items;
             });

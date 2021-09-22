@@ -26,11 +26,10 @@
             <ColumnDefinition Width="100"/>
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
-            <RowDefinition Height="40"/>
-            <RowDefinition Height="40"/>
-            <RowDefinition Height="40"/>
+            <RowDefinition Height="30"/>
+            <RowDefinition Height="30"/>
             <RowDefinition Height="*"/>
-            <RowDefinition Height="40"/>
+            <RowDefinition Height="auto"/>
         </Grid.RowDefinitions>
         <TextBlock Text="当前IP："/>
         <TextBox x:Name="IpTb" Grid.Column="1" MinLines="1" TextChanged="IpTb_TextChanged"/>
@@ -38,7 +37,7 @@
         <ComboBox x:Name="DistTb" Grid.Row="1" Grid.Column="1" 
                   ItemsSource="{Binding IpItems}"
                   IsEditable="True" 
-                  VerticalAlignment="Center"/>
+                  VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
 
         <TextBlock Text="监听端口：" Grid.Column="2"/>
         <TextBox x:Name="ListenPortTb" Grid.Column="3" Text="65530"/>
@@ -47,7 +46,7 @@
 
         <Button x:Name="ListenBtn" Content="监听" Grid.Column="4" Click="ListenBtn_Click"/>
         <Button x:Name="ChooseBtn" Content="选择文件" Grid.Column="4" Grid.Row="1" Click="ChooseBtn_Click"/>
-        <ListView x:Name="FileBox" Grid.Row="3" Grid.ColumnSpan="5" ItemsSource="{Binding FileItems}">
+        <ListView x:Name="FileBox" Grid.Row="2" Grid.ColumnSpan="5" ItemsSource="{Binding FileItems}">
             <ListView.ContextMenu>
                 <ContextMenu>
                     <MenuItem x:Name="ChooseFileMenu" Header="选择文件" Click="ChooseFileMenu_Click"/>
@@ -65,6 +64,6 @@
                 </GridView>
             </ListView.View>
         </ListView>
-        <TextBlock x:Name="NotifyTb" Grid.Row="4" Grid.ColumnSpan="5"/>
+        <TextBlock x:Name="NotifyTb" Grid.Row="3" Grid.ColumnSpan="5"/>
     </Grid>
 </Window>
