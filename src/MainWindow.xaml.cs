@@ -63,7 +63,7 @@ namespace ZoDream.FileTransfer
             var openFolderDialog = new System.Windows.Forms.FolderBrowserDialog
             {
                 SelectedPath = AppDomain.CurrentDomain.BaseDirectory,
-                ShowNewFolderButton = false
+                ShowNewFolderButton = true
             };
             if (openFolderDialog.ShowDialog() != System.Windows.Forms.DialogResult.OK)
             {
@@ -247,7 +247,7 @@ namespace ZoDream.FileTransfer
             var openFolderDialog = new System.Windows.Forms.FolderBrowserDialog
             {
                 SelectedPath = AppDomain.CurrentDomain.BaseDirectory,
-                ShowNewFolderButton = false
+                ShowNewFolderButton = true
             };
             if (openFolderDialog.ShowDialog() != System.Windows.Forms.DialogResult.OK)
             {
