@@ -32,7 +32,7 @@ namespace ZoDream.FileTransfer
             DataContext = ViewModel;
         }
 
-        public MainViewModel ViewModel = new MainViewModel();
+        public MainViewModel ViewModel = new();
         private TransferClient? client;
         private TransferServer? server;
 
@@ -101,10 +101,9 @@ namespace ZoDream.FileTransfer
         private void ChooseBtn_Click(object sender, RoutedEventArgs e)
         {
             ChooseFolder();
-
         }
 
-        private bool previewSend()
+        private bool PreviewSend()
         {
             var ip = DistTb.Text;
             var port = Convert.ToInt32(SendPortTb.Text);
@@ -136,32 +135,16 @@ namespace ZoDream.FileTransfer
                 ChooseBtn.IsEnabled = true;
                 return;
             }
-            if (!previewSend())
+            SendFolder(openFolderDialog.SelectedPath);
+        }
+
+        private void SendFolder(string folder)
+        {
+            if (!PreviewSend())
             {
                 return;
             }
-            client.SendFolder(openFolderDialog.SelectedPath, (name, _, file) =>
-            {
-                App.Current.Dispatcher.Invoke(() =>
-                {
-                    ChooseBtn.IsEnabled = false;
-                    ViewModel.AddFile(name, file, true);
-                });
-            }, (current, total, file) =>
-            {
-                if (string.IsNullOrEmpty(file))
-                {
-                    return;
-                }
-                App.Current.Dispatcher.Invoke(() =>
-                {
-                    if (current == total)
-                    {
-                        ChooseBtn.IsEnabled = true;
-                    }
-                    ViewModel.UpdateFile(file, current, total, true);
-                });
-            });
+            client!.SendFolder(folder, SendFileInit, SendFileProgress);
         }
 
         private void IpTb_GotFocus(object sender, RoutedEventArgs e)
@@ -191,40 +174,72 @@ namespace ZoDream.FileTransfer
             {
                 return;
             }
-            if (!previewSend())
+            SendFiles(openFileDialog.FileNames);
+        }
+
+        private void SendFileInit(string name, string relativeFile, string file)
+        {
+            App.Current.Dispatcher.Invoke(() =>
+            {
+                ChooseBtn.IsEnabled = false;
+                ViewModel.AddFile(name, file, true);
+            });
+        }
+
+        private void SendFileProgress(long current, long total, string file)
+        {
+            if (string.IsNullOrEmpty(file))
+            {
+                return;
+            }
+            App.Current.Dispatcher.Invoke(() =>
+            {
+                if (current == total)
+                {
+                    ChooseBtn.IsEnabled = true;
+                }
+                ViewModel.UpdateFile(file, current, total, true);
+            });
+        }
+
+        private void SendFiles(string[] files)
+        {
+            if (!PreviewSend())
             {
                 return;
             }
             ChooseBtn.IsEnabled = false;
-            client.SendFiles(openFileDialog.FileNames, (name, _, file) =>
-            {
-                App.Current.Dispatcher.Invoke(() =>
-                {
-                    ChooseBtn.IsEnabled = false;
-                    ViewModel.AddFile(name, file, true);
-                });
-            }, (current, total, file) =>
-            {
-                if (string.IsNullOrEmpty(file))
-                {
-                    return;
-                }
-                App.Current.Dispatcher.Invoke(() =>
-                {
-                    if (current == total)
-                    {
-                        ChooseBtn.IsEnabled = true;
-                    }
-                    ViewModel.UpdateFile(file, current, total, true);
-                });
-            });
-
+            client!.SendFiles(files, SendFileInit, SendFileProgress);
         }
 
         private void Window_Unloaded(object sender, RoutedEventArgs e)
         {
             client?.Close();
             server?.Close();
+        }
+
+        private void FileBox_PreviewDragOver(object sender, DragEventArgs e)
+        {
+            e.Effects = DragDropEffects.Link;
+            e.Handled = true;
+        }
+
+        private void FileBox_Drop(object sender, DragEventArgs e)
+        {
+            if (!e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                return;
+            }
+            var items = (IEnumerable<string>)e.Data.GetData(DataFormats.FileDrop);
+            if (items == null)
+            {
+                return;
+            }
+            if(!PreviewSend())
+            {
+                return;
+            }
+            client!.SendFileOrFolder(items, SendFileInit, SendFileProgress);
         }
     }
 }

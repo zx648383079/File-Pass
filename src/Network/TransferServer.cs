@@ -21,8 +21,8 @@ namespace ZoDream.FileTransfer.Network
         public int ThreadCount { get; set; } = 1;
         private readonly int splitSize = 1024 * 16;
 
-        private readonly ConcurrentQueue<TcpClient> socketItems = new ConcurrentQueue<TcpClient>();
-        private CancellationTokenSource cancellationToken = new CancellationTokenSource();
+        private readonly ConcurrentQueue<TcpClient> socketItems = new();
+        private CancellationTokenSource cancellationToken = new();
 
         public void Open(string ip, int port)
         {
@@ -61,7 +61,7 @@ namespace ZoDream.FileTransfer.Network
                     {
                         for (int i = 0; i < ThreadCount; i++)
                         {
-                            TcpClient tc;
+                            TcpClient? tc;
                             while (!socketItems.TryDequeue(out tc))
                             {
                                 Thread.Sleep(1);
@@ -182,8 +182,18 @@ namespace ZoDream.FileTransfer.Network
         /// <param name="protocol">协议(TCP、UDP)</param>
         public static void NetFwAddPorts(string name, int port, string protocol)
         {
-            var netFwMgr = (INetFwMgr)Activator.CreateInstance(Type.GetTypeFromProgID("HNetCfg.FwMgr"));
-            var objPort = (INetFwOpenPort)Activator.CreateInstance(Type.GetTypeFromProgID("HNetCfg.FwOpenPort"));
+            var mgrType = Type.GetTypeFromProgID("HNetCfg.FwMgr");
+            var openPortType = Type.GetTypeFromProgID("HNetCfg.FwOpenPort");
+            if (mgrType == null || openPortType == null)
+            {
+                return;
+            }
+#pragma warning disable CS8600 // 将 null 字面量或可能为 null 的值转换为非 null 类型。
+            var netFwMgr = (INetFwMgr)Activator.CreateInstance(mgrType);
+#pragma warning restore CS8600 // 将 null 字面量或可能为 null 的值转换为非 null 类型。
+#pragma warning disable CS8600 // 将 null 字面量或可能为 null 的值转换为非 null 类型。
+            var objPort = (INetFwOpenPort)Activator.CreateInstance(openPortType);
+#pragma warning restore CS8600 // 将 null 字面量或可能为 null 的值转换为非 null 类型。
             if (objPort == null || netFwMgr == null)
             {
                 return;

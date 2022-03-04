@@ -21,7 +21,7 @@ namespace ZoDream.FileTransfer.Network
 
         private readonly int splitSize = 1024 * 16;
 
-        private CancellationTokenSource cancellationToken = new CancellationTokenSource();
+        private CancellationTokenSource cancellationToken = new();
 
         public void Open(string ip, int port)
         {
@@ -69,18 +69,33 @@ namespace ZoDream.FileTransfer.Network
             SendFiles(files.Select(file =>
             {
                 var name = Path.GetFileName(file);
-                return new FileInfoItem()
-                {
-                    Name = name,
-                    RelativeFile = name,
-                    File = file
-                };
+                return new FileInfoItem(name, file, name);
             }).ToList(), init, progress);
         }
 
         public void SendFolder(string folder, Action<string, string, string> init, Action<long, long, string> progress)
         {
             SendFiles(Disk.GetAllFile(folder, Path.GetFileName(folder) + "\\"), init, progress);
+        }
+
+        public void SendFileOrFolder(IEnumerable<string> files, Action<string, string, string> init, Action<long, long, string> progress)
+        {
+            var items = new List<FileInfoItem>();
+            foreach (var file in files)
+            {
+                if (string.IsNullOrWhiteSpace(file))
+                {
+                    continue;
+                }
+                var info = new FileInfo(file);
+                if ((info.Attributes & FileAttributes.Directory) == 0)
+                {
+                    items.Add(new FileInfoItem(info.Name, file, info.Name));
+                    continue;
+                }
+                items.AddRange(Disk.GetAllFile(file, Path.GetFileName(file) + "\\"));
+            }
+            SendFiles(items, init, progress);
         }
 
         private void SendFile(string fileName, string file, Action<long, long, string> progress)

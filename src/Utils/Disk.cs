@@ -2,8 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using ZoDream.FileTransfer.Models;
 
 namespace ZoDream.FileTransfer.Utils
@@ -31,12 +29,7 @@ namespace ZoDream.FileTransfer.Utils
 
             var fileInfo = theFolder.GetFiles();
             //遍历文件
-            files.AddRange(fileInfo.Select(nextFile => new FileInfoItem()
-            {
-                Name = nextFile.Name,
-                File = nextFile.FullName,
-                RelativeFile = relativeFile + nextFile.Name,
-            }));
+            files.AddRange(fileInfo.Select(nextFile => new FileInfoItem(nextFile.Name, nextFile.FullName, relativeFile + nextFile.Name)));
             return files;
         }
     }

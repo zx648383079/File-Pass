@@ -1,9 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using ZoDream.FileTransfer.Models;
 using ZoDream.FileTransfer.Utils;
 
@@ -12,7 +9,7 @@ namespace ZoDream.FileTransfer.ViewModels
     public class MainViewModel: BindableBase
     {
 
-        private ObservableCollection<string> ipItems = new ObservableCollection<string>();
+        private ObservableCollection<string> ipItems = new();
 
         public ObservableCollection<string> IpItems
         {
@@ -21,7 +18,7 @@ namespace ZoDream.FileTransfer.ViewModels
         }
 
 
-        private ObservableCollection<FileItem> fileItems = new ObservableCollection<FileItem>();
+        private ObservableCollection<FileItem> fileItems = new();
 
         public ObservableCollection<FileItem> FileItems
         {
@@ -29,16 +26,33 @@ namespace ZoDream.FileTransfer.ViewModels
             set => Set(ref fileItems, value);
         }
 
+        public int FileIndexOf(string file)
+        {
+            for (int i = 0; i < FileItems.Count; i++)
+            {
+                if (FileItems[i].FileName == file)
+                {
+                    return i;
+                } 
+            }
+            return -1;
+        }
+
 
         public void AddFile(string name, string file, bool isClient = true)
         {
-            FileItems.Add(new FileItem()
+            var i = FileIndexOf(file);
+            var item = new FileItem(name, file)
             {
-                Name = name,
-                Status = isClient  ? "准备发送" : "开始接收",
-                FileName = file,
+                Status = isClient ? "准备发送" : "开始接收",
                 Length = 0,
-            });
+            };
+            if (i < 0)
+            {
+                FileItems.Add(item);
+                return;
+            }
+            FileItems[i] = item;
         }
 
         public void UpdateFile(string file, long current, long total, bool isClient = true)
@@ -67,13 +81,14 @@ namespace ZoDream.FileTransfer.ViewModels
 
         public void ClearFile()
         {
-            foreach (var item in FileItems)
+            for (int i = FileItems.Count - 1; i >= 0; i--)
             {
+                var item = FileItems[i];
                 if (item.Status == "发送中" || item.Status == "接收中")
                 {
                     continue;
                 }
-                FileItems.Remove(item);
+                FileItems.RemoveAt(i);
             }
         }
 

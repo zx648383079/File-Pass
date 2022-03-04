@@ -46,7 +46,8 @@
 
         <Button x:Name="ListenBtn" Content="监听" Grid.Column="4" Click="ListenBtn_Click"/>
         <Button x:Name="ChooseBtn" Content="选择文件" Grid.Column="4" Grid.Row="1" Click="ChooseBtn_Click"/>
-        <ListView x:Name="FileBox" Grid.Row="2" Grid.ColumnSpan="5" ItemsSource="{Binding FileItems}">
+        <ListView x:Name="FileBox" Grid.Row="2" Grid.ColumnSpan="5" ItemsSource="{Binding FileItems}" AllowDrop="True" 
+                  PreviewDragOver="FileBox_PreviewDragOver" Drop="FileBox_Drop">
             <ListView.ContextMenu>
                 <ContextMenu>
                     <MenuItem x:Name="ChooseFileMenu" Header="选择文件" Click="ChooseFileMenu_Click"/>
