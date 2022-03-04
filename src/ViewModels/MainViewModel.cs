@@ -69,6 +69,11 @@ namespace ZoDream.FileTransfer.ViewModels
                     item.Status = $"{label}失败";
                     break;
                 }
+                if (current < 0)
+                {
+                    item.Status = $"{label}跳过";
+                    break;
+                }
                 item.Status = label + (total == current ? "成功" : "中");
                 if (total > 0)
                 {

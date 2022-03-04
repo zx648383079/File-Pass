@@ -15,10 +15,12 @@ namespace ZoDream.FileTransfer.Network
     public class TransferServer
     {
         public string Ip { get; private set; } = "127.0.0.1";
-
         public int Port { get; private set; }
-
         public int ThreadCount { get; set; } = 1;
+
+        public string SaveFolder { get; set; } = string.Empty;
+        public bool IsOverFile { get; set; } = true;
+
         private readonly int splitSize = 1024 * 16;
 
         private readonly ConcurrentQueue<TcpClient> socketItems = new();
@@ -42,6 +44,7 @@ namespace ZoDream.FileTransfer.Network
 
         public void Listen(string folder, Action<string, string, string> init, Action<long, long, string> progress)
         {
+            SaveFolder = folder;
             var listenTask = new Task(() =>
             {
                 var socket = new TcpListener(IPAddress.Parse(Ip), Port);
@@ -68,7 +71,7 @@ namespace ZoDream.FileTransfer.Network
                             }
                             Task.Factory.StartNew(() =>
                             {
-                                ReceiveMessage(tc, folder, init, progress);
+                                ReceiveMessage(tc, SaveFolder, init, progress, IsOverFile);
                             });
                             if (socketItems.Count < 1)
                             {
@@ -85,7 +88,7 @@ namespace ZoDream.FileTransfer.Network
             receiveTask.Start();
         }
 
-        private void ReceiveMessage(TcpClient tc, string folder, Action<string, string, string> init, Action<long, long, string> progress)
+        private void ReceiveMessage(TcpClient tc, string folder, Action<string, string, string> init, Action<long, long, string> progress, bool overFile = true)
         {
             NetworkStream ns;
             string filePath = string.Empty;
@@ -104,6 +107,12 @@ namespace ZoDream.FileTransfer.Network
 
                 filePath = CreateFolder(folder, relativeFile, out string fileName);
                 init?.Invoke(fileName, relativeFile, filePath);
+                if (!overFile && File.Exists(filePath)) 
+                {
+                    ns.Close();
+                    progress?.Invoke(-1, fileLength, filePath);
+                    return;
+                }
                 progress?.Invoke(0, fileLength, filePath);
                 using (var fs = new FileStream(filePath, FileMode.Create, FileAccess.Write))
                 {

@@ -72,7 +72,7 @@ namespace ZoDream.FileTransfer
                 return;
             }
             NotifyTb.Text = "开始监听";
-            var saveFolder = openFolderDialog.SelectedPath;
+            var saveFolder = SaveFolderTb.Text = openFolderDialog.SelectedPath;
             ListenBtn.IsEnabled = false;
             if (server == null)
             {
@@ -240,6 +240,42 @@ namespace ZoDream.FileTransfer
                 return;
             }
             client!.SendFileOrFolder(items, SendFileInit, SendFileProgress);
+        }
+
+        private void SaveFolderBtn_Click(object sender, RoutedEventArgs e)
+        {
+            var openFolderDialog = new System.Windows.Forms.FolderBrowserDialog
+            {
+                SelectedPath = AppDomain.CurrentDomain.BaseDirectory,
+                ShowNewFolderButton = false
+            };
+            if (openFolderDialog.ShowDialog() != System.Windows.Forms.DialogResult.OK)
+            {
+                return;
+            }
+            if (server == null)
+            {
+                server = new TransferServer();
+            }
+            SaveFolderTb.Text = server.SaveFolder = openFolderDialog.SelectedPath;
+        }
+
+        private void OverCb_Checked(object sender, RoutedEventArgs e)
+        {
+            if (server == null)
+            {
+                server = new TransferServer();
+            }
+            server.IsOverFile = true;
+        }
+
+        private void OverCb_Unchecked(object sender, RoutedEventArgs e)
+        {
+            if (server == null)
+            {
+                server = new TransferServer();
+            }
+            server.IsOverFile = false;
         }
     }
 }

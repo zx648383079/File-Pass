@@ -28,6 +28,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="30"/>
             <RowDefinition Height="30"/>
+            <RowDefinition Height="30"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="auto"/>
         </Grid.RowDefinitions>
@@ -46,7 +47,16 @@
 
         <Button x:Name="ListenBtn" Content="监听" Grid.Column="4" Click="ListenBtn_Click"/>
         <Button x:Name="ChooseBtn" Content="选择文件" Grid.Column="4" Grid.Row="1" Click="ChooseBtn_Click"/>
-        <ListView x:Name="FileBox" Grid.Row="2" Grid.ColumnSpan="5" ItemsSource="{Binding FileItems}" AllowDrop="True" 
+
+        <TextBlock Text="保存文件夹：" Grid.Row="2"/>
+        <TextBox x:Name="SaveFolderTb" Grid.Row="2" Grid.Column="1" IsReadOnly="True"/>
+        <Button x:Name="SaveFolderBtn" Content="选择" Grid.Row="2" Grid.Column="2" Click="SaveFolderBtn_Click"/>
+        <CheckBox x:Name="OverCb" IsChecked="True" Content="自动覆盖文件" 
+                  Checked="OverCb_Checked"
+                  Unchecked="OverCb_Unchecked"
+                  VerticalAlignment="Center" ToolTip="遇见重名文件自动覆盖或跳过" Grid.Row="2" Grid.Column="3"  Grid.ColumnSpan="2"/>
+
+        <ListView x:Name="FileBox" Grid.Row="3" Grid.ColumnSpan="5" ItemsSource="{Binding FileItems}" AllowDrop="True" 
                   PreviewDragOver="FileBox_PreviewDragOver" Drop="FileBox_Drop">
             <ListView.ContextMenu>
                 <ContextMenu>
@@ -65,6 +75,6 @@
                 </GridView>
             </ListView.View>
         </ListView>
-        <TextBlock x:Name="NotifyTb" Grid.Row="3" Grid.ColumnSpan="5"/>
+        <TextBlock x:Name="NotifyTb" Grid.Row="4" Grid.ColumnSpan="5"/>
     </Grid>
 </Window>
