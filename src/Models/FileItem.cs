@@ -7,9 +7,9 @@ namespace ZoDream.FileTransfer.Models
     {
         public string Name { get; set; }
 
-        private string status = string.Empty;
+        private FileStatus status = FileStatus.None;
 
-        public string Status
+        public FileStatus Status
         {
             get => status;
             set => Set(ref status, value);
@@ -76,5 +76,20 @@ namespace ZoDream.FileTransfer.Models
             Name = name;
             FileName = fileName;
         }
+    }
+
+    public enum FileStatus
+    {
+        None,
+        ReadyReceive,
+        Receiving,
+        Received,
+        ReceiveIgnore,
+        ReceiveFailure,
+        ReadySend,
+        Sending,
+        Sent,
+        SendIgnore,
+        SendFailure,
     }
 }

@@ -42,7 +42,7 @@ namespace ZoDream.FileTransfer.Network
             }
         }
 
-        public void Listen(string folder, Action<string, string, string> init, Action<long, long, string> progress)
+        public void Listen(string folder, InitFunc init, ProgressFunc progress)
         {
             SaveFolder = folder;
             var listenTask = new Task(() =>
@@ -88,7 +88,7 @@ namespace ZoDream.FileTransfer.Network
             receiveTask.Start();
         }
 
-        private void ReceiveMessage(TcpClient tc, string folder, Action<string, string, string> init, Action<long, long, string> progress, bool overFile = true)
+        private void ReceiveMessage(TcpClient tc, string folder, InitFunc init, ProgressFunc progress, bool overFile = true)
         {
             NetworkStream ns;
             string filePath = string.Empty;

@@ -71,7 +71,7 @@ namespace ZoDream.FileTransfer
                 ListenBtn.IsEnabled = true;
                 return;
             }
-            NotifyTb.Text = "开始监听";
+            ViewModel.ServerMessage = "接收中...";
             var saveFolder = SaveFolderTb.Text = openFolderDialog.SelectedPath;
             ListenBtn.IsEnabled = false;
             if (server == null)
@@ -117,6 +117,7 @@ namespace ZoDream.FileTransfer
                 client = new TransferClient();
             }
             client.Open(ip, port);
+            ViewModel.ClientMessage = "准备发送...";
             return true;
         }
         /// <summary>

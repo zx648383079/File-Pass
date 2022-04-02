@@ -3,15 +3,21 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:cvt="clr-namespace:ZoDream.FileTransfer.Converters"
         xmlns:local="clr-namespace:ZoDream.FileTransfer"
         mc:Ignorable="d"
         Title="File Transfer" Height="450" Width="800" 
         WindowStartupLocation="CenterScreen"
         Loaded="Window_Loaded" Unloaded="Window_Unloaded">
     <Window.Resources>
+        <cvt:FileStatusConverter x:Key="StatusConverter"/>
         <Style TargetType="TextBlock">
             <Setter Property="HorizontalAlignment" Value="Center"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style x:Key="TipHeader" TargetType="TextBlock">
+            <Setter Property="Padding" Value="10 0"/>
+            <Setter Property="Foreground" Value="Gray"/>
         </Style>
         <Style TargetType="TextBox">
             <Setter Property="MaxLines" Value="1"/>
@@ -68,13 +74,24 @@
             <ListView.View>
                 <GridView>
                     <GridViewColumn Header="文件名" DisplayMemberBinding="{Binding Name}" Width="100"/>
-                    <GridViewColumn Header="状态" DisplayMemberBinding="{Binding Status}" Width="60"/>
+                    <GridViewColumn Header="状态" DisplayMemberBinding="{Binding Status,Converter={StaticResource StatusConverter}}" Width="60"/>
                     <GridViewColumn Header="进度" DisplayMemberBinding="{Binding Progress}" Width="60"/>
                     <GridViewColumn Header="总长度" DisplayMemberBinding="{Binding Length}" Width="60"/>
                     <GridViewColumn Header="文件路径" DisplayMemberBinding="{Binding FileName}"/>
                 </GridView>
             </ListView.View>
         </ListView>
-        <TextBlock x:Name="NotifyTb" Grid.Row="4" Grid.ColumnSpan="5"/>
+        <Grid Grid.Row="4" Grid.ColumnSpan="5">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="auto"/>
+                <ColumnDefinition/>
+                <ColumnDefinition Width="auto"/>
+                <ColumnDefinition/>
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="接收:" Style="{StaticResource TipHeader}"/>
+            <TextBlock Text="{Binding ServerMessage, Mode=OneWay}" Grid.Column="1" HorizontalAlignment="Left"/>
+            <TextBlock Text="发送:" Grid.Column="2"  Style="{StaticResource TipHeader}"/>
+            <TextBlock Text="{Binding ClientMessage, Mode=OneWay}" Grid.Column="3" HorizontalAlignment="Left"/>
+        </Grid>
     </Grid>
 </Window>

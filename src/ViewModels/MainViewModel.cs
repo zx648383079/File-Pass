@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Threading;
+using System.Threading.Tasks;
 using ZoDream.FileTransfer.Models;
 using ZoDream.FileTransfer.Utils;
 
@@ -26,6 +28,24 @@ namespace ZoDream.FileTransfer.ViewModels
             set => Set(ref fileItems, value);
         }
 
+        private CancellationTokenSource messageToken = new();
+        private string serverMessage = string.Empty;
+
+        public string ServerMessage
+        {
+            get => serverMessage;
+            set => Set(ref serverMessage, value);
+        }
+
+        private string clientMessage = string.Empty;
+
+        public string ClientMessage
+        {
+            get => clientMessage;
+            set => Set(ref clientMessage, value);
+        }
+
+
         public int FileIndexOf(string file)
         {
             for (int i = 0; i < FileItems.Count; i++)
@@ -44,7 +64,7 @@ namespace ZoDream.FileTransfer.ViewModels
             var i = FileIndexOf(file);
             var item = new FileItem(name, file)
             {
-                Status = isClient ? "准备发送" : "开始接收",
+                Status = isClient ? FileStatus.ReadySend : FileStatus.ReadyReceive,
                 Length = 0,
             };
             if (i < 0)
@@ -57,7 +77,6 @@ namespace ZoDream.FileTransfer.ViewModels
 
         public void UpdateFile(string file, long current, long total, bool isClient = true)
         {
-            var label = isClient ? "发送" : "接收";
             foreach (var item in FileItems)
             {
                 if (item.FileName != file)
@@ -66,21 +85,71 @@ namespace ZoDream.FileTransfer.ViewModels
                 }
                 if (total == 0)
                 {
-                    item.Status = $"{label}失败";
+                    item.Status = isClient ? FileStatus.SendFailure : FileStatus.ReceiveFailure;
                     break;
                 }
                 if (current < 0)
                 {
-                    item.Status = $"{label}跳过";
+                    item.Status = isClient ? FileStatus.SendIgnore : FileStatus.ReceiveIgnore;
                     break;
                 }
-                item.Status = label + (total == current ? "成功" : "中");
+                if (total == current)
+                {
+                    item.Status = isClient ? FileStatus.Sent : FileStatus.Received;
+                } else
+                {
+                    item.Status = isClient ? FileStatus.Sending : FileStatus.Receiving;
+                }
                 if (total > 0)
                 {
                     item.Length = total;
                 }
                 item.Progress = current;
                 break;
+            }
+            UpdateMessage(isClient);
+        }
+
+        public void UpdateMessage(bool isClient = true)
+        {
+            var total = 0;
+            var fininsh = 0;
+            var failure = 0;
+            foreach (var item in FileItems)
+            {
+                if (isClient && 
+                    (item.Status >= FileStatus.ReadySend || item.Status <= FileStatus.SendFailure)
+                    )
+                {
+                    total++;
+                    if (item.Status == FileStatus.Sent)
+                    {
+                        fininsh++;
+                    } else if (item.Status == FileStatus.SendFailure)
+                    {
+                        failure++;
+                    }
+                } else if (!isClient &&
+                    (item.Status >= FileStatus.ReadyReceive || item.Status <= FileStatus.ReceiveFailure))
+                {
+                    total++;
+                    if (item.Status == FileStatus.Received)
+                    {
+                        fininsh++;
+                    }
+                    else if (item.Status == FileStatus.ReceiveFailure)
+                    {
+                        failure++;
+                    }
+                }
+            }
+            var message = $"成功{fininsh}/失败{failure}/共{total}";
+            if (isClient)
+            {
+                ClientMessage = message;
+            } else
+            {
+                ServerMessage = message;
             }
         }
 
@@ -89,7 +158,7 @@ namespace ZoDream.FileTransfer.ViewModels
             for (int i = FileItems.Count - 1; i >= 0; i--)
             {
                 var item = FileItems[i];
-                if (item.Status == "发送中" || item.Status == "接收中")
+                if (item.Status == FileStatus.Sending || item.Status == FileStatus.Receiving)
                 {
                     continue;
                 }
@@ -108,6 +177,24 @@ namespace ZoDream.FileTransfer.ViewModels
             {
                 IpItems.Add(item);
             }
+        }
+
+        public void ShowMessage(string message)
+        {
+            messageToken.Cancel();
+            messageToken = new CancellationTokenSource();
+            var token = messageToken.Token;
+            ClientMessage = message;
+            Task.Factory.StartNew(() =>
+            {
+                Thread.Sleep(3000);
+                if (token.IsCancellationRequested)
+                {
+                    return;
+                }
+                ClientMessage = string.Empty;
+            }, token);
+
         }
     }
 }

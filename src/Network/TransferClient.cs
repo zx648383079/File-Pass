@@ -11,6 +11,9 @@ using ZoDream.FileTransfer.Utils;
 
 namespace ZoDream.FileTransfer.Network
 {
+
+    public delegate void InitFunc(string name, string relativeFile, string fileName);
+    public delegate void ProgressFunc(long current, long total, string fileName);
     public class TransferClient
     {
         public string Ip { get; private set; } = "127.0.0.1";
@@ -34,19 +37,14 @@ namespace ZoDream.FileTransfer.Network
             cancellationToken.Cancel();
         }
 
-        public void Send()
-        {
-
-        }
-
-        public void SendFile(string file, Action<string, string, string> init, Action<long, long, string> progress)
+        public void SendFile(string file, InitFunc init, ProgressFunc progress)
         {
             var fileName = Path.GetFileName(file);
             init?.Invoke(fileName, fileName, file);
             SendFile(fileName, file, progress);
         }
 
-        public void SendFiles(IEnumerable<FileInfoItem> files, Action<string, string, string> init, Action<long, long, string> progress)
+        public void SendFiles(IEnumerable<FileInfoItem> files, InitFunc init, ProgressFunc progress)
         {
             foreach (var item in files)
             {
@@ -64,7 +62,7 @@ namespace ZoDream.FileTransfer.Network
             }, null);
         }
 
-        public void SendFiles(IEnumerable<string> files, Action<string, string, string> init, Action<long, long, string> progress)
+        public void SendFiles(IEnumerable<string> files, InitFunc init, ProgressFunc progress)
         {
             SendFiles(files.Select(file =>
             {
@@ -73,12 +71,12 @@ namespace ZoDream.FileTransfer.Network
             }).ToList(), init, progress);
         }
 
-        public void SendFolder(string folder, Action<string, string, string> init, Action<long, long, string> progress)
+        public async void SendFolder(string folder, InitFunc init, ProgressFunc progress)
         {
-            SendFiles(Disk.GetAllFile(folder, Path.GetFileName(folder) + "\\"), init, progress);
+            SendFiles(await Disk.GetAllFileAsync(folder, Path.GetFileName(folder) + "\\"), init, progress);
         }
 
-        public void SendFileOrFolder(IEnumerable<string> files, Action<string, string, string> init, Action<long, long, string> progress)
+        public async void SendFileOrFolder(IEnumerable<string> files, InitFunc init, ProgressFunc progress)
         {
             var items = new List<FileInfoItem>();
             foreach (var file in files)
@@ -93,12 +91,12 @@ namespace ZoDream.FileTransfer.Network
                     items.Add(new FileInfoItem(info.Name, file, info.Name));
                     continue;
                 }
-                items.AddRange(Disk.GetAllFile(file, Path.GetFileName(file) + "\\"));
+                items.AddRange(await Disk.GetAllFileAsync(file, Path.GetFileName(file) + "\\"));
             }
             SendFiles(items, init, progress);
         }
 
-        private void SendFile(string fileName, string file, Action<long, long, string> progress)
+        private void SendFile(string fileName, string file, ProgressFunc progress)
         {
             if (cancellationToken.IsCancellationRequested)
             {
