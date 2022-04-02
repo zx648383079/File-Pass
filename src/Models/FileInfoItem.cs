@@ -14,11 +14,14 @@ namespace ZoDream.FileTransfer.Models
 
         public string RelativeFile { get; set; }
 
-        public FileInfoItem(string name, string fileName, string relativeFile)
+        public long Length { get; set; }
+
+        public FileInfoItem(string name, string fileName, string relativeFile, long size = 0)
         {
             Name = name;
             File = fileName;
             RelativeFile = relativeFile;
+            Length = size;
         }
     }
 }

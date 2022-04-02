@@ -75,6 +75,22 @@ namespace ZoDream.FileTransfer.ViewModels
             FileItems[i] = item;
         }
 
+        public void AddFile(FileInfoItem file, bool isClient = true)
+        {
+            var i = FileIndexOf(file.File);
+            var item = new FileItem(file.Name, file.File)
+            {
+                Status = isClient ? FileStatus.ReadySend : FileStatus.ReadyReceive,
+                Length = file.Length,
+            };
+            if (i < 0)
+            {
+                FileItems.Add(item);
+                return;
+            }
+            FileItems[i] = item;
+        }
+
         public void UpdateFile(string file, long current, long total, bool isClient = true)
         {
             foreach (var item in FileItems)

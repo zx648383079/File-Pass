@@ -30,13 +30,39 @@ namespace ZoDream.FileTransfer.Utils
 
             var fileInfo = theFolder.GetFiles();
             //遍历文件
-            files.AddRange(fileInfo.Select(nextFile => new FileInfoItem(nextFile.Name, nextFile.FullName, relativeFile + nextFile.Name)));
+            files.AddRange(fileInfo.Select(nextFile => new FileInfoItem(nextFile.Name, nextFile.FullName, relativeFile + nextFile.Name, nextFile.Length)));
             return files;
         }
 
         public static Task<IList<FileInfoItem>> GetAllFileAsync(string dir, string relativeFile = "")
         {
             return Task.Factory.StartNew(() => GetAllFile(dir, relativeFile));
+        }
+
+        public static string FormatSize(long size)
+        {
+            var len = size.ToString().Length;
+            if (len < 4)
+            {
+                return $"{size}B";
+            }
+            if (len < 7)
+            {
+                return Math.Round(Convert.ToDouble(size / 1024d), 2) + "KB";
+            }
+            if (len < 10)
+            {
+                return Math.Round(Convert.ToDouble(size / 1024d / 1024), 2) + "MB";
+            }
+            if (len < 13)
+            {
+                return Math.Round(Convert.ToDouble(size / 1024d / 1024 / 1024), 2) + "GB";
+            }
+            if (len < 16)
+            {
+                return Math.Round(Convert.ToDouble(size / 1024d / 1024 / 1024 / 1024), 2) + "TB";
+            }
+            return Math.Round(Convert.ToDouble(size / 1024d / 1024 / 1024 / 1024 / 1024), 2) + "PB";
         }
     }
 }

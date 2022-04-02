@@ -9,6 +9,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using ZoDream.FileTransfer.Models;
 
 namespace ZoDream.FileTransfer.Network
 {
@@ -106,7 +107,7 @@ namespace ZoDream.FileTransfer.Network
                 var relativeFile = Encoding.UTF8.GetString(bytes).TrimEnd(char.MinValue);
 
                 filePath = CreateFolder(folder, relativeFile, out string fileName);
-                init?.Invoke(fileName, relativeFile, filePath);
+                init?.Invoke(new FileInfoItem(fileName, filePath, relativeFile, fileLength));
                 if (!overFile && File.Exists(filePath)) 
                 {
                     ns.Close();

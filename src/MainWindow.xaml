@@ -11,6 +11,7 @@
         Loaded="Window_Loaded" Unloaded="Window_Unloaded">
     <Window.Resources>
         <cvt:FileStatusConverter x:Key="StatusConverter"/>
+        <cvt:SizeConverter x:Key="SizeConverter"/>
         <Style TargetType="TextBlock">
             <Setter Property="HorizontalAlignment" Value="Center"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
@@ -75,8 +76,8 @@
                 <GridView>
                     <GridViewColumn Header="文件名" DisplayMemberBinding="{Binding Name}" Width="100"/>
                     <GridViewColumn Header="状态" DisplayMemberBinding="{Binding Status,Converter={StaticResource StatusConverter}}" Width="60"/>
-                    <GridViewColumn Header="进度" DisplayMemberBinding="{Binding Progress}" Width="60"/>
-                    <GridViewColumn Header="总长度" DisplayMemberBinding="{Binding Length}" Width="60"/>
+                    <GridViewColumn Header="进度" DisplayMemberBinding="{Binding Progress, Converter={StaticResource SizeConverter}}" Width="60"/>
+                    <GridViewColumn Header="总长度" DisplayMemberBinding="{Binding Length, Converter={StaticResource SizeConverter}}" Width="60"/>
                     <GridViewColumn Header="文件路径" DisplayMemberBinding="{Binding FileName}"/>
                 </GridView>
             </ListView.View>

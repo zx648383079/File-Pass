@@ -12,7 +12,7 @@ using ZoDream.FileTransfer.Utils;
 namespace ZoDream.FileTransfer.Network
 {
 
-    public delegate void InitFunc(string name, string relativeFile, string fileName);
+    public delegate void InitFunc(FileInfoItem fileInfo);
     public delegate void ProgressFunc(long current, long total, string fileName);
     public class TransferClient
     {
@@ -30,6 +30,10 @@ namespace ZoDream.FileTransfer.Network
         {
             Ip = ip;
             Port = port;
+            if (cancellationToken.IsCancellationRequested)
+            {
+                cancellationToken = new CancellationTokenSource();
+            }
         }
 
         public void Close()
@@ -39,22 +43,27 @@ namespace ZoDream.FileTransfer.Network
 
         public void SendFile(string file, InitFunc init, ProgressFunc progress)
         {
-            var fileName = Path.GetFileName(file);
-            init?.Invoke(fileName, fileName, file);
-            SendFile(fileName, file, progress);
+            var fileInfo = new FileInfo(file);
+            if (!fileInfo.Exists)
+            {
+                return;
+            }
+            init?.Invoke(new FileInfoItem(fileInfo.Name, file, fileInfo.Name, fileInfo.Length));
+            SendFile(fileInfo.Name, file, progress);
         }
 
         public void SendFiles(IEnumerable<FileInfoItem> files, InitFunc init, ProgressFunc progress)
         {
             foreach (var item in files)
             {
-                init?.Invoke(item.Name, item.RelativeFile, item.File);
+                init?.Invoke(item);
             }
             ThreadPool.QueueUserWorkItem(w =>
             {
                 Parallel.ForEach(files, new ParallelOptions()
                 {
-                    MaxDegreeOfParallelism = ThreadCount
+                    MaxDegreeOfParallelism = ThreadCount,
+                    CancellationToken = cancellationToken.Token,
                 }, fileItem =>
                 {
                     SendFile(fileItem.RelativeFile, fileItem.File, progress);

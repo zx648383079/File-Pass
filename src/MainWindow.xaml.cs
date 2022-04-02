@@ -79,11 +79,11 @@ namespace ZoDream.FileTransfer
                 server = new TransferServer();
             }
             server.Open(ip, port);
-            server.Listen(saveFolder, (name, _, file) =>
+            server.Listen(saveFolder, (FileInfoItem item) =>
             {
                 App.Current.Dispatcher.Invoke(() =>
                 {
-                    ViewModel.AddFile(name, file, false);
+                    ViewModel.AddFile(item, false);
                 });
             }, (current, total, file) =>
             {
@@ -158,6 +158,7 @@ namespace ZoDream.FileTransfer
         private void ClearMenu_Click(object sender, RoutedEventArgs e)
         {
             ViewModel.ClearFile();
+            client?.Close();
         }
 
         private void ChooseFolderMenu_Click(object sender, RoutedEventArgs e)
@@ -178,12 +179,12 @@ namespace ZoDream.FileTransfer
             SendFiles(openFileDialog.FileNames);
         }
 
-        private void SendFileInit(string name, string relativeFile, string file)
+        private void SendFileInit(FileInfoItem item)
         {
             App.Current.Dispatcher.Invoke(() =>
             {
                 ChooseBtn.IsEnabled = false;
-                ViewModel.AddFile(name, file, true);
+                ViewModel.AddFile(item, true);
             });
         }
 
