@@ -20,12 +20,20 @@ namespace ZoDream.FileTransfer.ViewModels
         }
 
 
-        private ObservableCollection<FileItem> fileItems = new();
+        private ObservableCollection<FileItem> sendFileItems = new();
 
-        public ObservableCollection<FileItem> FileItems
+        public ObservableCollection<FileItem> SendFileItems
         {
-            get => fileItems;
-            set => Set(ref fileItems, value);
+            get => sendFileItems;
+            set => Set(ref sendFileItems, value);
+        }
+
+        private ObservableCollection<FileItem> receiveFileItems = new();
+
+        public ObservableCollection<FileItem> ReceiveFileItems
+        {
+            get => receiveFileItems;
+            set => Set(ref receiveFileItems, value);
         }
 
         private CancellationTokenSource messageToken = new();
@@ -46,11 +54,12 @@ namespace ZoDream.FileTransfer.ViewModels
         }
 
 
-        public int FileIndexOf(string file)
+        public int FileIndexOf(string file, bool isClient = true)
         {
-            for (int i = 0; i < FileItems.Count; i++)
+            var items = isClient ? SendFileItems : ReceiveFileItems;
+            for (int i = 0; i < items.Count; i++)
             {
-                if (FileItems[i].FileName == file)
+                if (items[i].FileName == file)
                 {
                     return i;
                 } 
@@ -61,39 +70,38 @@ namespace ZoDream.FileTransfer.ViewModels
 
         public void AddFile(string name, string file, bool isClient = true)
         {
-            var i = FileIndexOf(file);
-            var item = new FileItem(name, file)
+            AddFile(new FileItem(name, file)
             {
                 Status = isClient ? FileStatus.ReadySend : FileStatus.ReadyReceive,
                 Length = 0,
-            };
-            if (i < 0)
-            {
-                FileItems.Add(item);
-                return;
-            }
-            FileItems[i] = item;
+            }, isClient);
         }
 
         public void AddFile(FileInfoItem file, bool isClient = true)
         {
-            var i = FileIndexOf(file.File);
-            var item = new FileItem(file.Name, file.File)
+            AddFile(new FileItem(file.Name, file.File)
             {
                 Status = isClient ? FileStatus.ReadySend : FileStatus.ReadyReceive,
                 Length = file.Length,
-            };
+            }, isClient);
+        }
+
+        public void AddFile(FileItem file, bool isClient = true)
+        {
+            var i = FileIndexOf(file.FileName, isClient);
+            var items = isClient ? SendFileItems : ReceiveFileItems;
             if (i < 0)
             {
-                FileItems.Add(item);
+                items.Add(file);
                 return;
             }
-            FileItems[i] = item;
+            items[i] = file;
         }
 
         public void UpdateFile(string file, long current, long total, bool isClient = true)
         {
-            foreach (var item in FileItems)
+            var items = isClient ? SendFileItems : ReceiveFileItems;
+            foreach (var item in items)
             {
                 if (item.FileName != file)
                 {
@@ -131,7 +139,8 @@ namespace ZoDream.FileTransfer.ViewModels
             var total = 0;
             var fininsh = 0;
             var failure = 0;
-            foreach (var item in FileItems)
+            var items = isClient ? SendFileItems : ReceiveFileItems;
+            foreach (var item in items)
             {
                 if (isClient && 
                     (item.Status >= FileStatus.ReadySend || item.Status <= FileStatus.SendFailure)
@@ -169,16 +178,17 @@ namespace ZoDream.FileTransfer.ViewModels
             }
         }
 
-        public void ClearFile()
+        public void ClearFile(bool isClient = true)
         {
-            for (int i = FileItems.Count - 1; i >= 0; i--)
+            var items = isClient ? SendFileItems : ReceiveFileItems;
+            for (int i = items.Count - 1; i >= 0; i--)
             {
-                var item = FileItems[i];
+                var item = items[i];
                 if (item.Status == FileStatus.Sending || item.Status == FileStatus.Receiving)
                 {
                     continue;
                 }
-                FileItems.RemoveAt(i);
+                items.RemoveAt(i);
             }
         }
 

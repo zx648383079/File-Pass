@@ -3,6 +3,8 @@
 
 
  ![File Transfer](sceen/1.png)
+ 
+ ![File Transfer App](sceen/2.png)
 
 ## 功能介绍
 
