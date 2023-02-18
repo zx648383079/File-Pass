@@ -3,7 +3,7 @@ using ZoDream.FileTransfer.ViewModels;
 
 namespace ZoDream.FileTransfer.Models
 {
-    public class FileItem : BindableBase
+    public class FileItem : BindableObject
     {
         public string Name { get; set; }
 
@@ -12,7 +12,11 @@ namespace ZoDream.FileTransfer.Models
         public FileStatus Status
         {
             get => status;
-            set => Set(ref status, value);
+            set
+            {
+                status = value;
+                OnPropertyChanged();
+            }
         }
 
 
@@ -24,7 +28,11 @@ namespace ZoDream.FileTransfer.Models
         public long Length
         {
             get => length;
-            set => Set(ref length, value);
+            set
+            {
+                length = value;
+                OnPropertyChanged();
+            }
         }
 
 
@@ -36,39 +44,14 @@ namespace ZoDream.FileTransfer.Models
             get => progress;
             set
             {
-                UpdateSpeed(value, progress);
-                Set(ref progress, value);
+                // UpdateSpeed(value, progress);
+                progress = value;
+                OnPropertyChanged();
             }
         }
 
 
-        private long speed = 0;
-
-        public long Speed
-        {
-            get => speed;
-            set => Set(ref speed, value);
-        }
-
-        private DateTime LastTime = DateTime.MinValue;
-
-        public void UpdateSpeed(long newProgress, long oldProgress = 0)
-        {
-            if (LastTime == DateTime.MinValue)
-            {
-                Speed = newProgress;
-                return;
-            }
-            var now = DateTime.Now;
-            var diff = (now - LastTime).TotalSeconds;
-            LastTime = now;
-            if (diff <= 0)
-            {
-                Speed = 0;
-                return;
-            }
-            Speed = (long)Math.Ceiling((newProgress - oldProgress) / diff);
-        }
+        
 
 
         public FileItem(string name, string fileName)

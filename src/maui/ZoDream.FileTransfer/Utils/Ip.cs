@@ -1,21 +1,20 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Net;
+﻿using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
-using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace ZoDream.FileTransfer.Utils
 {
-    public static class Ip
+    public static partial class Ip
     {
         public static string Get()
         {
+            return GetIpList().FirstOrDefault();
+        }
+
+        public static IList<string> GetIpList()
+        {
+            var items = new List<string>();
             try
             {
                 var HostName = Dns.GetHostName(); //得到主机名
@@ -28,18 +27,36 @@ namespace ZoDream.FileTransfer.Utils
                     //AddressFamily.InterNetworkV6表示此地址为IPv6类型
                     if (ips[i].AddressFamily == AddressFamily.InterNetwork)
                     {
-                        return ips[i].ToString();
+                        items.Add(ips[i].ToString());
                     }
                 }
-                return string.Empty;
+                return items;
             }
             catch (Exception)
             {
-                return string.Empty;
+                return items;
             }
         }
 
-        public static Task<List<string>> AllAsync(string baseIp, string exsitIp)
+        public static async Task<List<string>> GetGroupOtherIpAsync()
+        {
+            var existItems = GetIpList();
+            foreach (var ip in existItems)
+            {
+                if (ip.StartsWith("192."))
+                {
+                    return await GetGroupIpAsync(ip[..(ip.LastIndexOf('.') + 1)], existItems);
+                }
+            }
+            return new List<string>();
+        }
+
+        public static Task<List<string>> GetGroupIpAsync(string baseIp, string existIp)
+        {
+            return GetGroupIpAsync(baseIp, string.IsNullOrWhiteSpace(existIp) ? new string[0] : new string[] { existIp });
+        }
+
+        public static Task<List<string>> GetGroupIpAsync(string baseIp, ICollection<string> existIpItems)
         {
             return Task.Factory.StartNew(() =>
             {
@@ -49,7 +66,7 @@ namespace ZoDream.FileTransfer.Utils
                 for (var i = 1; i <= 255; i++)
                 {
                     var ip = baseIp + i;
-                    if (ip == exsitIp)
+                    if (existIpItems.Contains(ip))
                     {
                         continue;
                     }
@@ -85,12 +102,15 @@ namespace ZoDream.FileTransfer.Utils
             {
                 return new Tuple<string, int>(url, def);
             }
-            var port = url.Substring(i + 1);
-            if (Regex.IsMatch(port, @"^\d$"))
+            var port = url[(i + 1)..];
+            if (IpAddressRegex().IsMatch(port))
             {
                 return new Tuple<string, int>(url.Substring(0, i), Convert.ToInt32(port));
             }
             return new Tuple<string, int>(url, def);
         }
+
+        [GeneratedRegex("^\\d$")]
+        private static partial Regex IpAddressRegex();
     }
 }

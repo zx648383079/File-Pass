@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:ZoDream.FileTransfer.ViewModels"
+             x:Class="ZoDream.FileTransfer.Views.SettingPage"
+             Style="{StaticResource PageStyle}"
+             Title="设置">
+    <ContentPage.BindingContext>
+        <vm:SettingViewModel/>
+    </ContentPage.BindingContext>
+    <ScrollView>
+        <VerticalStackLayout Spacing="10" Style="{StaticResource BodyStyle}">
+            <Frame Style="{StaticResource InputBox}">
+                <VerticalStackLayout>
+                    <Grid ColumnDefinitions="*,auto,auto" Style="{StaticResource InputHasMoreBox}">
+                        <Label Text="本机设置" Style="{StaticResource InputLabel}"/>
+                        <Label Text="192.168.0.1:8080" Grid.Column="1"  Style="{StaticResource InputText}"/>
+                        <Label Text="&#xe64b;" Style="{StaticResource IconTb}"  Grid.Column="2"/>
+                    </Grid>
+                    <Grid ColumnDefinitions="*,*" 
+                      RowDefinitions="*,*,*" Style="{StaticResource InputMoreBox}">
+                        <Label Text="IP" Style="{StaticResource InputLabel}"/>
+                        <Entry Text="{Binding Ip}" Keyboard="Numeric" Grid.Column="1"/>
+                        <Label Text="Port" Grid.Row="1" Style="{StaticResource InputLabel}"/>
+                        <Entry Text="{Binding Port}" Keyboard="Numeric" Grid.Column="1"  Grid.Row="1"/>
+                        <Label Text="昵称" Grid.Row="2" Style="{StaticResource InputLabel}"/>
+                        <Entry Text="{Binding Name}" Grid.Column="1" Grid.Row="2"/>
+                    </Grid>
+                </VerticalStackLayout>
+            </Frame>
+
+            <Frame Style="{StaticResource InputBox}">
+                <Grid ColumnDefinitions="*,auto" RowDefinitions="*,*">
+                    <Label Text="启动隐藏模式" Style="{StaticResource InputLabel}"/>
+                    <Label Text="启动监听模式，允许其他设备发现本机" Grid.Row="1" 
+                       Style="{StaticResource InputMetaLabel}"/>
+                    <Switch IsToggled="{Binding IsHideClient}" Grid.Column="1" Grid.RowSpan="2"/>
+                </Grid>
+            </Frame>
+
+            <Frame Style="{StaticResource InputBox}">
+                <Grid ColumnDefinitions="*,auto"  RowDefinitions="*,*">
+                    <Label Text="开启自动连接" Style="{StaticResource InputLabel}"/>
+                    <Label Text="当新设备连接本机时，自动同意" Grid.Row="1" 
+                       Style="{StaticResource InputMetaLabel}"/>
+                    <Switch IsToggled="{Binding IsOpenLink}" Grid.Column="1"  Grid.RowSpan="2"/>
+                </Grid>
+            </Frame>
+
+            <Frame Style="{StaticResource InputBox}">
+                <Grid ColumnDefinitions="*,auto"  RowDefinitions="*,*">
+                    <Label Text="自动接收文件" Style="{StaticResource InputLabel}"/>
+                    <Label Text="当收到文件时自动同意接收并保存文件" Grid.Row="1" 
+                       Style="{StaticResource InputMetaLabel}"/>
+                    <Switch IsToggled="{Binding IsSaveFile}" Grid.Column="1"  Grid.RowSpan="2"/>
+                </Grid>
+            </Frame>
+            <Button Text="清除消息记录"/>
+            <Button Text="重置"/>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

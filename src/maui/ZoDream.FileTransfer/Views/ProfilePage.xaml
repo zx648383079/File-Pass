@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:ZoDream.FileTransfer.ViewModels"
+             x:Class="ZoDream.FileTransfer.Views.ProfilePage"
+             Style="{StaticResource PageStyle}"
+             Title="详细信息">
+    <ContentPage.BindingContext>
+        <vm:ProfileViewModel/>
+    </ContentPage.BindingContext>
+    <VerticalStackLayout Spacing="10" Style="{StaticResource BodyStyle}">
+
+        <Frame Style="{StaticResource InputBox}" CornerRadius="0" Margin="-20,0">
+            <Grid ColumnDefinitions="80,*" RowDefinitions="*,auto,auto">
+                <Image Source="avatar0.png"
+                       Grid.RowSpan="3"
+                         Aspect="AspectFill"
+                         HeightRequest="60"
+                         WidthRequest="60"
+                       HorizontalOptions="Center" VerticalOptions="Center"/>
+                <Label Text="{Binding User.Name}" Grid.Column="1"/>
+                <Label Text="{Binding User.Ip,StringFormat='IP:{0}'}" Grid.Column="1" Grid.Row="1"/>
+                <Label Text="上次联系时间：2010-09-09" Grid.Column="1" Grid.Row="2"/>
+            </Grid>
+        </Frame>
+
+        <Frame Style="{StaticResource InputBox}">
+            <Grid ColumnDefinitions="*,auto">
+                <Label Text="屏蔽此IP" Style="{StaticResource InputLabel}"/>
+                <Switch Grid.Column="1"/>
+            </Grid>
+        </Frame>
+        
+        <Button Text="删除此IP"/>
+    </VerticalStackLayout>
+</ContentPage>

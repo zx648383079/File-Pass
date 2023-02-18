@@ -1,9 +1,0 @@
-﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-                    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-                    x:Class="ZoDream.FileTransfer.Skins.LightTheme">
-    <Color x:Key="PageBackgroundColor">White</Color>
-    <Color x:Key="PrimaryColor">#512bdf</Color>
-    <Color x:Key="SecondaryColor">White</Color>
-    <Color x:Key="PrimaryTextColor">Black</Color>
-    <Color x:Key="SecondaryTextColor">Black</Color>
-</ResourceDictionary>

@@ -1,20 +1,24 @@
-﻿namespace ZoDream.FileTransfer
+﻿using ZoDream.FileTransfer.Repositories;
+
+namespace ZoDream.FileTransfer
 {
     public partial class App : Application
     {
         public App()
         {
             InitializeComponent();
-            Current.RequestedThemeChanged += (s, a) =>
-            {
-                var mergedDictionaries = Current.Resources.MergedDictionaries;
-                if (mergedDictionaries != null)
-                {
-                    mergedDictionaries.Clear();
-                    mergedDictionaries.Add(a.RequestedTheme == AppTheme.Dark ? new Skins.DarkTheme() : new Skins.LightTheme());
-                }
-            };
-            MainPage = new MainPage();
+            Repository ??= new AppRepository();
+
+            MainPage = new AppShell();
         }
+
+
+        protected override void CleanUp()
+        {
+            Repository?.Dispose();
+            base.CleanUp();
+        }
+
+        internal static AppRepository Repository { get; private set; }
     }
 }

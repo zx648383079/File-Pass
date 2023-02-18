@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:ZoDream.FileTransfer.ViewModels"
+             xmlns:ctl="clr-namespace:ZoDream.FileTransfer.Controls"
+             x:Class="ZoDream.FileTransfer.Views.SearchPage"
+             Style="{StaticResource PageStyle}"
+             Title="发现">
+    <ContentPage.BindingContext>
+        <vm:SearchViewModel/>
+    </ContentPage.BindingContext>
+    <Grid RowDefinitions="auto,*">
+        <Grid ColumnDefinitions="*,auto" RowDefinitions="*,*">
+            <Entry Text="{Binding Ip}" Keyboard="Numeric"
+                   Placeholder="输入IP，为空时搜索局域网其他IP" Grid.ColumnSpan="2"/>
+            <Entry Text="{Binding Port}" Keyboard="Numeric" Placeholder="Port" Grid.Row="1"/>
+            <Button Text="&#xe70a;" 
+                    SemanticProperties.Hint="搜索"
+                    Command="{Binding SearchCommand}" Style="{StaticResource BodyIconBtn}" Grid.Row="1" Grid.Column="1"/>
+        </Grid>
+
+        <CollectionView ItemsSource="{Binding UserItems}" Grid.Row="1">
+            <CollectionView.ItemTemplate>
+                <DataTemplate>
+                    <ctl:UserOptionItem 
+                        YesCommand="{Binding Source={RelativeSource AncestorType={x:Type vm:SearchViewModel}}, Path=AgreeCommand}"
+                        NoCommand="{Binding Source={RelativeSource AncestorType={x:Type vm:SearchViewModel}}, Path=DisagreeCommand}"
+                        CommandParameter="{Binding}"/>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+        <ActivityIndicator IsRunning="{Binding IsLoading}" Grid.Row="1"/>
+    </Grid>
+</ContentPage>

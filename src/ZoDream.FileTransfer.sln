@@ -7,7 +7,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ZoDream.FileTransfer", "win
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "maui", "maui", "{139DC882-CCF8-49B0-BFB0-6E0F0D8189C9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZoDream.FileTransfer", "maui\ZoDream.FileTransfer\ZoDream.FileTransfer.csproj", "{717FC27E-87AC-44D4-887B-1556340CE8C9}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZoDream.FileTransfer", "maui\ZoDream.FileTransfer\ZoDream.FileTransfer.csproj", "{E4EE2440-2E86-483D-B8F0-569125B564A9}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -19,18 +19,18 @@ Global
 		{6914B736-D499-44D0-95B5-F9AEF1ADE385}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6914B736-D499-44D0-95B5-F9AEF1ADE385}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6914B736-D499-44D0-95B5-F9AEF1ADE385}.Release|Any CPU.Build.0 = Release|Any CPU
-		{717FC27E-87AC-44D4-887B-1556340CE8C9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{717FC27E-87AC-44D4-887B-1556340CE8C9}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{717FC27E-87AC-44D4-887B-1556340CE8C9}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
-		{717FC27E-87AC-44D4-887B-1556340CE8C9}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{717FC27E-87AC-44D4-887B-1556340CE8C9}.Release|Any CPU.Build.0 = Release|Any CPU
-		{717FC27E-87AC-44D4-887B-1556340CE8C9}.Release|Any CPU.Deploy.0 = Release|Any CPU
+		{E4EE2440-2E86-483D-B8F0-569125B564A9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E4EE2440-2E86-483D-B8F0-569125B564A9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E4EE2440-2E86-483D-B8F0-569125B564A9}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
+		{E4EE2440-2E86-483D-B8F0-569125B564A9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E4EE2440-2E86-483D-B8F0-569125B564A9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E4EE2440-2E86-483D-B8F0-569125B564A9}.Release|Any CPU.Deploy.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
-		{717FC27E-87AC-44D4-887B-1556340CE8C9} = {139DC882-CCF8-49B0-BFB0-6E0F0D8189C9}
+		{E4EE2440-2E86-483D-B8F0-569125B564A9} = {139DC882-CCF8-49B0-BFB0-6E0F0D8189C9}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {1D2110C7-0A25-4F82-AB9B-BBEE5889BF10}

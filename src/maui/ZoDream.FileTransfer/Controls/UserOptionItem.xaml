@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="ZoDream.FileTransfer.Controls.UserOptionItem">
+    <Grid RowDefinitions="*,*" 
+          ColumnDefinitions="80,*,auto" 
+          HeightRequest="80" 
+          Padding="10, 0"
+          Style="{StaticResource InputBox}">
+        <Grid Grid.RowSpan="2">
+            <Image Source="{Binding Avatar}"
+                    Style="{StaticResource CircleImage}"/>
+        </Grid>
+        <Label Text="{Binding Name}" Grid.Column="1" Style="{StaticResource InputLabel}"/>
+        <Label Text="{Binding Ip}" Grid.Column="1" Grid.Row="1"  Style="{StaticResource InputMetaLabel}"/>
+
+        <HorizontalStackLayout Grid.Column="2" Grid.RowSpan="2">
+            <Button x:Name="YesBtn" 
+                    Clicked="YesBtn_Clicked"
+                    Text="&#xe648;" SemanticProperties.Hint="加为好友" 
+                    Style="{StaticResource CircleIconBtn}"/>
+            <Button x:Name="NoBtn" 
+                    Clicked="NoBtn_Clicked"
+                    Text="&#xe653;" SemanticProperties.Hint="拒绝" 
+                    Style="{StaticResource CircleIconBtn}" 
+                    BackgroundColor="{StaticResource Gray500}"/>
+        </HorizontalStackLayout>
+    </Grid>
+</ContentView>

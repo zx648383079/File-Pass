@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:ctl="clr-namespace:ZoDream.FileTransfer.Controls"
+             xmlns:vm="clr-namespace:ZoDream.FileTransfer.ViewModels"
+             x:Class="ZoDream.FileTransfer.Views.ChatPage">
+    <ContentPage.BindingContext>
+        <vm:ChatViewModel/>
+    </ContentPage.BindingContext>
+    <Shell.TitleView>
+        <Grid ColumnDefinitions="Auto,*,Auto" HeightRequest="48">
+            <!--<Button Text="&#xe64a;" Style="{StaticResource IconBtn}"/>-->
+            <Label Text="{Binding Title}" Style="{StaticResource TitleTb}" HorizontalOptions="Center" Grid.Column="1"/>
+            <Button Text="&#xe61f;" Style="{StaticResource IconBtn}"
+                    SemanticProperties.Hint="聊天设置"
+                    Command="{Binding ProfileCommand}"
+                    Grid.Column="2"/>
+        </Grid>
+    </Shell.TitleView>
+    <Grid RowDefinitions="*,Auto,Auto">
+        <ctl:MessageListView ItemsSource="{Binding MessageItems}"/>
+        <FlexLayout Grid.Row="1" HeightRequest="48" Direction="Row">
+            <Button Text="&#xe68b;" SemanticProperties.Hint="发送图片" Style="{StaticResource BodyIconBtn}"/>
+            <Button Text="&#xe68c;" Style="{StaticResource BodyIconBtn}"/>
+            <Button Text="&#xe68d;" Style="{StaticResource BodyIconBtn}"/>
+            <Button Text="&#xe6e0;" Style="{StaticResource BodyIconBtn}"/>
+            <Button Text="&#xe639;" Style="{StaticResource BodyIconBtn}"/>
+        </FlexLayout>
+        <Grid Grid.Row="2" ColumnDefinitions="*,auto,auto">
+            <Entry Text="{Binding Content,Mode=TwoWay}"/>
+            <Button Text="&#xe6ea;" SemanticProperties.Hint="发送新消息" Style="{StaticResource BodyIconBtn}" Grid.Column="1"/>
+            <Button Text="&#xe674;" SemanticProperties.Hint="更多操作" Style="{StaticResource BodyIconBtn}" Grid.Column="2"/>
+        </Grid>
+    </Grid>
+</ContentPage>
