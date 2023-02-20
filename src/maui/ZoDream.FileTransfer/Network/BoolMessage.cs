@@ -8,14 +8,6 @@ namespace ZoDream.FileTransfer.Network
 
         public bool Value { get; set; }
 
-        public MessageItem ConverterTo()
-        {
-            return new TextMessageItem()
-            {
-                Content = "",
-                CreatedAt = DateTime.Now,
-            };
-        }
 
         public Task<bool> ReceiveAsync(SocketClient socket)
         {

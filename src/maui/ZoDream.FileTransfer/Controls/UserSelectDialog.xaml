@@ -2,10 +2,15 @@
 <ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:ctl="clr-namespace:ZoDream.FileTransfer.Controls"
+             xmlns:vm="clr-namespace:ZoDream.FileTransfer.ViewModels"
              x:Class="ZoDream.FileTransfer.Controls.UserSelectDialog">
+    <ContentView.BindingContext>
+        <vm:NotifyViewModel/>
+    </ContentView.BindingContext>
 
-
-    <Grid x:Name="DialogBox" HeightRequest="300" VerticalOptions="End" HorizontalOptions="Fill">
+    <Grid x:Name="DialogBox" HeightRequest="300" 
+          TranslationY="500"
+          VerticalOptions="End" HorizontalOptions="Fill">
         <BoxView Color="{StaticResource Gray100}" CornerRadius="40,40,0,0">
             <BoxView.Shadow>
                 <Shadow Brush="Black"

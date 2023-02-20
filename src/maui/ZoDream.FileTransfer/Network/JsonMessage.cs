@@ -9,14 +9,6 @@ namespace ZoDream.FileTransfer.Network
 
         public T Data { get; set; }
 
-        public MessageItem ConverterTo()
-        {
-            return new TextMessageItem()
-            {
-                Content = "",
-                CreatedAt = DateTime.Now,
-            };
-        }
 
         public Task<bool> ReceiveAsync(SocketClient socket)
         {

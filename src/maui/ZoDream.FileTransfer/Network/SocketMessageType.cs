@@ -20,7 +20,7 @@ namespace ZoDream.FileTransfer.Network
         CallInfo,
         // 发送本机基本信息
         Info,
-        // 想要建立连接
+        // 想要建立连接,并发送本机信息
         CallAddUser,
         // 是否同意建立连接
         AddUser,

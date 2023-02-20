@@ -26,11 +26,18 @@
 
         <Frame Style="{StaticResource InputBox}">
             <Grid ColumnDefinitions="*,auto">
+                <Label Text="自定义加密证书" Style="{StaticResource InputLabel}"/>
+                <Switch Grid.Column="1"/>
+            </Grid>
+        </Frame>
+
+        <Frame Style="{StaticResource InputBox}">
+            <Grid ColumnDefinitions="*,auto">
                 <Label Text="屏蔽此IP" Style="{StaticResource InputLabel}"/>
                 <Switch Grid.Column="1"/>
             </Grid>
         </Frame>
-        
+
         <Button Text="删除此IP"/>
     </VerticalStackLayout>
 </ContentPage>

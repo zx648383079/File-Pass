@@ -14,7 +14,7 @@
                 <VerticalStackLayout>
                     <Grid ColumnDefinitions="*,auto,auto" Style="{StaticResource InputHasMoreBox}">
                         <Label Text="本机设置" Style="{StaticResource InputLabel}"/>
-                        <Label Text="192.168.0.1:8080" Grid.Column="1"  Style="{StaticResource InputText}"/>
+                        <Label Text="{Binding IpTitle}" Grid.Column="1"  Style="{StaticResource InputText}"/>
                         <Label Text="&#xe64b;" Style="{StaticResource IconTb}"  Grid.Column="2"/>
                     </Grid>
                     <Grid ColumnDefinitions="*,*" 
@@ -25,6 +25,23 @@
                         <Entry Text="{Binding Port}" Keyboard="Numeric" Grid.Column="1"  Grid.Row="1"/>
                         <Label Text="昵称" Grid.Row="2" Style="{StaticResource InputLabel}"/>
                         <Entry Text="{Binding Name}" Grid.Column="1" Grid.Row="2"/>
+                    </Grid>
+                </VerticalStackLayout>
+            </Frame>
+
+            <Frame Style="{StaticResource InputBox}">
+                <VerticalStackLayout>
+                    <Grid ColumnDefinitions="*,auto,auto" Style="{StaticResource InputHasMoreBox}">
+                        <Label Text="通讯加密设置" Style="{StaticResource InputLabel}"/>
+                        <Switch Grid.Column="1"  Style="{StaticResource InputText}"/>
+                        <Label Text="&#xe64b;" Style="{StaticResource IconTb}"  Grid.Column="2"/>
+                    </Grid>
+                    <Grid ColumnDefinitions="*,*" 
+                      RowDefinitions="*,*" Style="{StaticResource InputMoreBox}">
+                        <Label Text="密码" Style="{StaticResource InputLabel}"/>
+                        <Entry Grid.Column="1"/>
+                        <Label Text="加密证书" Grid.Row="1" Style="{StaticResource InputLabel}"/>
+                        <Entry Keyboard="Numeric" Grid.Column="1"  Grid.Row="1"/>
                     </Grid>
                 </VerticalStackLayout>
             </Frame>

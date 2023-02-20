@@ -3,9 +3,9 @@ using CommunityToolkit.Mvvm.Input;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Linq;
 using System.Windows.Input;
 using ZoDream.FileTransfer.Models;
 
@@ -17,9 +17,10 @@ namespace ZoDream.FileTransfer.ViewModels
 		{
 			ProfileCommand = new AsyncRelayCommand(GoToProfile);
 			SendCommand = new AsyncRelayCommand(SendAsync);
+            App.Repository.NewMessage += Repository_NewMessage;
         }
 
-		private UserItem User;
+        private UserItem User;
 
 		private string title = "加载中。。。";
 
@@ -67,11 +68,13 @@ namespace ZoDream.FileTransfer.ViewModels
 			{
 				return;
 			}
+			var success = await App.Repository.SendTextAsync(User.Id, Content);
 			MessageItems.Add(new TextMessageItem()
 			{
 				IsSender = true,
 				Content = Content,
 				CreatedAt = DateTime.Now,
+				IsSuccess = success
 			});
 			Content = string.Empty;
 		}
@@ -87,7 +90,33 @@ namespace ZoDream.FileTransfer.ViewModels
 			{
 				User = App.Repository.Get((string)query["user"]);
 				Title = $"与 {User.Name} 聊天中";
+				_ = LoadMessageAsync();
 			}
+        }
+
+		private async Task LoadMessageAsync()
+		{
+			var items = await App.Repository.LoadMessageAsync(User);
+			if (items == null)
+			{
+				return;
+			}
+            foreach (var item in items)
+            {
+				MessageItems.Add(item);
+            }
+			
+        }
+
+        private void Repository_NewMessage(string userId, MessageItem message)
+        {
+            if (userId != User?.Id)
+			{
+				return;
+			}
+			message.IsSender = false;
+			message.IsSuccess = true;
+			MessageItems.Add(message);
         }
     }
 }

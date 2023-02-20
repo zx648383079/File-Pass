@@ -20,6 +20,18 @@ namespace ZoDream.FileTransfer.Models
 
         public int Port { get; set; }
 
+        private string markName;
+
+        public string MarkName
+        {
+            get { return markName; }
+            set { 
+                markName = value;
+                OnPropertyChanged();
+            }
+        }
+
+
         [NonSerialized()]
         private bool online = false;
 
@@ -70,5 +82,21 @@ namespace ZoDream.FileTransfer.Models
 
 
         public Color AvatarBackground { get; set; }
+
+
+        public UserItem()
+        {
+            
+        }
+
+        public UserItem(UserInfoItem item)
+        {
+            Id = item.Id;
+            Avatar = item.Avatar;
+            Name = item.Name;
+            Ip = item.Ip;
+            Port = item.Port;
+            MarkName = Name;
+        }
     }
 }

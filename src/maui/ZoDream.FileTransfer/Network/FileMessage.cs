@@ -10,18 +10,14 @@ namespace ZoDream.FileTransfer.Network
     
     public class FileMessage : ISocketMessage
     {
+        public SocketMessageType Type { get; set; } = SocketMessageType.File;
         public string Md5 { get; set; }
-
-        public MessageItem ConverterTo()
-        {
-            throw new NotImplementedException();
-        }
 
         public Task<bool> ReceiveAsync(SocketClient socket)
         {
             Md5 = socket.ReceiveText();
             var length = socket.ReceiveContentLength();
-            using var reader = App.Repository.Repository.CacheWriter(Md5);
+            using var reader = App.Repository.FileHub.CacheWriter(Md5);
             socket.ReceiveStream(reader, length);
             return Task.FromResult(true);
         }
@@ -35,20 +31,16 @@ namespace ZoDream.FileTransfer.Network
 
     public class FilePartMessage : ISocketMessage
     {
+        public SocketMessageType Type { get; set; } = SocketMessageType.FilePart;
         public string FileName { get; set; }
 
         public long Length { get; set; }
-
-        public MessageItem ConverterTo()
-        {
-            throw new NotImplementedException();
-        }
 
         public Task<bool> ReceiveAsync(SocketClient socket)
         {
             FileName = socket.ReceiveText();
             Length = socket.ReceiveContentLength();
-            using var reader = App.Repository.Repository.CacheWriter(FileName);
+            using var reader = App.Repository.FileHub.CacheWriter(FileName);
             socket.ReceiveStream(reader, Length);
             return Task.FromResult(true);
         }
@@ -64,14 +56,12 @@ namespace ZoDream.FileTransfer.Network
     {
         const string Separator = ",";
 
+        public SocketMessageType Type { get; set; } = SocketMessageType.FileMerge;
+
         public string Md5 { get; set; }
 
         public IList<string> PartItems { get; set; }
 
-        public MessageItem ConverterTo()
-        {
-            throw new NotImplementedException();
-        }
 
         public Task<bool> ReceiveAsync(SocketClient socket)
         {

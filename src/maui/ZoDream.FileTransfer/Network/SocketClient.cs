@@ -15,6 +15,7 @@ namespace ZoDream.FileTransfer.Network
 
         public int Port { get; private set; } = 80;
 
+        private bool IsLoopReceive = false;
         private readonly Socket ClientSocket;
         private readonly CancellationTokenSource CancellationToken = new();
         public event MessageReceivedEventHandler MessageReceived;
@@ -32,20 +33,28 @@ namespace ZoDream.FileTransfer.Network
 
         public void LoopReceive()
         {
+            IsLoopReceive = true;
             Task.Factory.StartNew(() =>
             {
                 while (true)
                 {
                     if (CancellationToken.IsCancellationRequested)
                     {
+                        IsLoopReceive = false;
                         return;
                     }
                     if (!ClientSocket.Connected)
                     {
+                        IsLoopReceive = false;
+                        MessageReceived?.Invoke(this, new NoneMessage() { Type = SocketMessageType.Close});
                         return;
                     }
                     var message = ReceiveAsync().GetAwaiter().GetResult();
-                    MessageReceived?.Invoke(Ip, message);
+                    if (message == null)
+                    {
+                        continue;
+                    }
+                    MessageReceived?.Invoke(this, message);
                 }
             }, CancellationToken.Token);
         }
@@ -55,55 +64,29 @@ namespace ZoDream.FileTransfer.Network
 
         public async Task<ISocketMessage> ReceiveAsync()
         {
-            var type = ReceiveMessageType();
-            ISocketMessage message;
-            switch (type)
+            if (!ClientSocket.Connected)
             {
-                case SocketMessageType.Ip:
-                    message = new IpMessage();
-                    break;
-                case SocketMessageType.CallFile:
-                case SocketMessageType.Numeric:
-                case SocketMessageType.String:
-                    message = new TextMessage() { Type = type };
-                    break;
-                case SocketMessageType.AddUser:
-                case SocketMessageType.Bool:
-                    message = new BoolMessage() { Type = type};
-                    break;
-                case SocketMessageType.Null:
-                case SocketMessageType.Close:
-                case SocketMessageType.Ping:
-                case SocketMessageType.CallInfo:
-                case SocketMessageType.CallAddUser:
-                    message = new NoneMessage() { Type = type };
-                    break;
-                case SocketMessageType.Info:
-                    message = new JSONMessage<UserInfoItem>() { Type = type};
-                    break;
-                case SocketMessageType.FileInfo:
-                    message = new JSONMessage<FileInfoItem>() { Type = type };
-                    break;
-                case SocketMessageType.FilePart:
-                    // [titleLength:4][title][contentLength:4][stream]
-                    message = new FilePartMessage();
-                    break;
-                case SocketMessageType.FileMerge:
-                    // [md5Length][md5][partLength:4][p1,p2,p3]
-                    message = new FileMergeMessage();
-                    break;
-                case SocketMessageType.File:
-                    // [md5Length][md5][fileLength:4][stream]
-                    message = new FileMessage();
-                    break;
-                default:
-                    message = new TextMessage() { Type = type };
-                    break;
+                return new NoneMessage() { Type = SocketMessageType.Close };
             }
+            var type = ReceiveMessageType();
+            ISocketMessage message = type switch
+            {
+                SocketMessageType.Ip => new IpMessage(),
+                SocketMessageType.CallFile or SocketMessageType.Numeric or SocketMessageType.String => new TextMessage(),
+                SocketMessageType.AddUser or SocketMessageType.Bool => new BoolMessage(),
+                SocketMessageType.Null or SocketMessageType.Close or SocketMessageType.Ping or SocketMessageType.CallInfo => new NoneMessage(),
+                SocketMessageType.Info or SocketMessageType.CallAddUser => new JSONMessage<UserInfoItem>(),
+                SocketMessageType.FileInfo => new JSONMessage<FileInfoItem>(),
+                SocketMessageType.FilePart => new FilePartMessage(),// [titleLength:4][title][contentLength:4][stream]
+                SocketMessageType.FileMerge => new FileMergeMessage(),// [md5Length][md5][partLength:4][p1,p2,p3]
+                SocketMessageType.File => new FileMessage(),// [md5Length][md5][fileLength:4][stream]
+                _ => new TextMessage(),
+            };
             if (message == null)
             {
                 return null;
             }
+            message.Type = type;
             await message.ReceiveAsync(this);
             return message;
         }
@@ -155,6 +138,37 @@ namespace ZoDream.FileTransfer.Network
             return Convert.ToBoolean(buffer[0]);
         }
 
+        /// <summary>
+        /// 等待获取下一条信息
+        /// </summary>
+        /// <param name="messageType"></param>
+        /// <returns></returns>
+        public async Task<ISocketMessage> ReceiveAsync(SocketMessageType messageType)
+        {
+            if (IsLoopReceive)
+            {
+                // 处于循环中无法获取
+                return null;
+            }
+            while (true)
+            {
+                var message = await ReceiveAsync();
+                if (message == null)
+                {
+                    return null;
+                }
+                MessageReceived?.Invoke(this, message);
+                if (message.Type == messageType)
+                {
+                    return message;
+                }
+                if (!ClientSocket.Connected || CancellationToken.IsCancellationRequested)
+                {
+                    return null;
+                }
+            }
+        }
+
         #endregion
 
         #region 发送消息
@@ -180,6 +194,15 @@ namespace ZoDream.FileTransfer.Network
         public void Send(SocketMessageType messageType)
         {
             Send((byte)messageType);
+        }
+
+        public async Task<bool> SendAsync(ISocketMessage message)
+        {
+            if (!ClientSocket.Connected || CancellationToken.IsCancellationRequested)
+            {
+                return false;
+            }
+            return await message.SendAsync(this);
         }
 
         public void SendText(SocketMessageType messageType, string text)

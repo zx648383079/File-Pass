@@ -15,6 +15,10 @@ namespace ZoDream.FileTransfer.Converters
             {
                 return false;
             }
+            if (parameter is not null)
+            {
+                return value.ToString() == parameter.ToString();
+            }
             if (value is int i)
             {
                 return i > 0;

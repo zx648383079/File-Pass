@@ -11,6 +11,9 @@ namespace ZoDream.FileTransfer.Network
     public class IpMessage : ISocketMessage
     {
         const string Separator = ":";
+
+        public SocketMessageType Type { get; set; } = SocketMessageType.Ip;
+
         public string Ip { get; private set; } = string.Empty;
 
         public int Port { get; private set; } = 80;

@@ -9,9 +9,9 @@ namespace ZoDream.FileTransfer.Network
 {
     public interface ISocketMessage
     {
-        public Task<bool> ReceiveAsync(SocketClient socket);
+        public SocketMessageType Type { get; set; }
 
-        public MessageItem ConverterTo();
+        public Task<bool> ReceiveAsync(SocketClient socket);
 
         public Task<bool> SendAsync(SocketClient socket);
     }

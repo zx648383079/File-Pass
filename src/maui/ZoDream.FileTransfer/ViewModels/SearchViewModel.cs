@@ -3,8 +3,8 @@ using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
 using System.Windows.Input;
 using ZoDream.FileTransfer.Models;
+using ZoDream.FileTransfer.Network;
 using ZoDream.FileTransfer.Repositories;
-using ZoDream.FileTransfer.Utils;
 
 namespace ZoDream.FileTransfer.ViewModels
 {
@@ -14,8 +14,8 @@ namespace ZoDream.FileTransfer.ViewModels
         public SearchViewModel()
         {
             SearchCommand = new AsyncRelayCommand(TapSearch);
-            AgreeCommand = new AsyncRelayCommand<UserItem>(TapAgree);
-            DisagreeCommand = new AsyncRelayCommand<UserItem>(TapDisagree);
+            AgreeCommand = new AsyncRelayCommand<UserInfoOption>(TapAgree);
+            DisagreeCommand = new AsyncRelayCommand<UserInfoOption>(TapDisagree);
         }
 
         private bool isLoading = false;
@@ -55,9 +55,9 @@ namespace ZoDream.FileTransfer.ViewModels
             }
         }
 
-        private ObservableCollection<UserItem> userItems = new();
+        private ObservableCollection<UserInfoOption> userItems = new();
 
-        public ObservableCollection<UserItem> UserItems
+        public ObservableCollection<UserInfoOption> UserItems
         {
             get => userItems;
             set
@@ -71,20 +71,42 @@ namespace ZoDream.FileTransfer.ViewModels
         public ICommand AgreeCommand { get; private set; }
         public ICommand DisagreeCommand { get; private set; }
 
-        private async Task TapAgree(UserItem item)
+        private async Task TapAgree(UserInfoOption item)
         {
-            App.Repository.Add(item);
-        }
-
-        private async Task TapDisagree(UserItem item)
-        {
-            for (int i = UserItems.Count - 1; i >= 0; i--)
+            var client = App.Repository.NetHub.Connect(item.Ip, item.Port);
+            if (client == null)
             {
-                if (item.Ip == UserItems[i].Ip)
+                item.Status = 3;
+                return;
+            }
+            item.Status = 1;
+            await client.SendAsync(new JSONMessage<UserInfoItem>()
+            {
+                Type = SocketMessageType.CallAddUser,
+                Data = App.Repository.Option.FormatInfo()
+            });
+            var message = await client.ReceiveAsync(SocketMessageType.AddUser);
+            if (message is BoolMessage o)
+            {
+                item.Status = o.Value ? 2 : 3;
+                if (o.Value)
                 {
-                    UserItems.RemoveAt(i);
+                    App.Repository.Add(item);
                 }
             }
+            client.Dispose();
+        }
+
+        private async Task TapDisagree(UserInfoOption item)
+        {
+            item.Status = 3;
+            //for (int i = UserItems.Count - 1; i >= 0; i--)
+            //{
+            //    if (item.Ip == UserItems[i].Ip)
+            //    {
+            //        UserItems.RemoveAt(i);
+            //    }
+            //}
         }
 
         private async Task TapSearch()
@@ -110,17 +132,32 @@ namespace ZoDream.FileTransfer.ViewModels
 
         private async Task ConnectAsync(string ip, int port)
         {
+            var user = App.Repository.Get(ip, port);
+            if (user != null)
+            {
+                UserItems.Add(new UserInfoOption()
+                {
+                    Id = user.Id,
+                    Name = user.Name,
+                    Ip = ip,
+                    Port = port,
+                    Avatar = user.Avatar,
+                    Status = 2
+                });
+                return;
+            }
             var client = App.Repository.NetHub.Connect(ip, port);
             if (client == null)
             {
                 return;
             }
-            client.Send(Network.SocketMessageType.CallInfo);
-            while (true)
+            client.Send(SocketMessageType.CallInfo);
+            var message = await client.ReceiveAsync(SocketMessageType.Info);
+            if (message is JSONMessage<UserInfoItem> o)
             {
-                var message = await client.ReceiveAsync();
-                
+                UserItems.Add(new UserInfoOption(o.Data));
             }
+            client.Dispose();
         }
     }
 }

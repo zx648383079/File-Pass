@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using ZoDream.FileTransfer.Network;
 
 namespace ZoDream.FileTransfer.Models
 {
@@ -11,12 +12,39 @@ namespace ZoDream.FileTransfer.Models
         public bool IsSender { get; set; } = false;
 
         public DateTime CreatedAt { get; set; }
-        
+
+        private bool isSuccess;
+
+        public bool IsSuccess
+        {
+            get { return isSuccess; }
+            set { 
+                isSuccess = value;
+                OnPropertyChanged();
+            }
+        }
+
+
     }
 
     internal class ActionMessageItem : MessageItem
     {
         public string Content { get; set; } = string.Empty;
+
+        public ActionMessageItem()
+        {
+            
+        }
+
+        public ActionMessageItem(SocketMessageType messageType)
+        {
+            Content = messageType switch
+            {
+                SocketMessageType.Ping => "拍拍你",
+                SocketMessageType.Close => "连接已断开",
+                _ => ""
+            };
+        }
     }
 
     internal class TextMessageItem : MessageItem

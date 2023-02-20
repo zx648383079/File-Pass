@@ -26,7 +26,14 @@ namespace ZoDream.FileTransfer.Network
         {
             var serverIp = new IPEndPoint(IPAddress.Parse(ip), port);
             ServerSocket = new Socket(serverIp.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-            ServerSocket.Bind(serverIp);
+            try
+            {
+                ServerSocket.Bind(serverIp);
+            }
+            catch (Exception)
+            {
+                return;
+            }
             Task.Factory.StartNew(() =>
             {
                 ServerSocket.Listen(10);
@@ -53,16 +60,27 @@ namespace ZoDream.FileTransfer.Network
             client.MessageReceived += Client_MessageReceived;
         }
 
-        private void Client_MessageReceived(string ip, ISocketMessage message)
+        private void Client_MessageReceived(SocketClient client, ISocketMessage message)
         {
-            MessageReceived?.Invoke(ip, message);
+            MessageReceived?.Invoke(client, message);
+            if (message.Type == SocketMessageType.Close)
+            {
+                ClientItems.Remove(client);
+                client?.Dispose();
+            }
         }
 
         public SocketClient Connect(string ip, int port)
         {
             var clientIp = new IPEndPoint(IPAddress.Parse(ip), port);
             var socket = new Socket(clientIp.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-            socket.Connect(clientIp);
+            try
+            {
+                socket.Connect(clientIp);
+            } catch (Exception)
+            {
+                return null;
+            }
             if (!socket.Connected)
             {
                 return null;

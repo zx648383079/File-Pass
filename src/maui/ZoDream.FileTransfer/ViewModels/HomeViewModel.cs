@@ -16,10 +16,8 @@ namespace ZoDream.FileTransfer.ViewModels
             ChatCommand = new AsyncRelayCommand<UserItem>(GoToChat);
             SearchCommand = new AsyncRelayCommand(GoToSearch);
             SettingCommand = new AsyncRelayCommand(GoToSetting);
-            _ = LoadAsync();
+            App.Repository.UsersUpdated += Repository_UsersUpdated;
         }
-
-        
 
         private ObservableCollection<UserItem> userItems = new();
 
@@ -52,9 +50,9 @@ namespace ZoDream.FileTransfer.ViewModels
             await Shell.Current.GoToAsync("Setting");
         }
 
-        private async Task LoadAsync()
+        private void Repository_UsersUpdated()
         {
-            await App.Repository.WaitBoot();
+            UserItems.Clear();
             foreach (var item in App.Repository.UserItems)
             {
                 UserItems.Add(item);

@@ -6,14 +6,6 @@ namespace ZoDream.FileTransfer.Network
     {
         public SocketMessageType Type { get; set; }
 
-        public MessageItem ConverterTo()
-        {
-            return new ActionMessageItem()
-            {
-                Content = "拍拍你",
-                CreatedAt = DateTime.Now,
-            };
-        }
 
         public Task<bool> ReceiveAsync(SocketClient socket)
         {

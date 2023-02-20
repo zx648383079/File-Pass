@@ -1,3 +1,5 @@
+using ZoDream.FileTransfer.ViewModels;
+
 namespace ZoDream.FileTransfer.Controls;
 
 public partial class UserSelectDialog : ContentView
@@ -5,9 +7,8 @@ public partial class UserSelectDialog : ContentView
 	public UserSelectDialog()
 	{
 		InitializeComponent();
+		(BindingContext as NotifyViewModel).Context = this;
 	}
-
-
 
 	public bool IsOpen
 	{
@@ -17,10 +18,15 @@ public partial class UserSelectDialog : ContentView
 
 	public static readonly BindableProperty IsOpenProperty =
         BindableProperty.Create(nameof(IsOpen), typeof(bool), typeof(UserSelectDialog), 
-			false, propertyChanged: (b, oldVal, newVal) =>
+			true, propertyChanged: (b, oldVal, newVal) =>
 			{
 				(b as UserSelectDialog)?.ToggleOpen((bool)oldVal, (bool)newVal);
-			});
+			}, 
+			defaultValueCreator: b =>
+			{
+                (b as UserSelectDialog)?.ToggleOpen(true, false);
+				return true;
+            });
 
     private void ToggleOpen(bool oldVal, bool newVal)
     {

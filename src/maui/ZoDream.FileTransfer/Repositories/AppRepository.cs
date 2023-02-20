@@ -2,7 +2,6 @@
 using ZoDream.FileTransfer.Models;
 using ZoDream.FileTransfer.Network;
 using ZoDream.FileTransfer.Utils;
-using static Android.Content.ClipData;
 
 namespace ZoDream.FileTransfer.Repositories
 {
@@ -17,19 +16,37 @@ namespace ZoDream.FileTransfer.Repositories
 
         private string SecureKey = string.Empty;
 
-        public FileRepository Repository { get; private set; }
+        public FileRepository FileHub { get; private set; }
 
         public SocketHub NetHub { get; private set; }
 
         public AppOption Option { get; private set; }
 
+        public Dictionary<string, UserInfoItem> CacheItems { get; private set; } = new();
         public IList<UserItem> UserItems { get; private set; }
+
+        public event UsersUpdatedEventHandler UsersUpdated;
+        public event NewUserEventHandler NewUser;
+        public event NewMessageEventHandler NewMessage;
 
         #region 联系人相关
 
         public void Add(UserItem item)
         {
+            if (IndexOf(item.Id) >= 0)
+            {
+                return;
+            }
             UserItems.Add(item);
+        }
+
+        public void Add(UserInfoItem item)
+        {
+            if (IndexOf(item.Id) >= 0)
+            {
+                return;
+            }
+            UserItems.Add(new UserItem(item));
         }
 
         public int IndexOf(UserItem item)
@@ -47,6 +64,31 @@ namespace ZoDream.FileTransfer.Repositories
             }
             return -1;
         }
+
+        public int IndexOf(string userId)
+        {
+            for (int i = 0; i < UserItems.Count; i++)
+            {
+                if (userId == UserItems[i].Id)
+                {
+                    return i;
+                }
+            }
+            return -1;
+        }
+
+        public int IndexOf(string ip, int port)
+        {
+            for (int i = 0; i < UserItems.Count; i++)
+            {
+                if (ip == UserItems[i].Ip && port == UserItems[i].Port)
+                {
+                    return i;
+                }
+            }
+            return -1;
+        }
+
 
         public int IndexOfIp(string ip)
         {
@@ -77,6 +119,18 @@ namespace ZoDream.FileTransfer.Repositories
             return null;
         }
 
+        public UserItem Get(string ip, int port)
+        {
+            foreach (var item in UserItems)
+            {
+                if (ip == item.Ip && port == item.Port)
+                {
+                    return item;
+                }
+            }
+            return null;
+        }
+
         #endregion
 
         public Task WaitBoot()
@@ -96,35 +150,36 @@ namespace ZoDream.FileTransfer.Repositories
 
         public async Task<IList<UserItem>> LoadUsersAsync()
         {
-            return await Repository.ReadAsync<IList<UserItem>>(Constants.USERS_FILE);
+            var items = await FileHub.ReadAsync<IList<UserItem>>(Constants.USERS_FILE);
+            return items is null ? new List<UserItem>() : items;
         }
 
         public async Task SaveUsersAsync(IList<UserItem> items)
         {
-            await Repository.WriteAsync(Constants.USERS_FILE, items);
+            await FileHub.WriteAsync(Constants.USERS_FILE, items);
         }
 
         public async Task<IList<MessageItem>> LoadMessageAsync(UserItem user)
         {
-            return await Repository.ReadAsync<IList<MessageItem>>(
+            return await FileHub.ReadAsync<IList<MessageItem>>(
                 $"{Constants.MESSAGE_FOLDER}/{user.Id}.db"
                 );
         }
 
         public async Task SaveOptionAsync()
         {
-            await Repository.WriteAsync(Constants.OPTION_FILE, Option);
+            await FileHub.WriteAsync(Constants.OPTION_FILE, Option);
         }
 
         public async Task SaveMessageAsync(UserItem user, IList<MessageItem> items)
         {
-            await Repository.MakeFolder(Constants.MESSAGE_FOLDER);
-            await Repository.WriteAsync($"{Constants.MESSAGE_FOLDER}/{user.Id}.db", items);
+            await FileHub.MakeFolderAsync(Constants.MESSAGE_FOLDER);
+            await FileHub.WriteAsync($"{Constants.MESSAGE_FOLDER}/{user.Id}.db", items);
         }
 
         public async Task RemoveUserAsync(UserItem user)
         {
-            await Repository.DeleteAsync($"{Constants.MESSAGE_FOLDER}/{user.Id}.db");
+            await FileHub.DeleteAsync($"{Constants.MESSAGE_FOLDER}/{user.Id}.db");
         }
 
         public async Task LoadAsync()
@@ -132,7 +187,7 @@ namespace ZoDream.FileTransfer.Repositories
             // 用户数据加密Key
             SecureKey = await LoadKeyAsync();
             // 
-            Repository = new FileRepository(FileSystem.Current.CacheDirectory,
+            FileHub = new FileRepository(FileSystem.Current.CacheDirectory,
                 Encoding.UTF8.GetBytes(SecureKey), Encoding.UTF8.GetBytes(Constants.AES_IV));
             Option = await LoadOptionAsync();
             UserItems = await LoadUsersAsync();
@@ -143,18 +198,73 @@ namespace ZoDream.FileTransfer.Repositories
                 NetHub.Listen(Option.Ip, Option.Port);
             }
             Booted = true;
+            UsersUpdated?.Invoke();
         }
 
-        private void NetHub_MessageReceived(string ip, ISocketMessage message)
+        private void NetHub_MessageReceived(SocketClient client, ISocketMessage message)
         {
-            
+            var user = Get(client.Ip, client.Port);
+            switch (message.Type)
+            {
+                case SocketMessageType.None:
+                    break;
+                case SocketMessageType.Ip:
+                    break;
+                case SocketMessageType.String:
+                    NewMessage?.Invoke(user.Id, (message as TextMessage).ConverterTo());
+                    break;
+                case SocketMessageType.Numeric:
+                    break;
+                case SocketMessageType.Bool:
+                    break;
+                case SocketMessageType.Null:
+                    break;
+                case SocketMessageType.Ping:
+                    break;
+                case SocketMessageType.Close:
+                    NewMessage?.Invoke(user.Id, new ActionMessageItem(message.Type));
+                    break;
+                case SocketMessageType.CallInfo:
+                    _ = client.SendAsync(new JSONMessage<UserInfoItem>()
+                    {
+                        Type = SocketMessageType.Info,
+                        Data = Option.FormatInfo()
+                    });
+                    break;
+                case SocketMessageType.CallAddUser:
+                    NewUser?.Invoke((message as JSONMessage<UserInfoItem>).Data);
+                    break;
+                case SocketMessageType.AddUser:
+                    break;
+                case SocketMessageType.FileInfo:
+                    break;
+                case SocketMessageType.CallFile:
+                    break;
+                case SocketMessageType.FilePart:
+                    break;
+                case SocketMessageType.FileMerge:
+                    break;
+                case SocketMessageType.File:
+                    break;
+                default:
+                    break;
+            }
         }
+
+        #region 发送消息
+        public async Task<bool> SendTextAsync(string id, string content)
+        {
+            var user = Get(id);
+            return await NetHub.SendAsync(user, new TextMessage() { Text = content, 
+                Type = SocketMessageType.String });
+        }
+        #endregion
 
         #region 用户数据处理方法
 
         private async Task<AppOption> LoadOptionAsync()
         {
-            var data = await Repository.ReadAsync<AppOption>(Constants.OPTION_FILE);
+            var data = await FileHub.ReadAsync<AppOption>(Constants.OPTION_FILE);
             data ??= new AppOption()
             {
                 Name = DeviceInfo.Current.Name,
@@ -216,7 +326,7 @@ namespace ZoDream.FileTransfer.Repositories
         public void Dispose()
         {
             NetHub?.Dispose();
-            Repository?.Dispose();
+            FileHub?.Dispose();
         }
 
         

@@ -1,5 +1,6 @@
 using System.Collections.Specialized;
 using System.ComponentModel;
+using System.Windows.Input;
 using ZoDream.FileTransfer.Models;
 using ZoDream.FileTransfer.Utils;
 
@@ -14,7 +15,10 @@ public class MessageListView : ContentView
             BackgroundColor = Colors.Gray,
             Padding = new Thickness(20)
         };
-		Content = InnerPanel;
+		Content = new ScrollView()
+        {
+            Content = InnerPanel
+        };
 	}
 
     private VerticalStackLayout InnerPanel;
@@ -27,7 +31,7 @@ public class MessageListView : ContentView
 
     // Using a DependencyProperty as the backing store for MaxTime.  This enables animation, styling, binding, etc...
     public static readonly BindableProperty MaxTimeProperty =
-        BindableProperty.Create("MaxTime", typeof(int), typeof(MessageListView), 600);
+        BindableProperty.Create(nameof(MaxTime), typeof(int), typeof(MessageListView), 600);
 
 
     internal IEnumerable<MessageItem> ItemsSource
@@ -38,13 +42,24 @@ public class MessageListView : ContentView
 
 	// Using a DependencyProperty as the backing store for ItemsSource.  This enables animation, styling, binding, etc...
 	public static readonly BindableProperty ItemsSourceProperty =
-        BindableProperty.Create("ItemsSource", typeof(IEnumerable<MessageItem>), typeof(MessageListView), null, BindingMode.OneWay, null, (d, newVal, oldVal) =>
+        BindableProperty.Create(nameof(ItemsSource), typeof(IEnumerable<MessageItem>), typeof(MessageListView), null, BindingMode.OneWay, null, (d, newVal, oldVal) =>
 		{
 			(d as MessageListView).OnItemsSourceChanged();
 		});
 
 
-	private void OnItemsSourceChanged()
+    public ICommand TapCommand
+    {
+        get { return (ICommand)GetValue(TapCommandProperty); }
+        set { SetValue(TapCommandProperty, value); }
+    }
+
+    // Using a DependencyProperty as the backing store for YesCommand.  This enables animation, styling, binding, etc...
+    public static readonly BindableProperty TapCommandProperty =
+        BindableProperty.Create(nameof(TapCommand), typeof(ICommand),
+            typeof(MessageListView), null);
+
+    private void OnItemsSourceChanged()
 	{
         if (ItemsSource == null)
         {
@@ -209,6 +224,7 @@ public class MessageListView : ContentView
         }
         return box;
     }
+
 
     private void BindListener()
     {

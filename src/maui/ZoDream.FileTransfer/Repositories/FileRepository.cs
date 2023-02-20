@@ -22,14 +22,41 @@ namespace ZoDream.FileTransfer.Repositories
             )
         {
             BaseFolder = baseFolder;
-            Aes = Aes.Create();
-            Aes.Key = aesKey;
-            Aes.IV = aesIv;
+            try
+            {
+                Aes = Aes.Create();
+                Aes.Key = aesKey;
+                Aes.IV = VerifyIV(aesIv, 16);
+            }
+            catch (Exception)
+            {
+
+            }
         }
 
         public string BaseFolder { get; private set; }
 
         public Aes Aes { get; private set; }
+
+        private byte[] VerifyIV(byte[] iv, int size)
+        {
+            if (iv.Length == size)
+            {
+                return iv;
+            }
+            var items = new byte[size];
+            for ( int i = 0; i < size; i++ )
+            {
+                if (iv.Length > i)
+                {
+                    items[i] = iv[i];
+                } else
+                {
+                    items[i] = (byte)i;
+                }
+            }
+            return items;
+        }
 
         public async Task MakeFolderAsync(string name)
         {
