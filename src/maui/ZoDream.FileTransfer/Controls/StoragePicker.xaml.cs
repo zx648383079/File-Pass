@@ -10,7 +10,34 @@ public partial class StoragePicker : ContentView
         (BindingContext as PickerViewModel).Context = this;
     }
 
-	public bool IsFolderPicker {
+    public bool IsOpen {
+        get { return (bool)GetValue(IsOpenProperty); }
+        set { SetValue(IsOpenProperty, value); }
+    }
+
+    public static readonly BindableProperty IsOpenProperty =
+        BindableProperty.Create(nameof(IsOpen), typeof(bool), typeof(StoragePicker),
+            true, propertyChanged: (b, oldVal, newVal) => {
+                (b as StoragePicker)?.ToggleOpen((bool)oldVal, (bool)newVal);
+            },
+            defaultValueCreator: b => {
+                (b as StoragePicker)?.ToggleOpen(true, false);
+                return true;
+            });
+
+    private void ToggleOpen(bool oldVal, bool newVal)
+    {
+        if (newVal)
+        {
+            DialogBox.TranslateTo(0, 0, 500, Easing.SinIn);
+        }
+        else
+        {
+            DialogBox.TranslateTo(0, Height, 500, Easing.SinOut);
+        }
+    }
+
+    public bool IsFolderPicker {
 		get { return (bool)GetValue(IsFolderPickerProperty); }
 		set { SetValue(IsFolderPickerProperty, value); }
 	}

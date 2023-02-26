@@ -12,6 +12,19 @@ namespace ZoDream.FileTransfer.Models
 
         public string FileName { get; set; }
 
+        public string Icon { get; set; }
+
+        private bool isFolder;
+
+        public bool IsFolder {
+            get { return isFolder; }
+            set { 
+                isFolder = value;
+                Icon = value ? "\ue696" : "\ue68d";
+            }
+        }
+
+
         private bool isChecked;
 
         public bool IsChecked {

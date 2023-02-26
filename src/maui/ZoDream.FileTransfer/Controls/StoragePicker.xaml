@@ -6,11 +6,36 @@
     <ContentView.BindingContext>
         <vm:PickerViewModel/>
     </ContentView.BindingContext>
-    <VerticalStackLayout>
-        <Grid ColumnDefinitions="auto,*">
+    <Grid x:Name="DialogBox" HeightRequest="300" 
+          TranslationY="500"
+          VerticalOptions="End" HorizontalOptions="Fill">
+        <BoxView Color="{StaticResource Gray100}" CornerRadius="40,40,0,0">
+            <BoxView.Shadow>
+                <Shadow Brush="Black"
+                    Offset="20,20"
+                    Radius="40"
+                    Opacity="0.8"/>
+            </BoxView.Shadow>
+        </BoxView>
+        <Grid Margin="10,10,10,0" RowDefinitions="48,*" ColumnDefinitions="auto,*,auto">
             <Button Text="&#xe633;" Style="{StaticResource BodyIconBtn}"/>
-            <Label Text="D:/"/>
-            
+            <Label Text="{Binding Title}" VerticalOptions="Center" HorizontalOptions="Center"/>
+            <Button x:Name="CloseBtn" Text="&#xe653;" SemanticProperties.Hint="关闭"
+                    Command="{Binding CloseCommand}"
+                    Style="{StaticResource BodyIconBtn}" Grid.Column="1"/>
+            <CollectionView ItemsSource="{Binding FileItems}" 
+                            Grid.Row="1" 
+                            Grid.ColumnSpan="2">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Grid ColumnDefinitions="auto,auto,*">
+                            <CheckBox IsChecked="{Binding IsChecked}"/>
+                            <Label Text="{Binding Icon}" Style="{StaticResource IconTb}"/>
+                            <Label Text="{Binding Name}" VerticalOptions="Center"/>
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
         </Grid>
-    </VerticalStackLayout>
+    </Grid>
 </ContentView>
