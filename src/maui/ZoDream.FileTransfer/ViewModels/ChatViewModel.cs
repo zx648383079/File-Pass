@@ -17,7 +17,7 @@ namespace ZoDream.FileTransfer.ViewModels
 		{
 			ProfileCommand = new AsyncRelayCommand(GoToProfile);
 			SendCommand = new AsyncRelayCommand(SendAsync);
-            App.Repository.NewMessage += Repository_NewMessage;
+            App.Repository.ChatHub.NewMessage += Repository_NewMessage;
         }
 
         private UserItem User;
@@ -68,15 +68,35 @@ namespace ZoDream.FileTransfer.ViewModels
 			{
 				return;
 			}
-			var success = await App.Repository.SendTextAsync(User.Id, Content);
-			MessageItems.Add(new TextMessageItem()
-			{
-				IsSender = true,
-				Content = Content,
-				CreatedAt = DateTime.Now,
-				IsSuccess = success
-			});
+			var message = await App.Repository.ChatHub.SendTextAsync(User, Content);
+			MessageItems.Add(message);
 			Content = string.Empty;
+		}
+
+        private async Task PingAsync()
+        {
+            var message = await App.Repository.ChatHub.SendPingAsync(User);
+            MessageItems.Add(message);
+        }
+
+		private async Task PickFileAsync()
+		{
+			var res = await FilePicker.Default.PickMultipleAsync();
+            foreach (var item in res)
+            {
+                var message = await App.Repository.ChatHub.SendFileAsync(User, item.FileName);
+                MessageItems.Add(message);
+            }
+        }
+
+		private async Task PickFolderAsync()
+		{
+            
+        }
+
+		private async Task SyncFolderAsync()
+		{
+
 		}
 
         private async Task GoToProfile()
@@ -88,7 +108,7 @@ namespace ZoDream.FileTransfer.ViewModels
         {
             if (query.ContainsKey("user"))
 			{
-				User = App.Repository.Get((string)query["user"]);
+				User = App.Repository.ChatHub.Get((string)query["user"]);
 				Title = $"与 {User.Name} 聊天中";
 				_ = LoadMessageAsync();
 			}
@@ -96,7 +116,7 @@ namespace ZoDream.FileTransfer.ViewModels
 
 		private async Task LoadMessageAsync()
 		{
-			var items = await App.Repository.LoadMessageAsync(User);
+			var items = await App.Repository.DataHub.GetMessagesAsync(User);
 			if (items == null)
 			{
 				return;

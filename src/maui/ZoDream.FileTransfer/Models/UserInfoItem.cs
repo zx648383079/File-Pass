@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace ZoDream.FileTransfer.Models
 {
-    public class UserInfoItem
+    public class UserInfoItem: IUser
     {
         public string Id { get; set; }
 
@@ -20,6 +20,20 @@ namespace ZoDream.FileTransfer.Models
         public string Ip { get; set; } = string.Empty;
 
         public int Port { get; set; }
+
+        public UserInfoItem()
+        {
+            
+        }
+
+        public UserInfoItem(IUser item)
+        {
+            Id = item.Id;
+            Avatar = item.Avatar;
+            Name = item.Name;
+            Ip = item.Ip;
+            Port = item.Port;
+        }
     }
 
     public class UserInfoOption: UserInfoItem, INotifyPropertyChanged
@@ -50,13 +64,9 @@ namespace ZoDream.FileTransfer.Models
             
         }
 
-        public UserInfoOption(UserInfoItem item)
+        public UserInfoOption(IUser user): base(user)
         {
-            Id = item.Id;
-            Avatar = item.Avatar;
-            Name = item.Name;
-            Ip = item.Ip;
-            Port = item.Port;
+            
         }
     }
 }

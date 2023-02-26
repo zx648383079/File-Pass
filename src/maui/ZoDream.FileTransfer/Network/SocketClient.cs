@@ -17,7 +17,7 @@ namespace ZoDream.FileTransfer.Network
 
         private bool IsLoopReceive = false;
         private readonly Socket ClientSocket;
-        private readonly CancellationTokenSource CancellationToken = new();
+        private CancellationTokenSource ReceiveToken = new();
         public event MessageReceivedEventHandler MessageReceived;
 
         public SocketClient(Socket socket)
@@ -34,11 +34,14 @@ namespace ZoDream.FileTransfer.Network
         public void LoopReceive()
         {
             IsLoopReceive = true;
+            ReceiveToken?.Cancel();
+            ReceiveToken = new CancellationTokenSource();
+            var token = ReceiveToken.Token;
             Task.Factory.StartNew(() =>
             {
                 while (true)
                 {
-                    if (CancellationToken.IsCancellationRequested)
+                    if (token.IsCancellationRequested)
                     {
                         IsLoopReceive = false;
                         return;
@@ -56,7 +59,7 @@ namespace ZoDream.FileTransfer.Network
                     }
                     MessageReceived?.Invoke(this, message);
                 }
-            }, CancellationToken.Token);
+            }, token);
         }
 
         #region 接受消息
@@ -88,6 +91,11 @@ namespace ZoDream.FileTransfer.Network
             }
             message.Type = type;
             await message.ReceiveAsync(this);
+            if (string.IsNullOrEmpty(Ip) && message is IpMessage o)
+            {
+                Ip = o.Ip;
+                Port = o.Port;
+            }
             return message;
         }
 
@@ -162,7 +170,7 @@ namespace ZoDream.FileTransfer.Network
                 {
                     return message;
                 }
-                if (!ClientSocket.Connected || CancellationToken.IsCancellationRequested)
+                if (!ClientSocket.Connected || ReceiveToken.IsCancellationRequested)
                 {
                     return null;
                 }
@@ -198,7 +206,7 @@ namespace ZoDream.FileTransfer.Network
 
         public async Task<bool> SendAsync(ISocketMessage message)
         {
-            if (!ClientSocket.Connected || CancellationToken.IsCancellationRequested)
+            if (!ClientSocket.Connected || ReceiveToken.IsCancellationRequested)
             {
                 return false;
             }
@@ -234,7 +242,7 @@ namespace ZoDream.FileTransfer.Network
 
         public void Dispose()
         {
-            CancellationToken.Cancel();
+            ReceiveToken?.Cancel();
             ClientSocket?.Close();
         }
     }

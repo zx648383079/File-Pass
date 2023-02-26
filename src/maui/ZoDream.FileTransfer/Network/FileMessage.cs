@@ -17,7 +17,7 @@ namespace ZoDream.FileTransfer.Network
         {
             Md5 = socket.ReceiveText();
             var length = socket.ReceiveContentLength();
-            using var reader = App.Repository.FileHub.CacheWriter(Md5);
+            using var reader = App.Repository.Storage.CacheWriter(Md5);
             socket.ReceiveStream(reader, length);
             return Task.FromResult(true);
         }
@@ -40,7 +40,7 @@ namespace ZoDream.FileTransfer.Network
         {
             FileName = socket.ReceiveText();
             Length = socket.ReceiveContentLength();
-            using var reader = App.Repository.FileHub.CacheWriter(FileName);
+            using var reader = App.Repository.Storage.CacheWriter(FileName);
             socket.ReceiveStream(reader, Length);
             return Task.FromResult(true);
         }

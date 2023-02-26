@@ -17,36 +17,49 @@ namespace ZoDream.FileTransfer.Network
     public class SocketHub : IDisposable
     {
 
-        private Socket ServerSocket;
-        private readonly CancellationTokenSource CancellationToken = new();
+        private Socket ListenSocket;
+        private string ListenIp = string.Empty;
+        private int ListenPort = 0;
+        private CancellationTokenSource ListenToken = new();
         private readonly IList<SocketClient> ClientItems = new List<SocketClient>();
         public event MessageReceivedEventHandler MessageReceived;
 
         public void Listen(string ip, int port)
         {
+            if (ListenIp == ip &&  ListenPort == port)
+            {
+                return;
+            }
             var serverIp = new IPEndPoint(IPAddress.Parse(ip), port);
-            ServerSocket = new Socket(serverIp.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+            var socket = new Socket(serverIp.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
             try
             {
-                ServerSocket.Bind(serverIp);
+                socket.Bind(serverIp);
             }
             catch (Exception)
             {
                 return;
             }
+            ListenToken?.Cancel();
+            ListenSocket?.Close();
+            ListenSocket = socket;
+            ListenIp = ip;
+            ListenPort = port;
+            ListenToken = new CancellationTokenSource();
+            var token = ListenToken.Token;
             Task.Factory.StartNew(() =>
             {
-                ServerSocket.Listen(10);
+                socket.Listen(10);
                 while (true)
                 {
-                    if (CancellationToken.IsCancellationRequested)
+                    if (token.IsCancellationRequested)
                     {
                         return;
                     }
-                    var socket = ServerSocket.Accept();
-                    Add(new SocketClient(socket));
+                    var client = socket.Accept();
+                    Add(new SocketClient(client));
                 }
-            }, CancellationToken.Token);
+            }, token);
         }
 
         public void Add(SocketClient client)
@@ -88,11 +101,11 @@ namespace ZoDream.FileTransfer.Network
             return new SocketClient(socket, ip, port);
         }
 
-        public async Task<SocketClient> GetAsync(UserItem user)
+        public async Task<SocketClient> GetAsync(IUser user)
         {
             foreach (var item in ClientItems)
             {
-                if (item.Ip != user.Ip)
+                if (item.Ip != user.Ip || item.Port != user.Port)
                 {
                     continue;
                 }
@@ -110,19 +123,19 @@ namespace ZoDream.FileTransfer.Network
             });
         } 
 
-        public async Task<bool> SendAsync(UserItem user, ISocketMessage message)
+        public async Task<bool> SendAsync(IUser user, ISocketMessage message)
         {
             return await message.SendAsync(await GetAsync(user)); 
         }
 
         public void Dispose()
         {
-            CancellationToken.Cancel();
+            ListenToken.Cancel();
             foreach (var item in ClientItems)
             {
                 item.Dispose();
             }
-            ServerSocket?.Close();
+            ListenSocket?.Close();
         }
     }
 }

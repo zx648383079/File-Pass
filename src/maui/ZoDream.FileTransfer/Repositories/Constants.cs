@@ -16,6 +16,9 @@ namespace ZoDream.FileTransfer.Repositories
         public const string USERS_FILE = "users.db";
         public const string MESSAGE_FOLDER = "Messages";
         public const string FILE_CACHE_FOLDER = "Caches";
+        public const string SQL_DB = "zodream.db";
+        public const bool UseSQL = false;
+
 
     }
 }

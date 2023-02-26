@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using ZoDream.FileTransfer.Models;
 using ZoDream.FileTransfer.Repositories;
 
 namespace ZoDream.FileTransfer.ViewModels
@@ -13,11 +14,11 @@ namespace ZoDream.FileTransfer.ViewModels
 
         public SettingViewModel()
         {
-			var option = App.Repository.Option;
-			Ip = option.Ip;
-			Port = option.Port;
-			Name = option.Name;
-
+			Option = App.Repository.Option;
+			PropertyChanged += (s, e) => 
+			{
+				App.Repository.ChangeOptionAsync(Option);
+			};
         }
 
 		public string IpTitle
@@ -93,6 +94,30 @@ namespace ZoDream.FileTransfer.ViewModels
 			get { return isSaveFile; }
 			set { isSaveFile = value;
                 OnPropertyChanged();
+            }
+		}
+
+
+		private AppOption option;
+
+		public AppOption Option {
+			get {
+				option.Ip = Ip;
+				option.Port = Port;
+				option.IsHideClient = IsHideClient;
+				option.IsOpenLink = IsOpenLink;
+				option.IsSaveFile = IsSaveFile;
+				option.Name = Name;
+				return option; 
+			}
+			set { 
+				option = value;
+                Ip = option.Ip;
+                Port = option.Port;
+                Name = option.Name;
+                IsHideClient = option.IsHideClient;
+                IsOpenLink = option.IsOpenLink;
+                IsSaveFile = option.IsSaveFile;
             }
 		}
 

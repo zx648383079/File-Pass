@@ -25,5 +25,8 @@
             </CollectionView.ItemTemplate>
         </CollectionView>
         <ctl:UserSelectDialog/>
+        <ctl:DialogPanel>
+            <Label Text="1223"/>
+        </ctl:DialogPanel>
     </Grid>
 </ContentPage>

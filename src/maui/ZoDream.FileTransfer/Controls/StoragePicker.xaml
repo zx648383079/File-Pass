@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:ZoDream.FileTransfer.ViewModels"
+             x:Class="ZoDream.FileTransfer.Controls.StoragePicker">
+    <ContentView.BindingContext>
+        <vm:PickerViewModel/>
+    </ContentView.BindingContext>
+    <VerticalStackLayout>
+        <Grid ColumnDefinitions="auto,*">
+            <Button Text="&#xe633;" Style="{StaticResource BodyIconBtn}"/>
+            <Label Text="D:/"/>
+            
+        </Grid>
+    </VerticalStackLayout>
+</ContentView>

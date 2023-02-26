@@ -8,7 +8,7 @@ using ZoDream.FileTransfer.ViewModels;
 namespace ZoDream.FileTransfer.Models
 {
     [Serializable()]
-    public class UserItem: BindableObject
+    public class UserItem: BindableObject, IUser
     {
         public string Id { get; set; }
 
@@ -89,7 +89,7 @@ namespace ZoDream.FileTransfer.Models
             
         }
 
-        public UserItem(UserInfoItem item)
+        public UserItem(IUser item)
         {
             Id = item.Id;
             Avatar = item.Avatar;

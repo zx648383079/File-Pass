@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace ZoDream.FileTransfer.Models
 {
-    internal class AppOption: UserInfoItem
+    public class AppOption: UserInfoItem
     {
 
         public bool IsHideClient { get; set; }
