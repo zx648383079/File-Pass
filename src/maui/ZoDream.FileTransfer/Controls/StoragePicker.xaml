@@ -2,6 +2,7 @@
 <ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:ZoDream.FileTransfer.ViewModels"
+             x:Name="root"
              x:Class="ZoDream.FileTransfer.Controls.StoragePicker">
     <ContentView.BindingContext>
         <vm:PickerViewModel/>
@@ -18,7 +19,7 @@
             </BoxView.Shadow>
         </BoxView>
         <Grid Margin="10,10,10,0" RowDefinitions="48,*" ColumnDefinitions="auto,*,auto">
-            <Button Text="&#xe633;" Style="{StaticResource BodyIconBtn}"/>
+            <Button Text="&#xe633;" IsVisible="{Binding CanBackable}" Command="{Binding BackCommand}" Style="{StaticResource BodyIconBtn}"/>
             <Label Text="{Binding Title}" VerticalOptions="Center" HorizontalOptions="Center"/>
             <Button x:Name="CloseBtn" Text="&#xe653;" SemanticProperties.Hint="关闭"
                     Command="{Binding CloseCommand}"
@@ -29,9 +30,13 @@
                 <CollectionView.ItemTemplate>
                     <DataTemplate>
                         <Grid ColumnDefinitions="auto,auto,*">
-                            <CheckBox IsChecked="{Binding IsChecked}"/>
+                            <CheckBox IsChecked="{Binding IsChecked}" IsVisible="{Binding Source=root,Path=IsMultiple}"/>
                             <Label Text="{Binding Icon}" Style="{StaticResource IconTb}"/>
-                            <Label Text="{Binding Name}" VerticalOptions="Center"/>
+                            <Button Text="{Binding Name}" Command="{Binding Source={RelativeSource AncestorType={x:Type vm:PickerViewModel}}, Path=SelectedCommand}"      
+                                CommandParameter="{Binding}" 
+                                    Grid.Column="2"
+                                    BackgroundColor="Transparent" 
+                                    BorderWidth="0"/>
                         </Grid>
                     </DataTemplate>
                 </CollectionView.ItemTemplate>

@@ -1,3 +1,5 @@
+using System.Collections;
+using ZoDream.FileTransfer.Models;
 using ZoDream.FileTransfer.ViewModels;
 
 namespace ZoDream.FileTransfer.Controls;
@@ -73,5 +75,12 @@ public partial class StoragePicker : ContentView
         BindableProperty.Create("Filter", typeof(string), typeof(StoragePicker), string.Empty);
 
 
+    public FilePickerOption SelectedItem => (BindingContext as PickerViewModel).SelectedItem;
 
+    public IList<FilePickerOption> SelectedItems => (BindingContext as PickerViewModel).SelectedItems;
+
+    public async Task<bool> ShowAsync()
+    {
+        return await (BindingContext as PickerViewModel).ShowAsync();
+    }
 }

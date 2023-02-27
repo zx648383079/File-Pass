@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:cvt="clr-namespace:ZoDream.FileTransfer.Converters"
+             x:Class="ZoDream.FileTransfer.Controls.MessageFileListItem">
+    <ContentView.Resources>
+        <ResourceDictionary>
+            <cvt:SizeConverter x:Key="SizeCvt"/>
+        </ResourceDictionary>
+    </ContentView.Resources>
+    <ContentView.ControlTemplate>
+        <ControlTemplate>
+            <Grid HorizontalOptions="{TemplateBinding HorizontalOptions}">
+                <Grid MinimumWidthRequest="300">
+                    <BoxView Color="{StaticResource White}" 
+                 CornerRadius="{TemplateBinding CornerRadius}"/>
+                    <VerticalStackLayout>
+                        <Grid ColumnDefinitions="*,auto" Padding="10,20">
+                            <Label Text="{TemplateBinding ItemSource.FileName}"/>
+                            <Label Text="{TemplateBinding ItemSource.Size,Converter={StaticResource SizeCvt}}" Grid.Column="1"/>
+                        </Grid>
+                        <BoxView x:Name="PART_Hr" Color="Gray" HeightRequest="2" HorizontalOptions="Fill"/>
+                        <ProgressBar x:Name="PART_ProgressBar" Progress=".5" IsVisible="false"/>
+                        <Grid ColumnDefinitions="*,*">
+                            <Label x:Name="PART_StatusTb" Text="已取消" IsVisible="false"/>
+                            <Button x:Name="PART_RevBtn" Text="接收" CornerRadius="0" IsVisible="false"/>
+                            <Button x:Name="PART_Cancel" Text="取消" Grid.Column="1" CornerRadius="0"/>
+                        </Grid>
+                    </VerticalStackLayout>
+                </Grid>
+            </Grid>
+        </ControlTemplate>
+    </ContentView.ControlTemplate>
+    
+</ContentView>

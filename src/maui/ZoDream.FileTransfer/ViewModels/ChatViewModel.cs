@@ -1,11 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Text;
-using System.Threading.Tasks;
-using System.Linq;
 using System.Windows.Input;
 using ZoDream.FileTransfer.Models;
 
@@ -17,7 +12,19 @@ namespace ZoDream.FileTransfer.ViewModels
 		{
 			ProfileCommand = new AsyncRelayCommand(GoToProfile);
 			SendCommand = new AsyncRelayCommand(SendAsync);
+			MoreButtonCommand = new AsyncRelayCommand<MessageMoreItem>(TapMoreButtonAsync);
+			MoreCommand = new RelayCommand(TapMore);
+            ConfirmMessageCommand = new AsyncRelayCommand<MessageItem>(ConfirmMessageAsync);
+            CancelMessageCommand = new AsyncRelayCommand<MessageItem>(CancelMessageAsync);
             App.Repository.ChatHub.NewMessage += Repository_NewMessage;
+			MoreItems.Add(new MessageMoreItem("image", "发送图片", "\ue68b"));
+			MoreItems.Add(new MessageMoreItem("video", "发送视频", "\ue68c"));
+			MoreItems.Add(new MessageMoreItem("file", "发送文件", "\ue68d"));
+			MoreItems.Add(new MessageMoreItem("voice", "发送语音", "\ue6e0"));
+			MoreItems.Add(new MessageMoreItem("camera", "视频通话", "\ue639"));
+			MoreItems.Add(new MessageMoreItem("folder", "发送文件夹", "\ue696"));
+			MoreItems.Add(new MessageMoreItem("sync", "同步文件夹", "\ue67b"));
+			MoreItems.Add(new MessageMoreItem("user", "推荐好友", "\ue751"));
         }
 
         private UserItem User;
@@ -58,16 +65,97 @@ namespace ZoDream.FileTransfer.ViewModels
 			}
 		}
 
+		private ObservableCollection<MessageMoreItem> moreItems = new();
 
-		public ICommand ProfileCommand { get; private set; }
-		public ICommand SendCommand { get; private set; }
+		public ObservableCollection<MessageMoreItem> MoreItems {
+			get => moreItems;
+			set {
+				moreItems = value;
+				OnPropertyChanged();
+			}
+		}
 
-		private async Task SendAsync()
+		private bool moreVisible;
+
+		public bool MoreVisible {
+			get { return moreVisible; }
+			set { 
+				moreVisible = value;
+				OnPropertyChanged();
+			}
+		}
+
+        private bool moreToolVisible = true;
+
+        public bool MoreToolVisible {
+            get { return moreToolVisible; }
+            set {
+                moreToolVisible = value;
+                OnPropertyChanged();
+            }
+        }
+
+        private bool moreIconVisible;
+
+        public bool MoreIconVisible {
+            get { return moreIconVisible; }
+            set {
+                moreIconVisible = value;
+				MoreToolVisible = !value;
+                OnPropertyChanged();
+            }
+        }
+
+
+        public ICommand ProfileCommand { get; private set; }
+        public ICommand MoreCommand { get; private set; }
+        public ICommand MoreButtonCommand { get; private set; }
+        public ICommand SendCommand { get; private set; }
+
+		public ICommand ConfirmMessageCommand { get; private set; }
+		public ICommand CancelMessageCommand { get; private set; }
+
+        private async Task ConfirmMessageAsync(MessageItem item)
+		{
+
+		}
+
+        private async Task CancelMessageAsync(MessageItem item)
+        {
+
+        }
+
+		private void TapMore()
+		{
+			MoreVisible = !MoreVisible;
+		}
+
+        private async Task TapMoreButtonAsync(MessageMoreItem button)
+		{
+			switch (button.Name)
+			{
+				case "image":
+					await PickFileAsync();
+					break;
+				default:
+					break;
+			}
+		}
+
+        private async Task SendAsync()
 		{
 			if (string.IsNullOrWhiteSpace(Content))
 			{
 				return;
 			}
+			MessageItems.Add(new TextMessageItem()
+			{
+				IsSender = true,
+				Content = content,
+				CreatedAt = DateTime.Now,
+				IsSuccess = false
+			});
+			return;
 			var message = await App.Repository.ChatHub.SendTextAsync(User, Content);
 			MessageItems.Add(message);
 			Content = string.Empty;
@@ -84,6 +172,14 @@ namespace ZoDream.FileTransfer.ViewModels
 			var res = await FilePicker.Default.PickMultipleAsync();
             foreach (var item in res)
             {
+                MessageItems.Add(new FileMessageItem()
+                {
+                    IsSender = true,
+                    FileName = item.FileName,
+                    CreatedAt = DateTime.Now,
+                    IsSuccess = false
+                });
+				continue;
                 var message = await App.Repository.ChatHub.SendFileAsync(User, item.FileName);
                 MessageItems.Add(message);
             }
@@ -94,7 +190,12 @@ namespace ZoDream.FileTransfer.ViewModels
             
         }
 
-		private async Task SyncFolderAsync()
+        private async Task PickUserAsync()
+        {
+
+        }
+
+        private async Task SyncFolderAsync()
 		{
 
 		}

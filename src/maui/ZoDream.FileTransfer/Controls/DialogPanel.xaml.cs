@@ -7,7 +7,7 @@ public partial class DialogPanel : ContentView
 		InitializeComponent();
 	}
 
-
+    private Grid InnerPanel;
 
     public string Title {
         get { return (string)GetValue(TitleProperty); }
@@ -39,16 +39,24 @@ public partial class DialogPanel : ContentView
     {
         if (newVal)
         {
-            DialogBox.TranslateTo(0, 0, 500, Easing.SinIn);
+            InnerPanel?.TranslateTo(0, 0, 500, Easing.SinIn);
         }
         else
         {
-            DialogBox.TranslateTo(0, Height, 500, Easing.SinOut);
+            InnerPanel?.TranslateTo(0, Height, 500, Easing.SinOut);
         }
     }
 
-    private void CloseBtn_Clicked(object sender, EventArgs e)
+    protected override void OnApplyTemplate()
     {
-        IsOpen = false;
+        base.OnApplyTemplate();
+        InnerPanel = GetTemplateChild("PART_InnerPanel") as Grid;
+        var btn = GetTemplateChild("PART_CloseBtn") as Button;
+        if (btn != null)
+        {
+            btn.Clicked += (s, e) => {
+                IsOpen = false;
+            };
+        }
     }
 }

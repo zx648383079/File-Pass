@@ -9,7 +9,7 @@
 
     <ShellContent
         Title="Home"
-        ContentTemplate="{DataTemplate view:HomePage}"
+        ContentTemplate="{DataTemplate view:ChatPage}"
         Route="Home" />
 
 </Shell>

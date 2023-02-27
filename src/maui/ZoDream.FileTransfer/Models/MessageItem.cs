@@ -29,7 +29,7 @@ namespace ZoDream.FileTransfer.Models
 
     }
 
-    internal class ActionMessageItem : MessageItem
+    public class ActionMessageItem : MessageItem
     {
         public string Content { get; set; } = string.Empty;
 
@@ -49,16 +49,26 @@ namespace ZoDream.FileTransfer.Models
         }
     }
 
-    internal class TextMessageItem : MessageItem
+    public class TextMessageItem : MessageItem
     {
         public string Content { get; set; } = string.Empty;
     }
 
-    internal class FileMessageItem : MessageItem
+    public class FileMessageItem : MessageItem
     {
         public string FileName { get; set; }
 
-        public long Size { get; set; }
+
+        private long size;
+
+        public long Size {
+            get { return size; }
+            set { 
+                size = value;
+                OnPropertyChanged();
+            }
+        }
+
 
         private long progress;
 

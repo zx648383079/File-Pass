@@ -18,6 +18,7 @@ namespace ZoDream.FileTransfer.Network
     {
 
         private Socket ListenSocket;
+        private Socket ListenUdp;
         private string ListenIp = string.Empty;
         private int ListenPort = 0;
         private CancellationTokenSource ListenToken = new();
@@ -31,10 +32,12 @@ namespace ZoDream.FileTransfer.Network
                 return;
             }
             var serverIp = new IPEndPoint(IPAddress.Parse(ip), port);
-            var socket = new Socket(serverIp.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+            var tcpSocket = new Socket(serverIp.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+            var udpSocket = new Socket(serverIp.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
             try
             {
-                socket.Bind(serverIp);
+                tcpSocket.Bind(serverIp);
+                udpSocket.Bind(serverIp);
             }
             catch (Exception)
             {
@@ -42,24 +45,45 @@ namespace ZoDream.FileTransfer.Network
             }
             ListenToken?.Cancel();
             ListenSocket?.Close();
-            ListenSocket = socket;
+            ListenUdp?.Close();
+            ListenSocket = tcpSocket;
+            ListenUdp = udpSocket;
             ListenIp = ip;
             ListenPort = port;
             ListenToken = new CancellationTokenSource();
             var token = ListenToken.Token;
             Task.Factory.StartNew(() =>
             {
-                socket.Listen(10);
+                tcpSocket.Listen(10);
                 while (true)
                 {
                     if (token.IsCancellationRequested)
                     {
                         return;
                     }
-                    var client = socket.Accept();
+                    var client = tcpSocket.Accept();
                     Add(new SocketClient(client));
                 }
             }, token);
+            Task.Factory.StartNew(() => {
+                while (true)
+                {
+                    if (token.IsCancellationRequested)
+                    {
+                        return;
+                    }
+                    EndPoint sendIp = new IPEndPoint(IPAddress.Any, port);
+                    var buffer = new byte[1024];
+                    var length = udpSocket.ReceiveFrom(buffer, ref sendIp);
+                }
+            }, token);
+        }
+
+        public void Ping(string ip, int port)
+        {
+            var remote = new IPEndPoint(IPAddress.Parse(ip), port);
+            var buffer = new byte[1024];
+            ListenUdp.SendTo(buffer, remote);
         }
 
         public void Add(SocketClient client)

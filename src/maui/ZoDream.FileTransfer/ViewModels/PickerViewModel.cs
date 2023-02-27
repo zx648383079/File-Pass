@@ -9,13 +9,14 @@ using System.Text.RegularExpressions;
 
 namespace ZoDream.FileTransfer.ViewModels
 {
-    public class PickerViewModel: ObservableObject
+    public class PickerViewModel : ObservableObject
     {
         public PickerViewModel()
         {
             CloseCommand = new RelayCommand(TapClose);
             BackCommand = new AsyncRelayCommand(TapBackAsync);
             SelectedCommand = new AsyncRelayCommand<FilePickerOption>(TapSelectedAsync);
+            _ = LoadFileAsync();
         }
 
         public StoragePicker Context { get; internal set; }
@@ -24,11 +25,22 @@ namespace ZoDream.FileTransfer.ViewModels
 
         private List<string> Histories = new();
 
+        private bool canBackable = false;
+
+        public bool CanBackable {
+            get { return canBackable; }
+            set { 
+                canBackable = value;
+                OnPropertyChanged();
+            }
+        }
+
+
         private ObservableCollection<FilePickerOption> fileItems = new ObservableCollection<FilePickerOption>();
 
         public ObservableCollection<FilePickerOption> FileItems {
             get => fileItems;
-            set { 
+            set {
                 fileItems = value;
                 OnPropertyChanged();
             }
@@ -37,9 +49,71 @@ namespace ZoDream.FileTransfer.ViewModels
         public ICommand CloseCommand { get; private set; }
         public ICommand BackCommand { get; private set; }
 
-        private Task TapSelectedAsync(FilePickerOption item)
+        public FilePickerOption SelectedItem {
+            get {
+                foreach (var item in FileItems)
+                {
+                    if (!item.IsChecked)
+                    {
+                        continue;
+                    }
+                    if (
+                        Context.IsFolderPicker != item.IsFolder)
+                    {
+                        continue;
+                    }
+                    return item;
+                }
+                return null;
+            }
+        }
+
+        public IList<FilePickerOption> SelectedItems {
+            get {
+                var items = new List<FilePickerOption>();
+                foreach (var item in FileItems)
+                {
+                    if (!item.IsChecked)
+                    {
+                        continue;
+                    }
+                    if (
+                        Context.IsFolderPicker != item.IsFolder)
+                    {
+                        continue;
+                    }
+                    items.Add(item);
+                }
+                return items;
+            }
+        }
+
+        public Task<bool> ShowAsync()
         {
-            return Task.CompletedTask;
+            return Task.Factory.StartNew(() => {
+                while (Context.IsOpen)
+                {
+                    
+                }
+                return SelectedItem is not null;
+            });
+        }
+
+        private async Task TapSelectedAsync(FilePickerOption item)
+        {
+            if (item.IsFolder)
+            {
+                Histories.Add(item.Name);
+                await LoadFileAsync();
+                return;
+            }
+            if (Context.IsMultiple)
+            {
+                item.IsChecked = !item.IsChecked;
+                return;
+            }
+            item.IsChecked = true;
+            Context.IsOpen = false;
         }
 
         private void TapClose()
@@ -47,10 +121,13 @@ namespace ZoDream.FileTransfer.ViewModels
             Context.IsOpen = false;
         }
 
-        private Task TapBackAsync()
+        private async Task TapBackAsync()
         {
-
-            return Task.CompletedTask;
+            if (Histories.Count > 0)
+            {
+                Histories.RemoveAt(Histories.Count - 1);
+                await LoadFileAsync();
+            }
         }
 
         private async Task LoadFileAsync()
@@ -59,9 +136,11 @@ namespace ZoDream.FileTransfer.ViewModels
             if (Histories.Count < 1)
             {
                 Title = "设备和驱动器";
+                CanBackable = false;
                 LoadDrivers();
                 return;
             }
+            CanBackable = true;
             var path = Path.Combine(Histories.ToArray());
             Title = Histories.Last().Length > 20 ?
                 Histories.Last()[..20] + "..." :

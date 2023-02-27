@@ -17,19 +17,42 @@
                     Grid.Column="2"/>
         </Grid>
     </Shell.TitleView>
-    <Grid RowDefinitions="*,Auto,Auto">
+    <Grid RowDefinitions="*,Auto,Auto,Auto">
         <ctl:MessageListView ItemsSource="{Binding MessageItems}"/>
-        <FlexLayout Grid.Row="1" HeightRequest="48" Direction="Row">
-            <Button Text="&#xe68b;" SemanticProperties.Hint="发送图片" Style="{StaticResource BodyIconBtn}"/>
-            <Button Text="&#xe68c;" Style="{StaticResource BodyIconBtn}"/>
-            <Button Text="&#xe68d;" Style="{StaticResource BodyIconBtn}"/>
-            <Button Text="&#xe6e0;" Style="{StaticResource BodyIconBtn}"/>
-            <Button Text="&#xe639;" Style="{StaticResource BodyIconBtn}"/>
+        <FlexLayout BindableLayout.ItemsSource="{Binding MoreItems}" 
+                    Grid.Row="1" HeightRequest="48" Direction="Row" 
+                    IsVisible="{Binding MoreToolVisible}">
+            <BindableLayout.ItemTemplate>
+                <DataTemplate>
+                    <Button Text="{Binding Icon}" 
+                            SemanticProperties.Hint="{Binding Label}" 
+                            Style="{StaticResource BodyIconBtn}" 
+                            Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ChatViewModel}}, Path=MoreButtonCommand}"      
+                            CommandParameter="{Binding}"/>
+                </DataTemplate>
+            </BindableLayout.ItemTemplate>
         </FlexLayout>
         <Grid Grid.Row="2" ColumnDefinitions="*,auto,auto">
             <Entry Text="{Binding Content,Mode=TwoWay}"/>
-            <Button Text="&#xe6ea;" SemanticProperties.Hint="发送新消息" Style="{StaticResource BodyIconBtn}" Grid.Column="1"/>
-            <Button Text="&#xe674;" SemanticProperties.Hint="更多操作" Style="{StaticResource BodyIconBtn}" Grid.Column="2"/>
+            <Button Text="&#xe6ea;" Command="{Binding SendCommand}" SemanticProperties.Hint="发送新消息" 
+                    Style="{StaticResource BodyIconBtn}" Grid.Column="1"/>
+            <Button Text="&#xe674;" SemanticProperties.Hint="更多操作" IsVisible="{Binding MoreIconVisible}"
+                    Style="{StaticResource BodyIconBtn}"
+                    Grid.Column="2"/>
         </Grid>
+        <FlexLayout BindableLayout.ItemsSource="{Binding MoreItems}" 
+                    Grid.Row="3" HeightRequest="80" Direction="Row"
+                    Wrap="Wrap"
+                    IsVisible="{Binding MoreVisible}">
+            <BindableLayout.ItemTemplate>
+                <DataTemplate>
+                    <Button Text="{Binding Icon}" 
+                            SemanticProperties.Hint="{Binding Label}" 
+                            Style="{StaticResource BodyIconBtn}" 
+                            Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ChatViewModel}}, Path=MoreButtonCommand}"      
+                            CommandParameter="{Binding}"/>
+                </DataTemplate>
+            </BindableLayout.ItemTemplate>
+        </FlexLayout>
     </Grid>
 </ContentPage>

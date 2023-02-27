@@ -8,7 +8,10 @@ namespace ZoDream.FileTransfer.Controls;
 
 public class MessageListView : ContentView
 {
-	public MessageListView()
+    internal const int MessageRadius = 10;
+
+
+    public MessageListView()
 	{
         InnerPanel = new VerticalStackLayout()
         {
@@ -102,11 +105,9 @@ public class MessageListView : ContentView
 
     private View CreateTip(string value)
     {
-        return new Label()
+        return new MessageTipListItem()
         {
             Text = value,
-            HorizontalOptions = LayoutOptions.Center,
-            Padding = new Thickness(0, 10)
         };
     }
 
@@ -116,113 +117,27 @@ public class MessageListView : ContentView
         {
             return CreateTip(a.Content);
         }
-        var radius = 10;
-        var bottomRadius = item is TextMessageItem ? radius : 0;
-        var box = new Grid()
-        {
-            HorizontalOptions = item.IsSender ? LayoutOptions.End : LayoutOptions.Start,
-            Children =
-            {
-                new BoxView()
-                {
-                    Color = Colors.White,
-                    CornerRadius = new CornerRadius(item.IsSender ? radius : 0,
-                    item.IsSender ? 0 : radius, bottomRadius, bottomRadius)
-                },
-            }
-        };
         if (item is TextMessageItem text)
         {
-            box.Children.Add(CreateTextMessage(text));
+            return CreateTextMessage(text);
         } else if (item is FileMessageItem file)
         {
-            box.Children.Add(CreateFileMessage(file));
+            return CreateFileMessage(file);
         }
-        return box;
+        return new Grid();
     }
 
     private View CreateTextMessage(TextMessageItem item)
     {
-        return new Label()
+        return new MessageTextListItem()
         {
-            Padding = new Thickness(12, 5),
-            Text = item.Content
+            ItemSource = item,
         };
     }
 
     private View CreateFileMessage(FileMessageItem item)
     {
-        var size = new Label()
-        {
-            TextColor = Colors.Gray,
-            Text = Disk.FormatSize(item.Size)
-        };
-        if (item.Status == FileMessageStatus.Transferring)
-        {
-            size.Text = $"{Disk.FormatSize(item.Speed)}/s {Disk.FormatSize(item.Progress)}/{Disk.FormatSize(item.Size)}";
-        }
-        Grid.SetColumn(size, 1);
-        var box = new VerticalStackLayout()
-        {
-            WidthRequest = 300,
-            Children =
-            {
-                new Grid()
-                {
-                    Padding = new Thickness(12, 6),
-                    ColumnDefinitions = new ColumnDefinitionCollection(
-                        new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto)),
-                    Children =
-                    {
-                        new Label()
-                        {
-                            HorizontalOptions = LayoutOptions.Center,
-                            Text = item.FileName
-                        },
-                        size,
-                    }
-                },
-                new BoxView()
-                {
-                    Color = Colors.Gray,
-                    HeightRequest = 2,
-                    HorizontalOptions= LayoutOptions.Fill,
-                },
-            }
-        };
-        var actionBox = new Grid()
-        {
-            Children =
-            {
-                new Button()
-                {
-                    Text = "接收"
-                },
-            }
-        };
-        box.Children.Add(actionBox);
-        if (item.Status == FileMessageStatus.None)
-        {
-            var cancelBtn = new Button()
-            {
-                Text = "取消"
-            };
-            actionBox.Children.Add(cancelBtn);
-            Grid.SetColumn(cancelBtn, 1);
-        }
-        if (actionBox.Children.Count > 1)
-        {
-            actionBox.ColumnDefinitions = new ColumnDefinitionCollection(
-                actionBox.Children.Select(i => new ColumnDefinition(GridLength.Star)).ToArray()
-                );
-            for ( var i = 0; i < actionBox.Children.Count; i++ )
-            {
-                var btn = actionBox.Children[i] as Button;
-                btn.CornerRadius = 0;
-                Grid.SetColumn(btn, i);
-            }
-        }
-        return box;
+        return new MessageFileListItem() { ItemSource = item, };
     }
 
 
