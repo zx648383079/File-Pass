@@ -18,8 +18,6 @@ public partial class DialogPanel : ContentView
     public static readonly BindableProperty TitleProperty =
         BindableProperty.Create(nameof(Title), typeof(string), typeof(DialogPanel), string.Empty);
 
-
-
     public bool IsOpen {
         get { return (bool)GetValue(IsOpenProperty); }
         set { SetValue(IsOpenProperty, value); }
@@ -29,21 +27,18 @@ public partial class DialogPanel : ContentView
         BindableProperty.Create(nameof(IsOpen), typeof(bool), typeof(DialogPanel),
             true, propertyChanged: (b, oldVal, newVal) => {
                 (b as DialogPanel)?.ToggleOpen((bool)oldVal, (bool)newVal);
-            },
-            defaultValueCreator: b => {
-                (b as DialogPanel)?.ToggleOpen(true, false);
-                return true;
             });
 
     private void ToggleOpen(bool oldVal, bool newVal)
     {
+
         if (newVal)
         {
             InnerPanel?.TranslateTo(0, 0, 500, Easing.SinIn);
         }
         else
         {
-            InnerPanel?.TranslateTo(0, Height, 500, Easing.SinOut);
+            InnerPanel?.TranslateTo(0, 500, 500, Easing.SinOut);
         }
     }
 

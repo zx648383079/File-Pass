@@ -18,7 +18,7 @@
         </Grid>
     </Shell.TitleView>
     <Grid RowDefinitions="*,Auto,Auto,Auto">
-        <ctl:MessageListView ItemsSource="{Binding MessageItems}"/>
+        <ctl:MessageListView ItemsSource="{Binding MessageItems}" TapCommand="{Binding MessageCommand}"/>
         <FlexLayout BindableLayout.ItemsSource="{Binding MoreItems}" 
                     Grid.Row="1" HeightRequest="48" Direction="Row" 
                     IsVisible="{Binding MoreToolVisible}">
@@ -54,5 +54,7 @@
                 </DataTemplate>
             </BindableLayout.ItemTemplate>
         </FlexLayout>
+        <ctl:StoragePicker x:Name="FilePicker" Grid.RowSpan="4"/>
+        <ctl:UserPicker x:Name="UserPicker" Grid.RowSpan="4"/>
     </Grid>
 </ContentPage>

@@ -20,6 +20,10 @@ namespace ZoDream.FileTransfer.Repositories
 
         public Dictionary<string, UserInfoItem> CacheItems { get; private set; } = new();
         public IList<UserItem> UserItems { get; private set; }
+        /// <summary>
+        /// 以确认的消息，允许后台进行操作，例如文件接收和发送
+        /// </summary>
+        public Dictionary<string, MessageItem> ConfirmItems = new();
 
         public event UsersUpdatedEventHandler UsersUpdated;
         public event NewUserEventHandler NewUser;
@@ -246,6 +250,7 @@ namespace ZoDream.FileTransfer.Repositories
                 IsSender = true,
                 Id = GenerateMessageId(),
                 FileName = fileName,
+                Size = await App.Storage.GetSizeAsync(fileName),
                 CreatedAt = DateTime.Now,
                 IsSuccess = false
             };
@@ -255,6 +260,41 @@ namespace ZoDream.FileTransfer.Repositories
                 Data = new FileInfoItem(fileName, fileName, fileName)
             });
             return message;
+        }
+
+        /// <summary>
+        /// 取消消息
+        /// </summary>
+        /// <param name="user"></param>
+        /// <param name="data"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        public async Task<bool> CancelMessageAsync(UserItem user, MessageItem data)
+        {
+            throw new NotImplementedException();
+        }
+        /// <summary>
+        /// 确认消息
+        /// </summary>
+        /// <param name="user"></param>
+        /// <param name="data"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        public async Task<bool> ConfirmMessageAsync(UserItem user, MessageItem data)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// 撤回消息
+        /// </summary>
+        /// <param name="user"></param>
+        /// <param name="data"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        public async Task<bool> WithdrawMessageAsync(UserItem user, MessageItem data)
+        {
+            throw new NotImplementedException();
         }
 
         #endregion
@@ -361,6 +401,8 @@ namespace ZoDream.FileTransfer.Repositories
             }
             return null;
         }
+
+
         #endregion
     }
 }

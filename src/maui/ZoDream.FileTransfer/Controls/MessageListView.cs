@@ -137,7 +137,10 @@ public class MessageListView : ContentView
 
     private View CreateFileMessage(FileMessageItem item)
     {
-        return new MessageFileListItem() { ItemSource = item, };
+        return new MessageFileListItem() { 
+            ItemSource = item,
+            TapCommand = TapCommand
+        };
     }
 
 

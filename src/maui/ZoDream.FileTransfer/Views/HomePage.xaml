@@ -24,6 +24,6 @@
                 </DataTemplate>
             </CollectionView.ItemTemplate>
         </CollectionView>
-        <ctl:UserSelectDialog/>
+        <ctl:NotifyDialog/>
     </Grid>
 </ContentPage>

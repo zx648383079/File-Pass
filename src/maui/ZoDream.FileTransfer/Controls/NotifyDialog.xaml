@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="ZoDream.FileTransfer.Controls.DialogPanel">
+             xmlns:ctl="clr-namespace:ZoDream.FileTransfer.Controls"
+             x:Class="ZoDream.FileTransfer.Controls.NotifyDialog">
     <ContentView.ControlTemplate>
         <ControlTemplate>
             <Grid x:Name="PART_InnerPanel" HeightRequest="300" TranslationY="500" VerticalOptions="End" HorizontalOptions="Fill">
@@ -15,10 +16,18 @@
                 </BoxView>
                 <Grid Margin="10,10,10,0" RowDefinitions="auto,*">
                     <Grid ColumnDefinitions="*,auto" HeightRequest="48">
-                        <Label Text="{TemplateBinding Title}" VerticalOptions="Center" HorizontalOptions="Center"/>
+                        <Label Text="新发现设备" VerticalOptions="Center" HorizontalOptions="Center"/>
                         <Button x:Name="PART_CloseBtn" Text="&#xe653;" SemanticProperties.Hint="关闭" Style="{StaticResource BodyIconBtn}" Grid.Column="1"/>
                     </Grid>
-                    <ContentPresenter Grid.Row="1"/>
+                    <CollectionView ItemsSource="{TemplateBinding Items}" Grid.Row="1" Grid.ColumnSpan="2">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate>
+                                <ctl:UserOptionItem YesCommand="{Binding Source={RelativeSource TemplatedParent}, Path=AgreeCommand}" 
+                                                    NoCommand="{Binding Source={RelativeSource TemplatedParent}, Path=DisagreeCommand}" 
+                                            CommandParameter="{Binding}"/>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
                 </Grid>
             </Grid>
         </ControlTemplate>

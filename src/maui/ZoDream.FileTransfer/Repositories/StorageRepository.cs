@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using ZoDream.FileTransfer.Utils;
 
 namespace ZoDream.FileTransfer.Repositories 
 {
@@ -72,5 +73,21 @@ namespace ZoDream.FileTransfer.Repositories
             return File.OpenWrite(file);
         }
 
+        public Task<long> GetSizeAsync(string fileName)
+        {
+            return Task.Factory.StartNew(() => {
+                var info = new FileInfo(fileName);
+                return info.Length;
+            });
+        }
+
+        public Task<string> GetMD5Async(string fileName)
+        {
+            return Task.Factory.StartNew(() => {
+                return Disk.GetMD5(fileName);
+            });
+        }
+
+        
     }
 }

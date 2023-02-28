@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading.Tasks;
 using ZoDream.FileTransfer.Models;
 
@@ -64,5 +66,28 @@ namespace ZoDream.FileTransfer.Utils
             }
             return Math.Round(Convert.ToDouble(size / 1024d / 1024 / 1024 / 1024 / 1024), 2) + "PB";
         }
+
+        public static string GetMD5(string fileName)
+        {
+            if (string.IsNullOrWhiteSpace(fileName) || !File.Exists(fileName))
+            {
+                return string.Empty;
+            }
+            using var fs = new FileStream(fileName, FileMode.Open);
+            return GetMD5(fs);
+        }
+
+        public static string GetMD5(Stream fs)
+        {
+            var md5 = MD5.Create();
+            var res = md5.ComputeHash(fs);
+            var sb = new StringBuilder();
+            foreach (var b in res)
+            {
+                sb.Append(b.ToString("x2"));
+            }
+            return sb.ToString();
+        }
+
     }
 }

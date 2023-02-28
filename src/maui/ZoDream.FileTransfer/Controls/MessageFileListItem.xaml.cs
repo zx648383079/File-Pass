@@ -1,5 +1,6 @@
 using System.Windows.Input;
 using ZoDream.FileTransfer.Models;
+using ZoDream.FileTransfer.Network;
 using ZoDream.FileTransfer.Utils;
 
 namespace ZoDream.FileTransfer.Controls;
@@ -76,12 +77,12 @@ public partial class MessageFileListItem : ContentView
 
     private void CancelBtn_Clicked(object sender, EventArgs e)
     {
-        TapCommand?.Execute(ItemSource);
+        TapCommand?.Execute(new MessageTapEventArg(ItemSource, MessageTapEvent.Cancel));
     }
 
     private void RevBtn_Clicked(object sender, EventArgs e)
     {
-        TapCommand?.Execute(ItemSource);
+        TapCommand?.Execute(new MessageTapEventArg(ItemSource, MessageTapEvent.Confirm));
     }
 
     private void UpdateView()

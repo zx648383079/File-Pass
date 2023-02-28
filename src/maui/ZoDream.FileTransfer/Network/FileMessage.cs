@@ -54,11 +54,13 @@ namespace ZoDream.FileTransfer.Network
 
     public class FileMergeMessage : ISocketMessage
     {
-        const string Separator = ",";
+        public const string Separator = ",";
 
         public SocketMessageType Type { get; set; } = SocketMessageType.FileMerge;
 
         public string Md5 { get; set; }
+
+        public string FileName { get; set; }
 
         public IList<string> PartItems { get; set; }
 
@@ -67,6 +69,7 @@ namespace ZoDream.FileTransfer.Network
         {
             Md5 = socket.ReceiveText();
             var partName = socket.ReceiveText();
+            FileName = socket.ReceiveText();
             PartItems = partName.Split(Separator);
             return Task.FromResult(true);
         }
@@ -75,6 +78,7 @@ namespace ZoDream.FileTransfer.Network
         {
             socket.SendText(SocketMessageType.FileMerge, Md5);
             socket.SendText(string.Join(Separator, PartItems));
+            socket.SendText(FileName);
             return Task.FromResult(true);
         }
     }

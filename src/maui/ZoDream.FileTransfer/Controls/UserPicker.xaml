@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="ZoDream.FileTransfer.Controls.UserPicker">
+    <ContentView.ControlTemplate>
+        <ControlTemplate>
+            <Grid x:Name="PART_InnerPanel" HeightRequest="300" TranslationY="500" VerticalOptions="End" HorizontalOptions="Fill">
+                <BoxView Color="{StaticResource Gray100}" CornerRadius="40,40,0,0">
+                    <BoxView.Shadow>
+                        <Shadow Brush="Black"
+                            Offset="20,20"
+                            Radius="40"
+                            Opacity="0.8"/>
+                    </BoxView.Shadow>
+                </BoxView>
+                <Grid Margin="10,10,10,0" RowDefinitions="auto,*,auto">
+                    <Grid ColumnDefinitions="*,auto" HeightRequest="48">
+                        <Label Text="推荐好友" VerticalOptions="Center" HorizontalOptions="Center"/>
+                        <Button x:Name="PART_CloseBtn" Text="&#xe653;" SemanticProperties.Hint="关闭" Style="{StaticResource BodyIconBtn}" Grid.Column="1"/>
+                    </Grid>
+                    <CollectionView ItemsSource="{TemplateBinding Items}" Grid.Row="1">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate>
+                                <Grid ColumnDefinitions="auto,80,*" RowDefinitions="*,*" >
+                                    <CheckBox IsChecked="{Binding IsChecked}" 
+                                              Grid.RowSpan="2"/>
+                                    <Grid Grid.RowSpan="2" Grid.Column="1">
+                                        <Image Source="{Binding Avatar}"
+                                        Style="{StaticResource CircleImage}"/>
+                                    </Grid>
+                                    <Label Text="{Binding Name}"
+                                           Grid.Column="2"
+                                            VerticalOptions="Center"/>
+                                    <Label Grid.Column="2" Grid.Row="1"    
+                                        Text="{Binding Ip}"
+                                        VerticalOptions="Center"/>
+                                </Grid>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                    <Grid ColumnDefinitions="*,auto" Grid.Row="2" IsVisible="{TemplateBinding IsCheckable}">
+                        <Button x:Name="PART_YesBtn" Text="确定"  Grid.Column="1"/>
+                    </Grid>
+                </Grid>
+            </Grid>
+        </ControlTemplate>
+    </ContentView.ControlTemplate>
+</ContentView>

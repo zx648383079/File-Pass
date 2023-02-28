@@ -39,7 +39,17 @@ namespace ZoDream.FileTransfer.Models
     public class UserInfoOption: UserInfoItem, INotifyPropertyChanged
     {
 
-        
+        private bool isChecked;
+
+        public bool IsChecked {
+            get { return isChecked; }
+            set { 
+                isChecked = value;
+                OnPropertyChanged();
+            }
+        }
+
+
         private int status;
         /// <summary>
         /// 状态，0 待处理 1 申请中 2 已同意 3 已拒绝

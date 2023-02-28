@@ -14,10 +14,15 @@ namespace ZoDream.FileTransfer.Network
         public string Ip { get; private set; } = string.Empty;
 
         public int Port { get; private set; } = 80;
+        /// <summary>
+        /// 特殊的连接
+        /// </summary>
+        public string MessageId { get; set; } = string.Empty;
 
         private bool IsLoopReceive = false;
         private readonly Socket ClientSocket;
         private CancellationTokenSource ReceiveToken = new();
+        private CancellationTokenSource SendToken = new();
         public event MessageReceivedEventHandler MessageReceived;
 
         public SocketClient(Socket socket)
@@ -232,17 +237,59 @@ namespace ZoDream.FileTransfer.Network
             var rate = length;
             while (rate > 0)
             {
+                if (SendToken.IsCancellationRequested)
+                {
+                    return;
+                }
                 var buffer = new byte[Math.Min(rate, chunkSize)];
                 reader.Read(buffer, 0, buffer.Length);
                 ClientSocket.Send(buffer);
                 rate -= buffer.Length;
             }
         }
+
+        public bool SendFile(string name, string md5, string fileName)
+        {
+            var chunkSize = 2000000;
+            using var reader = File.OpenRead(fileName);
+            var length = reader.Length;
+            if (length <= chunkSize)
+            {
+                Send(SocketMessageType.File);
+                SendText(name);
+                SendText(md5);
+                SendStream(reader, length);
+                return true;
+            }
+            var rate = length;
+            var partItems = new List<string>();
+            var i = 0;
+            while (rate > 0)
+            {
+                if (SendToken.IsCancellationRequested)
+                {
+                    return false;
+                }
+                var partName = $"{md5}_{i}";
+                Send(SocketMessageType.FilePart);
+                SendText(partName);
+                SendStream(reader, Math.Min(rate, chunkSize));
+                partItems.Add(partName);
+                rate -= chunkSize;
+                i++;
+            }
+            Send(SocketMessageType.FileMerge);
+            SendText($"{md5}_{i}");
+            SendText(string.Join(FileMergeMessage.Separator, partItems));
+            SendText(name);
+            return true;
+        }
         #endregion
 
         public void Dispose()
         {
             ReceiveToken?.Cancel();
+            SendToken?.Cancel();
             ClientSocket?.Close();
         }
     }

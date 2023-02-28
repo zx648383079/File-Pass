@@ -2,7 +2,9 @@
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
 using System.Windows.Input;
+using ZoDream.FileTransfer.Controls;
 using ZoDream.FileTransfer.Models;
+using ZoDream.FileTransfer.Network;
 
 namespace ZoDream.FileTransfer.ViewModels
 {
@@ -14,8 +16,7 @@ namespace ZoDream.FileTransfer.ViewModels
 			SendCommand = new AsyncRelayCommand(SendAsync);
 			MoreButtonCommand = new AsyncRelayCommand<MessageMoreItem>(TapMoreButtonAsync);
 			MoreCommand = new RelayCommand(TapMore);
-            ConfirmMessageCommand = new AsyncRelayCommand<MessageItem>(ConfirmMessageAsync);
-            CancelMessageCommand = new AsyncRelayCommand<MessageItem>(CancelMessageAsync);
+            MessageCommand = new AsyncRelayCommand<MessageTapEventArg>(TapMessageAsync);
             App.Repository.ChatHub.NewMessage += Repository_NewMessage;
 			MoreItems.Add(new MessageMoreItem("image", "发送图片", "\ue68b"));
 			MoreItems.Add(new MessageMoreItem("video", "发送视频", "\ue68c"));
@@ -28,6 +29,7 @@ namespace ZoDream.FileTransfer.ViewModels
         }
 
         private UserItem User;
+		
 
 		private string title = "加载中。。。";
 
@@ -106,24 +108,30 @@ namespace ZoDream.FileTransfer.ViewModels
             }
         }
 
+		public StoragePicker StoragePicker { get; internal set; }
+		public UserPicker UserPicker { get; internal set; }
 
         public ICommand ProfileCommand { get; private set; }
         public ICommand MoreCommand { get; private set; }
         public ICommand MoreButtonCommand { get; private set; }
         public ICommand SendCommand { get; private set; }
 
-		public ICommand ConfirmMessageCommand { get; private set; }
-		public ICommand CancelMessageCommand { get; private set; }
+		public ICommand MessageCommand { get; private set; }
 
-        private async Task ConfirmMessageAsync(MessageItem item)
+        private async Task TapMessageAsync(MessageTapEventArg arg)
 		{
-
+			switch (arg.EventType) {
+				case MessageTapEvent.Cancel:
+					await App.Repository.ChatHub.CancelMessageAsync(User, arg.Data);
+					break;
+				case MessageTapEvent.Confirm:
+					
+                    await App.Repository.ChatHub.ConfirmMessageAsync(User, arg.Data);
+                    break;
+				default:
+					break;
+			}
 		}
-
-        private async Task CancelMessageAsync(MessageItem item)
-        {
-
-        }
 
 		private void TapMore()
 		{
@@ -135,9 +143,17 @@ namespace ZoDream.FileTransfer.ViewModels
 			switch (button.Name)
 			{
 				case "image":
-					await PickFileAsync();
+				case "file":
+				case "video":
+                    await PickFileAsync();
 					break;
-				default:
+                case "folder":
+                    await PickFolderAsync();
+                    break;
+                case "user":
+                    await PickUserAsync();
+                    break;
+                default:
 					break;
 			}
 		}
@@ -155,7 +171,6 @@ namespace ZoDream.FileTransfer.ViewModels
 				CreatedAt = DateTime.Now,
 				IsSuccess = false
 			});
-			return;
 			var message = await App.Repository.ChatHub.SendTextAsync(User, Content);
 			MessageItems.Add(message);
 			Content = string.Empty;
@@ -179,7 +194,6 @@ namespace ZoDream.FileTransfer.ViewModels
                     CreatedAt = DateTime.Now,
                     IsSuccess = false
                 });
-				continue;
                 var message = await App.Repository.ChatHub.SendFileAsync(User, item.FileName);
                 MessageItems.Add(message);
             }
@@ -187,18 +201,34 @@ namespace ZoDream.FileTransfer.ViewModels
 
 		private async Task PickFolderAsync()
 		{
-            
+            StoragePicker.IsFolderPicker = true;
+			if (!await StoragePicker.ShowAsync())
+			{
+				return;
+			}
+			var folder = StoragePicker.SelectedItem;
         }
 
         private async Task PickUserAsync()
         {
-
+            UserPicker.Items = App.Repository.ChatHub.UserItems.Where(i => i.Id != User.Id)
+				.Select(i => new UserInfoOption(i)).ToList();
+            if (!await UserPicker.ShowAsync())
+            {
+                return;
+            }
+            var users = UserPicker.SelectedItems;
         }
 
         private async Task SyncFolderAsync()
 		{
-
-		}
+            StoragePicker.IsFolderPicker = true;
+            if (!await StoragePicker.ShowAsync())
+            {
+                return;
+            }
+            var folder = StoragePicker.SelectedItem;
+        }
 
         private async Task GoToProfile()
 		{

@@ -15,7 +15,7 @@
 		<ApplicationTitle>ZoDream.FileTransfer</ApplicationTitle>
 
 		<!-- App Identifier -->
-		<ApplicationId>com.companyname.zodream.filetransfer</ApplicationId>
+		<ApplicationId>cn.zodream.filetransfer</ApplicationId>
 		<ApplicationIdGuid>df2130a0-ad63-4686-93f7-42108685e763</ApplicationIdGuid>
 
 		<!-- Versions -->
@@ -89,12 +89,6 @@
 		<MauiAsset Include="Resources\Raw\**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
 	</ItemGroup>
 
-	<ItemGroup>
-	  <None Remove="Resources\Images\bars.png" />
-	  <None Remove="Resources\Images\chevron-left.png" />
-	  <None Remove="Resources\Images\plus.png" />
-	  <None Remove="Resources\Images\trash.png" />
-	</ItemGroup>
 
 	<ItemGroup>
 		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.1.0" />
@@ -102,11 +96,6 @@
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="7.0.0" />
 	</ItemGroup>
 
-	<ItemGroup>
-	  <Reference Include="Interop.NetFwTypeLib">
-	    <HintPath>..\..\win\obj\Debug\net6.0-windows\Interop.NetFwTypeLib.dll</HintPath>
-	  </Reference>
-	</ItemGroup>
 
 	<!-- Android -->
 	<ItemGroup Condition="$(TargetFramework.StartsWith('net7.0-android')) != true">
@@ -162,13 +151,16 @@
 	  <MauiXaml Update="Controls\MessageUserListItem.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
+	  <MauiXaml Update="Controls\NotifyDialog.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
 	  <MauiXaml Update="Controls\StoragePicker.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="Controls\UserOptionItem.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
-	  <MauiXaml Update="Controls\UserSelectDialog.xaml">
+	  <MauiXaml Update="Controls\UserPicker.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="Views\ChatPage.xaml">
