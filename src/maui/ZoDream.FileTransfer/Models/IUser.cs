@@ -6,12 +6,10 @@ using System.Threading.Tasks;
 
 namespace ZoDream.FileTransfer.Models
 {
-    public interface IUser
+    public interface IUser: IClientAddress
     {
         public string Id { get; }
         public string Name { get; }
-        public string Ip { get; }
-        public int Port { get; }
         public string Avatar { get; }
     }
 }

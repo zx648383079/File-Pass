@@ -15,6 +15,12 @@ namespace ZoDream.FileTransfer.ViewModels
             SearchCommand = new AsyncRelayCommand(TapSearch);
             AgreeCommand = new AsyncRelayCommand<UserInfoOption>(TapAgree);
             DisagreeCommand = new AsyncRelayCommand<UserInfoOption>(TapDisagree);
+            App.Repository.ChatHub.NewUser += ChatHub_NewUser;
+        }
+
+        private void ChatHub_NewUser(IUser user)
+        {
+            UserItems.Add(new UserInfoOption(user));
         }
 
         private bool isLoading = false;
@@ -98,10 +104,7 @@ namespace ZoDream.FileTransfer.ViewModels
             }
             UserItems.Clear();
             IsLoading = true;
-            foreach (var item in await App.Repository.ChatHub.SearchUsersAsync(Ip, Port))
-            {
-                UserItems.Add(item);
-            }
+            await App.Repository.ChatHub.SearchUsersAsync(Ip, Port);
             IsLoading = false;
         }
     }

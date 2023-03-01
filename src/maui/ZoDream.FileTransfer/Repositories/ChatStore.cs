@@ -5,7 +5,9 @@ using System.Text;
 using System.Threading.Tasks;
 using ZoDream.FileTransfer.Models;
 using ZoDream.FileTransfer.Network;
+using ZoDream.FileTransfer.Network.Messages;
 using ZoDream.FileTransfer.Utils;
+using static CoreFoundation.DispatchSource;
 
 namespace ZoDream.FileTransfer.Repositories
 {
@@ -16,7 +18,7 @@ namespace ZoDream.FileTransfer.Repositories
             App = app;
         }
 
-        private AppRepository App;
+        private readonly AppRepository App;
 
         public Dictionary<string, UserInfoItem> CacheItems { get; private set; } = new();
         public IList<UserItem> UserItems { get; private set; }
@@ -24,18 +26,26 @@ namespace ZoDream.FileTransfer.Repositories
         /// 以确认的消息，允许后台进行操作，例如文件接收和发送
         /// </summary>
         public Dictionary<string, MessageItem> ConfirmItems = new();
+        public Dictionary<string, IMessageSocket> LinkItems = new();
 
         public event UsersUpdatedEventHandler UsersUpdated;
         public event NewUserEventHandler NewUser;
         public event NewMessageEventHandler NewMessage;
+        public event MessageUpdatedEventHandler MessageUpdated;
 
         public async Task InitializeAsync()
         {
             UserItems = await App.DataHub.GetUsersAsync();
-            App.NetHub.MessageReceived += NetHub_MessageReceived;
+            var net = App.NetHub;
+            net.MessageReceived += NetHub_MessageReceived;
+            net.Udp.Listen(App.Option.Ip, Constants.DEFAULT_PORT);
             if (!App.Option.IsHideClient)
             {
-                App.NetHub.Listen(App.Option.Ip, App.Option.Port);
+                net.Tcp.Listen(App.Option.Ip, App.Option.Port);
+                net.Ping(App.Option);
+            } else
+            {
+                net.Ping(UserItems, App.Option);
             }
             UsersUpdated?.Invoke();
         }
@@ -151,53 +161,132 @@ namespace ZoDream.FileTransfer.Repositories
         #endregion
 
 
-        private void NetHub_MessageReceived(SocketClient client, ISocketMessage message)
+        private void NetHub_MessageReceived(string ip, int port, MessageEventArg message)
         {
-            var user = Get(client.Ip, client.Port);
-            switch (message.Type)
+            var user = Get(ip, port);
+            var net = App.NetHub;
+            switch (message.EventType)
             {
-                case SocketMessageType.None:
-                    break;
-                case SocketMessageType.Ip:
-                    break;
-                case SocketMessageType.String:
-                    NewMessage?.Invoke(user.Id, (message as TextMessage).ConverterTo());
-                    break;
-                case SocketMessageType.Numeric:
-                    break;
-                case SocketMessageType.Bool:
-                    break;
-                case SocketMessageType.Null:
-                    break;
                 case SocketMessageType.Ping:
-                    break;
-                case SocketMessageType.Close:
-                    NewMessage?.Invoke(user.Id, new ActionMessageItem(message.Type));
-                    break;
-                case SocketMessageType.CallInfo:
-                    _ = client.SendAsync(new JSONMessage<UserInfoItem>()
+                    if (message.IsRequest)
                     {
-                        Type = SocketMessageType.Info,
-                        Data = App.Option.FormatInfo()
+                        net.ResponsePing(ip, port, App.Option);
+                    }
+                    NewUser?.Invoke((message.Data as UserMessage).Data);
+                    break;
+                case SocketMessageType.UserAddRequest:
+                    NewUser?.Invoke((message.Data as UserMessage).Data);
+                    break;
+                case SocketMessageType.MessageText:
+                    NewMessage?.Invoke(user.Id, new TextMessageItem() {
+                        Content = (message.Data as TextMessage).Data,
+                        IsSender = false,
+                        CreatedAt = DateTime.Now,
+                        IsSuccess = true,
                     });
                     break;
-                case SocketMessageType.CallAddUser:
-                    NewUser?.Invoke((message as JSONMessage<UserInfoItem>).Data);
+                case SocketMessageType.Close:
+                case SocketMessageType.MessagePing:
+                    NewMessage?.Invoke(user.Id, new ActionMessageItem(message.EventType)
+                    {
+                        IsSender = false,
+                        CreatedAt = DateTime.Now,
+                        IsSuccess = true,
+                    });
                     break;
-                case SocketMessageType.AddUser:
+                case SocketMessageType.MessageFile:
+                    var file = message.Data as FileMessage;
+                    NewMessage?.Invoke(user.Id, new FileMessageItem()
+                    {
+                        Id = file.MessageId,
+                        FileName = file.FileName,
+                        Size = file.Length,
+                        IsSender = false,
+                        CreatedAt = DateTime.Now,
+                        IsSuccess = true,
+                    });
                     break;
-                case SocketMessageType.FileInfo:
+                case SocketMessageType.MessageAction:
+                    var action = message.Data as ActionMessage;
+                    MessageUpdated?.Invoke(action.MessageId, action.EventType, null);
                     break;
-                case SocketMessageType.CallFile:
-                    break;
-                case SocketMessageType.FilePart:
-                    break;
-                case SocketMessageType.FileMerge:
-                    break;
-                case SocketMessageType.File:
+                case SocketMessageType.RequestSpecialLine:
+                    var act = message.Data as ActionMessage;
+                    if (ConfirmItems.TryGetValue(act.MessageId, out var mess))
+                    {
+                        var client = App.NetHub.Connect(ip, port);
+                        if (client is null)
+                        {
+                            // 失败
+                            return;
+                        }
+                        SendConfirmedMessage(client, mess);
+                    }
                     break;
                 default:
                     break;
+            }
+        }
+
+        public void AddConfirmMessage(MessageItem message)
+        {
+            ConfirmItems.Add(message.Id, message);
+        }
+
+        public void AddConfirmMessage(IUser user, MessageItem message)
+        {
+            AddConfirmMessage(message);
+            var client = App.NetHub.Connect(user.Ip, user.Port);
+            if (client is null)
+            {
+                // 无法创建连接，发送消息给对面，让对方创建
+                _ = App.NetHub.SendAsync(user,
+                    SocketMessageType.RequestSpecialLine, new ActionMessage()
+                    {
+                        EventType = MessageTapEvent.None,
+                        MessageId = message.Id,
+                    });
+                return;
+            }
+            SendConfirmedMessage(client, message);
+        }
+
+        private void SendConfirmedMessage(SocketClient client, MessageItem message)
+        {
+            
+            IMessageSocket link = null;
+            if (message is FileMessageItem file)
+            {
+                link = new FileMessageSocket(client, file.Id, 
+                    file.FileName, file.Location, (p,l) => {
+                        file.Size = l;
+                        file.Progress = p;
+                    });
+            }
+            if (link is null)
+            {
+                return;
+            }
+            LinkItems.Add(message.Id, link);
+            if (!message.IsSender)
+            {
+                // 接收
+                link.ReceiveAsync();
+                return;
+            } else
+            {
+                link.SendAsync();
+            }
+            
+        }
+
+        public void RemoveConfirmMessage(MessageItem message)
+        {
+            ConfirmItems.Remove(message.Id);
+            if (LinkItems.TryGetValue(message.Id, out IMessageSocket value))
+            {
+                value.Dispose();
+                LinkItems.Remove(message.Id);
             }
         }
 
@@ -220,10 +309,9 @@ namespace ZoDream.FileTransfer.Repositories
                 CreatedAt = DateTime.Now,
                 IsSuccess = false
             };
-            message.IsSuccess = await App.NetHub.SendAsync(user, new TextMessage()
+            message.IsSuccess = await App.NetHub.SendAsync(user, SocketMessageType.MessageText, new TextMessage()
             {
-                Text = content,
-                Type = SocketMessageType.String
+                Data = content,
             });
             return message;
         }
@@ -236,29 +324,30 @@ namespace ZoDream.FileTransfer.Repositories
                 CreatedAt = DateTime.Now,
                 IsSuccess = false
             };
-            message.IsSuccess = await App.NetHub.SendAsync(user, new NoneMessage()
-            {
-                Type = SocketMessageType.Ping
-            });
+            message.IsSuccess = await App.NetHub.SendAsync(user, SocketMessageType.Ping, null);
             return message;
         }
 
-        public async Task<MessageItem> SendFileAsync(IUser user, string fileName)
+        public async Task<MessageItem> SendFileAsync(IUser user, string fileName, string path)
         {
             var message = new FileMessageItem()
             {
                 IsSender = true,
                 Id = GenerateMessageId(),
                 FileName = fileName,
-                Size = await App.Storage.GetSizeAsync(fileName),
+                Size = await App.Storage.GetSizeAsync(path),
+                Location = path,
                 CreatedAt = DateTime.Now,
                 IsSuccess = false
             };
-            message.IsSuccess = await App.NetHub.SendAsync(user, new JSONMessage<FileInfoItem>()
+            message.IsSuccess = await App.NetHub.SendAsync(user, SocketMessageType.MessageFile, 
+                new FileMessage()
             {
-                Type = SocketMessageType.FileInfo,
-                Data = new FileInfoItem(fileName, fileName, fileName)
+                FileName = message.FileName,
+                MessageId = message.Id,
+                Length = message.Size
             });
+            AddConfirmMessage(message);
             return message;
         }
 
@@ -269,9 +358,19 @@ namespace ZoDream.FileTransfer.Repositories
         /// <param name="data"></param>
         /// <returns></returns>
         /// <exception cref="NotImplementedException"></exception>
-        public async Task<bool> CancelMessageAsync(UserItem user, MessageItem data)
+        public async Task<bool> CancelMessageAsync(IUser user, MessageItem data)
         {
-            throw new NotImplementedException();
+            var res = await App.NetHub.SendAsync(user, SocketMessageType.MessageAction,
+                new ActionMessage()
+                {
+                    MessageId = data.Id,
+                    EventType = MessageTapEvent.Cancel,
+                });
+            if (res)
+            {
+                RemoveConfirmMessage(data);
+            }
+            return res;
         }
         /// <summary>
         /// 确认消息
@@ -280,9 +379,19 @@ namespace ZoDream.FileTransfer.Repositories
         /// <param name="data"></param>
         /// <returns></returns>
         /// <exception cref="NotImplementedException"></exception>
-        public async Task<bool> ConfirmMessageAsync(UserItem user, MessageItem data)
+        public async Task<bool> ConfirmMessageAsync(IUser user, MessageItem data)
         {
-            throw new NotImplementedException();
+            var res = await App.NetHub.SendAsync(user, SocketMessageType.MessageAction,
+                new ActionMessage()
+                {
+                    MessageId = data.Id,
+                    EventType = MessageTapEvent.Confirm,
+                });
+            if (res)
+            {
+                AddConfirmMessage(user, data);
+            }
+            return res;
         }
 
         /// <summary>
@@ -292,9 +401,14 @@ namespace ZoDream.FileTransfer.Repositories
         /// <param name="data"></param>
         /// <returns></returns>
         /// <exception cref="NotImplementedException"></exception>
-        public async Task<bool> WithdrawMessageAsync(UserItem user, MessageItem data)
+        public async Task<bool> WithdrawMessageAsync(IUser user, MessageItem data)
         {
-            throw new NotImplementedException();
+            return await App.NetHub.SendAsync(user, SocketMessageType.MessageAction,
+                new ActionMessage()
+                {
+                    MessageId = data.Id,
+                    EventType = MessageTapEvent.Withdraw,
+                });
         }
 
         #endregion
@@ -304,16 +418,15 @@ namespace ZoDream.FileTransfer.Repositories
 
         public async Task<bool> AgreeAddUserAsync(IUser user, bool yes)
         {
-            var client = App.NetHub.Connect(user.Ip, user.Port);
-            if (client == null)
+            var res = await App.NetHub.ResponseAsync(user,
+                SocketMessageType.UserAddResponse, new BoolMessage()
+                {
+                    Data = yes
+                });
+            if (!res)
             {
                 return false;
             }
-            await client.SendAsync(new BoolMessage()
-            {
-                Type = SocketMessageType.AddUser,
-                Value = yes
-            });
             if (yes)
             {
                 Add(user);
@@ -323,85 +436,24 @@ namespace ZoDream.FileTransfer.Repositories
 
         public async Task<bool> AddUserAsync(IUser user)
         {
-            var client = App.NetHub.Connect(user.Ip, user.Port);
-            if (client == null)
+            return await App.NetHub.SendAsync(user, SocketMessageType.UserAddRequest, new UserMessage()
             {
-                return false;
-            }
-            await client.SendAsync(new JSONMessage<UserInfoItem>()
-            {
-                Type = SocketMessageType.CallAddUser,
-                Data = App.Option.FormatInfo()
+                Data = App.Option
             });
-            var message = await client.ReceiveAsync(SocketMessageType.AddUser);
-            client.Dispose();
-            if (message is BoolMessage o)
-            {
-                if (o.Value)
-                {
-                    Add(user);
-                }
-                return o.Value;
-            }
-            return false;
         }
 
-        public async Task<IList<UserInfoOption>> SearchUsersAsync(string ip, int port)
+        public Task<bool> SearchUsersAsync(string ip, int port)
         {
-            var items = new List<UserInfoOption>();
-            if (!string.IsNullOrWhiteSpace(ip))
-            {
-                var item = await ConnectUserAsync(ip, port);
-                if (item != null)
+            return Task.Factory.StartNew(() => {
+                if (!string.IsNullOrWhiteSpace(ip))
                 {
-                    items.Add(item);
+                    App.NetHub.Ping(ip, port, App.Option);
+                    return true;
                 }
-                return items;
-            }
-            foreach (var item in await Utils.Ip.GetGroupOtherIpAsync())
-            {
-                var user = await ConnectUserAsync(item, port);
-                if (user != null)
-                {
-                    items.Add(user);
-                }
-            }
-            return items;
+                App.NetHub.Ping(App.Option);
+                return true;
+            });
         }
-
-        private async Task<UserInfoOption> ConnectUserAsync(string ip, int port)
-        {
-            var user = Get(ip, port);
-            if (user != null)
-            {
-                return new UserInfoOption()
-                {
-                    Id = user.Id,
-                    Name = user.Name,
-                    Ip = ip,
-                    Port = port,
-                    Avatar = user.Avatar,
-                    Status = 2,
-                };
-            }
-            var client = App.NetHub.Connect(ip, port);
-            if (client == null)
-            {
-                return null;
-            }
-            client.Send(SocketMessageType.CallInfo);
-            var message = await client.ReceiveAsync(SocketMessageType.Info);
-            client.Dispose();
-            if (message is JSONMessage<UserInfoItem> o)
-            {
-                return new UserInfoOption(o.Data)
-                {
-                    Status = IndexOf(o.Data.Ip, o.Data.Port) < 0 ? 0 : 2,
-                };
-            }
-            return null;
-        }
-
 
         #endregion
     }

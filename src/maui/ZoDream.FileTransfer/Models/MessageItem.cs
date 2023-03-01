@@ -42,7 +42,7 @@ namespace ZoDream.FileTransfer.Models
         {
             Content = messageType switch
             {
-                SocketMessageType.Ping => "拍拍你",
+                SocketMessageType.MessagePing => "拍拍你",
                 SocketMessageType.Close => "连接已断开",
                 _ => ""
             };

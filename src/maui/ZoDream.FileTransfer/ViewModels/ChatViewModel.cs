@@ -187,14 +187,8 @@ namespace ZoDream.FileTransfer.ViewModels
 			var res = await FilePicker.Default.PickMultipleAsync();
             foreach (var item in res)
             {
-                MessageItems.Add(new FileMessageItem()
-                {
-                    IsSender = true,
-                    FileName = item.FileName,
-                    CreatedAt = DateTime.Now,
-                    IsSuccess = false
-                });
-                var message = await App.Repository.ChatHub.SendFileAsync(User, item.FileName);
+                var message = await App.Repository.ChatHub
+					.SendFileAsync(User, item.FileName, item.FullPath);
                 MessageItems.Add(message);
             }
         }

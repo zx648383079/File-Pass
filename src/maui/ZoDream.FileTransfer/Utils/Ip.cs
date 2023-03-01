@@ -51,6 +51,19 @@ namespace ZoDream.FileTransfer.Utils
             return new List<string>();
         }
 
+        public static string GetIpInGroup()
+        {
+            var existItems = GetIpList();
+            foreach (var ip in existItems)
+            {
+                if (ip.StartsWith("192.168"))
+                {
+                    return ip;
+                }
+            }
+            return string.Empty;
+        }
+
         public static Task<List<string>> GetGroupIpAsync(string baseIp, string existIp)
         {
             return GetGroupIpAsync(baseIp, string.IsNullOrWhiteSpace(existIp) ? new string[0] : new string[] { existIp });
