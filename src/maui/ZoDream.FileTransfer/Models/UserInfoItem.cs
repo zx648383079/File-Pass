@@ -34,6 +34,24 @@ namespace ZoDream.FileTransfer.Models
             Ip = item.Ip;
             Port = item.Port;
         }
+
+
+        public static string ToStr(IUser user)
+        {
+            return $"{user.Id},{user.Ip},{user.Port},{user.Avatar},{user.Name}";
+        }
+        public static IUser FromStr(string val)
+        {
+            var arg = val.Split(',', 5);
+            return new UserInfoItem()
+            {
+                Id = arg[0],
+                Ip = arg[1],
+                Port = int.Parse(arg[2]),
+                Avatar = arg.Length > 4 ? arg[3] : string.Empty,
+                Name = arg.Length > 4 ? arg[4]: arg[3],
+            };
+        }
     }
 
     public class UserInfoOption: UserInfoItem, INotifyPropertyChanged

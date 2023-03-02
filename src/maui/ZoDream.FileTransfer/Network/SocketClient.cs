@@ -312,7 +312,8 @@ namespace ZoDream.FileTransfer.Network
                     location = Path.Combine(folder, fileName);
                     md5 = ReceiveText();
                     var partItems = ReceiveText().Split(',');
-                    if (!storage.CacheMergeFile(md5, partItems) 
+                    var partLength = storage.CacheMergeFile(md5, partItems);
+                    if (partLength <= 0
                         || md5 != storage.CacheFileMD5(md5))
                     {
                         storage.CacheRemove(partItems);

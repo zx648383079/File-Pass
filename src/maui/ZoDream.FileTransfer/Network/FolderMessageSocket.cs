@@ -9,7 +9,6 @@ using System.Threading.Tasks;
 using System.Xml.Linq;
 using ZoDream.FileTransfer.Models;
 using ZoDream.FileTransfer.Utils;
-using static UIKit.UIGestureRecognizer;
 
 namespace ZoDream.FileTransfer.Network
 {

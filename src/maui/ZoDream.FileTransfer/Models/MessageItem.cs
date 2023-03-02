@@ -11,6 +11,10 @@ namespace ZoDream.FileTransfer.Models
     {
         public bool IsSender { get; set; } = false;
 
+        public string UserId { get; set; }
+
+        public string ReceiveId { get; set; }
+
         public string Id { get; set; }
 
         public DateTime CreatedAt { get; set; }

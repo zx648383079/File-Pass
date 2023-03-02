@@ -73,7 +73,25 @@ namespace ZoDream.FileTransfer.Repositories
             {
                 return;
             }
+            App.DataHub.AddUserAsync(item);
             UserItems.Add(new UserItem(item));
+        }
+
+        public void Remove(IUser item)
+        {
+            var isUpdated = false;
+            for (int i = UserItems.Count - 1; i >= 0; i--)
+            {
+                if (UserItems[i].Id == item.Id)
+                {
+                    UserItems.RemoveAt(i);
+                    isUpdated = true;
+                }
+            }
+            if (isUpdated)
+            {
+                App.DataHub.RemoveUserAsync(item);
+            }
         }
 
         public int IndexOf(UserItem item)
@@ -165,6 +183,7 @@ namespace ZoDream.FileTransfer.Repositories
         {
             var user = Get(ip, port);
             var net = App.NetHub;
+            MessageItem msg = null; 
             switch (message.EventType)
             {
                 case SocketMessageType.Ping:
@@ -192,36 +211,107 @@ namespace ZoDream.FileTransfer.Repositories
                     }
                     break;
                 case SocketMessageType.MessageText:
-                    NewMessage?.Invoke(user.Id, new TextMessageItem() {
+                    msg = new TextMessageItem()
+                    {
+                        UserId = user.Id,
+                        ReceiveId = App.Option.Id,
                         Content = (message.Data as TextMessage).Data,
                         IsSender = false,
                         CreatedAt = DateTime.Now,
                         IsSuccess = true,
-                    });
+                    };
+                    App.DataHub.AddMessageAsync(user, msg);
+                    NewMessage?.Invoke(user.Id, msg);
                     break;
                 case SocketMessageType.Close:
                 case SocketMessageType.MessagePing:
-                    NewMessage?.Invoke(user.Id, new ActionMessageItem(message.EventType)
+                    msg = new ActionMessageItem(message.EventType)
                     {
+                        UserId = user.Id,
+                        ReceiveId = App.Option.Id,
                         IsSender = false,
                         CreatedAt = DateTime.Now,
                         IsSuccess = true,
-                    });
+                    };
+                    if (message.EventType == SocketMessageType.MessagePing)
+                    {
+                        App.DataHub.AddMessageAsync(user, msg);
+                    }
+                    NewMessage?.Invoke(user.Id, msg);
                     break;
                 case SocketMessageType.MessageFile:
                     var file = message.Data as FileMessage;
-                    NewMessage?.Invoke(user.Id, new FileMessageItem()
+                    msg = new FileMessageItem()
                     {
                         Id = file.MessageId,
+                        UserId = user.Id,
+                        ReceiveId = App.Option.Id,
                         FileName = file.FileName,
                         Size = file.Length,
                         IsSender = false,
                         CreatedAt = DateTime.Now,
                         IsSuccess = true,
-                    });
+                    };
+                    App.DataHub.AddMessageAsync(user, msg);
+                    NewMessage?.Invoke(user.Id, msg);
+                    break;
+                case SocketMessageType.MessageFolder:
+                    var folder = message.Data as FileMessage;
+                    msg = new FolderMessageItem()
+                    {
+                        Id = folder.MessageId,
+                        UserId = user.Id,
+                        ReceiveId = App.Option.Id,
+                        FolderName = folder.FileName,
+                        IsSender = false,
+                        CreatedAt = DateTime.Now,
+                        IsSuccess = true,
+                    };
+                    App.DataHub.AddMessageAsync(user, msg);
+                    NewMessage?.Invoke(user.Id, msg);
+                    break;
+                case SocketMessageType.MessageSync:
+                    var sync = message.Data as FileMessage;
+                    msg = new SyncMessageItem()
+                    {
+                        Id = sync.MessageId,
+                        UserId = user.Id,
+                        ReceiveId = App.Option.Id,
+                        FolderName = sync.FileName,
+                        IsSender = false,
+                        CreatedAt = DateTime.Now,
+                        IsSuccess = true,
+                    };
+                    App.DataHub.AddMessageAsync(user, msg);
+                    NewMessage?.Invoke(user.Id, msg);
+                    break;
+                case SocketMessageType.MessageUser:
+                    var u = message.Data as UserMessage;
+                    msg = new UserMessageItem()
+                    {
+                        UserId = user.Id,
+                        ReceiveId = App.Option.Id,
+                        Data = u.Data,
+                        IsSender = false,
+                        CreatedAt = DateTime.Now,
+                        IsSuccess = true,
+                    };
+                    App.DataHub.AddMessageAsync(user, msg);
+                    NewMessage?.Invoke(user.Id, msg);
                     break;
                 case SocketMessageType.MessageAction:
                     var action = message.Data as ActionMessage;
+                    if (action.EventType == MessageTapEvent.Withdraw)
+                    {
+                        App.DataHub.RemoveMessageAsync(new TextMessageItem()
+                        {
+                            Id = action.MessageId,
+                            IsSender = false,
+                            UserId = user.Id,
+                            ReceiveId = App.Option.Id,
+                            CreatedAt = DateTime.MinValue
+                        });
+                    }
                     MessageUpdated?.Invoke(action.MessageId, action.EventType, null);
                     break;
                 case SocketMessageType.RequestSpecialLine:
@@ -362,6 +452,8 @@ namespace ZoDream.FileTransfer.Repositories
         {
             var message = new TextMessageItem()
             {
+                ReceiveId = user.Id,
+                UserId = App.Option.Id,
                 IsSender = true,
                 Content = content,
                 CreatedAt = DateTime.Now,
@@ -371,18 +463,22 @@ namespace ZoDream.FileTransfer.Repositories
             {
                 Data = content,
             });
+            _ = App.DataHub.AddMessageAsync(user, message);
             return message;
         }
 
         public async Task<MessageItem> SendPingAsync(IUser user)
         {
-            var message = new ActionMessageItem(SocketMessageType.Ping)
+            var message = new ActionMessageItem(SocketMessageType.MessagePing)
             {
+                ReceiveId = user.Id,
+                UserId = App.Option.Id,
                 IsSender = true,
                 CreatedAt = DateTime.Now,
                 IsSuccess = false
             };
             message.IsSuccess = await App.NetHub.SendAsync(user, SocketMessageType.Ping, null);
+            _ = App.DataHub.AddMessageAsync(user, message);
             return message;
         }
 
@@ -391,6 +487,8 @@ namespace ZoDream.FileTransfer.Repositories
             var message = new FileMessageItem()
             {
                 IsSender = true,
+                ReceiveId = user.Id,
+                UserId = App.Option.Id,
                 Id = GenerateMessageId(),
                 FileName = fileName,
                 Size = await App.Storage.GetSizeAsync(path),
@@ -405,7 +503,84 @@ namespace ZoDream.FileTransfer.Repositories
                 MessageId = message.Id,
                 Length = message.Size
             });
+            _ = App.DataHub.AddMessageAsync(user, message);
             AddConfirmMessage(message);
+            return message;
+        }
+
+        public async Task<MessageItem> SendFolderAsync(IUser user, string folderName, 
+            string path)
+        {
+            var message = new FolderMessageItem()
+            {
+                IsSender = true,
+                ReceiveId = user.Id,
+                UserId = App.Option.Id,
+                Id = GenerateMessageId(),
+                FolderName = folderName,
+                LocationFolder = path,
+                CreatedAt = DateTime.Now,
+                IsSuccess = false
+            };
+            message.IsSuccess = await App.NetHub.SendAsync(user, 
+                SocketMessageType.MessageFolder,
+                new FileMessage()
+                {
+                    FileName = message.FileName,
+                    MessageId = message.Id,
+                    Length = 0
+                });
+            _ = App.DataHub.AddMessageAsync(user, message);
+            AddConfirmMessage(message);
+            return message;
+        }
+
+        public async Task<MessageItem> SendSyncAsync(IUser user, string folderName,
+            string path)
+        {
+            var message = new SyncMessageItem()
+            {
+                IsSender = true,
+                ReceiveId = user.Id,
+                UserId = App.Option.Id,
+                Id = GenerateMessageId(),
+                FolderName = folderName,
+                LocationFolder = path,
+                CreatedAt = DateTime.Now,
+                IsSuccess = false
+            };
+            message.IsSuccess = await App.NetHub.SendAsync(user,
+                SocketMessageType.MessageSync,
+                new FileMessage()
+                {
+                    FileName = message.FileName,
+                    MessageId = message.Id,
+                    Length = 0
+                });
+            _ = App.DataHub.AddMessageAsync(user, message);
+            AddConfirmMessage(message);
+            return message;
+        }
+
+        public async Task<MessageItem> SendUserAsync(IUser user, IUser data)
+        {
+            var message = new UserMessageItem()
+            {
+                IsSender = true,
+                ReceiveId = user.Id,
+                UserId = App.Option.Id,
+                Id = GenerateMessageId(),
+                Data = data,
+                CreatedAt = DateTime.Now,
+                IsSuccess = false
+            };
+            message.IsSuccess = await App.NetHub.SendAsync(user,
+                SocketMessageType.MessageUser,
+                new UserMessage()
+                {
+                    Data = data
+                });
+            _ = App.DataHub.AddMessageAsync(user, message);
             return message;
         }
 
@@ -461,12 +636,17 @@ namespace ZoDream.FileTransfer.Repositories
         /// <exception cref="NotImplementedException"></exception>
         public async Task<bool> WithdrawMessageAsync(IUser user, MessageItem data)
         {
-            return await App.NetHub.SendAsync(user, SocketMessageType.MessageAction,
+            var res = await App.NetHub.SendAsync(user, SocketMessageType.MessageAction,
                 new ActionMessage()
                 {
                     MessageId = data.Id,
                     EventType = MessageTapEvent.Withdraw,
                 });
+            if (res)
+            {
+                _ = App.DataHub.RemoveMessageAsync(data);
+            }
+            return res;
         }
 
         #endregion

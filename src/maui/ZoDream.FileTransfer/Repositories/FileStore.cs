@@ -63,26 +63,95 @@ namespace ZoDream.FileTransfer.Repositories
             return items is null ? new List<UserItem>() : items;
         }
 
-        public async Task<IList<MessageItem>> GetMessagesAsync(IUser user) {
+        public async Task<IList<MessageItem>> GetMessagesAsync(IUser room, IUser user) {
+            return await GetMessagesAsync(room.Id);
+        }
+
+        public async Task<IList<MessageItem>> GetMessagesAsync(string userId)
+        {
             return await ReadAsync<IList<MessageItem>>(
-                $"{Constants.MESSAGE_FOLDER}/{user.Id}.db"
+                $"{Constants.MESSAGE_FOLDER}/{userId}.db"
                 );
+        }
+
+        public async Task RemoveMessageAsync(MessageItem message)
+        {
+            var roomId = message.IsSender ? message.ReceiveId : message.UserId;
+            var items = await GetMessagesAsync(roomId);
+            var isUpdated = false;
+            for (int i = items.Count - 1; i >= 0; i--)
+            {
+                if (
+                    (string.IsNullOrEmpty(message.Id) 
+                    && items[i].CreatedAt == message.CreatedAt && message.IsSender == items[i].IsSender) 
+                    || (!string.IsNullOrEmpty(message.Id) && items[i].Id == message.Id)
+                    )
+                {
+                    items.RemoveAt(i);
+                    isUpdated = true;
+                }
+            }
+            if (isUpdated)
+            {
+                await WriteAsync($"{Constants.MESSAGE_FOLDER}/{roomId}.db", items);
+            }
         }
 
         public async Task RemoveUserAsync(IUser user) {
             await Storage.DeleteAsync($"{Constants.MESSAGE_FOLDER}/{user.Id}.db");
+            var items = await GetUsersAsync();
+            var isUpdated = false;
+            for (int i = items.Count - 1; i >= 0; i--)
+            {
+                if (items[i].Id == user.Id)
+                {
+                    items.RemoveAt(i);
+                    isUpdated = true;
+                }
+            }
+            if (isUpdated)
+            {
+                await WriteAsync(Constants.USERS_FILE, items);
+            }
         }
 
         public async Task AddUserAsync(IUser user) {
-            await WriteAsync(Constants.USERS_FILE, user);
+            var items = await GetUsersAsync();
+            foreach (var item in items)
+            {
+                if (item.Id == user.Id)
+                {
+                    return;
+                }
+            }
+            items.Add(user is UserItem ? (user as UserItem) : new UserItem(user));
+            await WriteAsync(Constants.USERS_FILE, items);
+
         }
 
         public async Task UpdateUserAsync(UserItem user) {
-            await WriteAsync(Constants.USERS_FILE, user);
+            var items = await GetUsersAsync();
+            var isUpdated = false;
+            for (int i = 0; i < items.Count; i++)
+            {
+                if (items[i].Id == user.Id)
+                {
+                    items[i] = user;
+                    isUpdated = true;
+                    break;
+                }
+            }
+            if (isUpdated)
+            {
+                await WriteAsync(Constants.USERS_FILE, items);
+            }
         }
 
         public async Task AddMessageAsync(IUser user, MessageItem message) {
-            await WriteAsync($"{Constants.MESSAGE_FOLDER}/{user.Id}.db", message);
+            var roomId = message.IsSender ? message.ReceiveId : message.UserId;
+            var items = await GetMessagesAsync(roomId);
+            items.Add(message);
+            await WriteAsync($"{Constants.MESSAGE_FOLDER}/{roomId}.db", items);
         }
 
         public async Task<T> ReadAsync<T>(string fileName) 

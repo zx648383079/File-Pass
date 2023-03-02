@@ -78,7 +78,7 @@ public partial class NotifyDialog : ContentView
         await App.Repository.ChatHub.AgreeAddUserAsync(item, false);
     }
 
-    private void Repository_NewUser(UserInfoItem user)
+    private void Repository_NewUser(IUser user)
     {
         foreach (var item in Items)
         {

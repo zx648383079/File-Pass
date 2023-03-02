@@ -12,7 +12,9 @@ namespace ZoDream.FileTransfer.Repositories
 
         public Task<IList<UserItem>> GetUsersAsync();
 
-        public Task<IList<MessageItem>> GetMessagesAsync(IUser user);
+        public Task<IList<MessageItem>> GetMessagesAsync(IUser room, IUser user);
+
+        public Task RemoveMessageAsync(MessageItem message);
 
         public Task RemoveUserAsync(IUser user);
 

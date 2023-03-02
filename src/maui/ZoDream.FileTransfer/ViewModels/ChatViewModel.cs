@@ -1,5 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Maui.Controls;
 using System.Collections.ObjectModel;
 using System.Windows.Input;
 using ZoDream.FileTransfer.Controls;
@@ -18,6 +19,7 @@ namespace ZoDream.FileTransfer.ViewModels
 			MoreCommand = new RelayCommand(TapMore);
             MessageCommand = new AsyncRelayCommand<MessageTapEventArg>(TapMessageAsync);
             App.Repository.ChatHub.NewMessage += Repository_NewMessage;
+            App.Repository.ChatHub.MessageUpdated += ChatHub_MessageUpdated;
 			MoreItems.Add(new MessageMoreItem("image", "发送图片", "\ue68b"));
 			MoreItems.Add(new MessageMoreItem("video", "发送视频", "\ue68c"));
 			MoreItems.Add(new MessageMoreItem("file", "发送文件", "\ue68d"));
@@ -26,6 +28,21 @@ namespace ZoDream.FileTransfer.ViewModels
 			MoreItems.Add(new MessageMoreItem("folder", "发送文件夹", "\ue696"));
 			MoreItems.Add(new MessageMoreItem("sync", "同步文件夹", "\ue67b"));
 			MoreItems.Add(new MessageMoreItem("user", "推荐好友", "\ue751"));
+        }
+
+        private void ChatHub_MessageUpdated(string messageId, MessageTapEvent eventType, object data)
+        {
+			if (string.IsNullOrWhiteSpace(messageId) || eventType != MessageTapEvent.Withdraw)
+			{
+				return;
+			}
+			for (int i = MessageItems.Count - 1; i >= 0; i--)
+			{
+				if (MessageItems[i].Id == messageId && !MessageItems[i].IsSender)
+				{
+					MessageItems.RemoveAt(i);
+				}
+			}
         }
 
         private UserItem User;
@@ -121,7 +138,6 @@ namespace ZoDream.FileTransfer.ViewModels
         private async Task TapMessageAsync(MessageTapEventArg arg)
 		{
 			var hub = App.Repository.ChatHub;
-
             switch (arg.EventType) {
 				case MessageTapEvent.Cancel:
 					await hub.CancelMessageAsync(User, arg.Data);
@@ -131,9 +147,36 @@ namespace ZoDream.FileTransfer.ViewModels
 					{
 						await hub.AddUserAsync(u.Data);
 						return;
-					} 
-                    await hub.ConfirmMessageAsync(User, arg.Data);
+					}
+					if (arg.Data is FileMessageItem file)
+					{
+                        StoragePicker.IsFolderPicker = true;
+                        if (!await StoragePicker.ShowAsync())
+                        {
+							return;
+                        }
+                        var folder = StoragePicker.SelectedItem;
+						if (folder != null)
+						{
+							return;
+						}
+						if (arg.Data is FolderMessageItem f)
+						{
+							f.LocationFolder = folder.FileName;
+						} else
+						{
+							file.Location = folder.FileName;
+						}
+                        await hub.ConfirmMessageAsync(User, arg.Data);
+                    }
                     break;
+				case MessageTapEvent.Withdraw:
+					if (!arg.Data.IsSender)
+					{
+						break;
+					}
+					await hub.WithdrawMessageAsync(User, arg.Data);
+					break;
 				default:
 					break;
 			}
@@ -207,6 +250,13 @@ namespace ZoDream.FileTransfer.ViewModels
 				return;
 			}
 			var folder = StoragePicker.SelectedItem;
+			if (folder == null)
+			{
+				return;
+			}
+            var message = await App.Repository.ChatHub
+                    .SendFolderAsync(User, folder.Name, folder.FileName);
+            MessageItems.Add(message);
         }
 
         private async Task PickUserAsync()
@@ -217,7 +267,13 @@ namespace ZoDream.FileTransfer.ViewModels
             {
                 return;
             }
-            var users = UserPicker.SelectedItems;
+            var items = UserPicker.SelectedItems;
+			foreach (var item in items)
+			{
+                var message = await App.Repository.ChatHub
+                    .SendUserAsync(User, item);
+                MessageItems.Add(message);
+            }
         }
 
         private async Task SyncFolderAsync()
@@ -228,6 +284,13 @@ namespace ZoDream.FileTransfer.ViewModels
                 return;
             }
             var folder = StoragePicker.SelectedItem;
+            if (folder == null)
+            {
+                return;
+            }
+            var message = await App.Repository.ChatHub
+                    .SendSyncAsync(User, folder.Name, folder.FileName);
+            MessageItems.Add(message);
         }
 
         private async Task GoToProfile()
@@ -247,7 +310,7 @@ namespace ZoDream.FileTransfer.ViewModels
 
 		private async Task LoadMessageAsync()
 		{
-			var items = await App.Repository.DataHub.GetMessagesAsync(User);
+			var items = await App.Repository.DataHub.GetMessagesAsync(User, App.Repository.Option);
 			if (items == null)
 			{
 				return;

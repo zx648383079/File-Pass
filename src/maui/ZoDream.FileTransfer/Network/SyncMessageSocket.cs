@@ -5,7 +5,6 @@ using System.Text;
 using System.Threading.Tasks;
 using ZoDream.FileTransfer.Models;
 using ZoDream.FileTransfer.Utils;
-using static UIKit.UIGestureRecognizer;
 
 namespace ZoDream.FileTransfer.Network
 {

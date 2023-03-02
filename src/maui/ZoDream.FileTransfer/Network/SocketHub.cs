@@ -255,10 +255,10 @@ namespace ZoDream.FileTransfer.Network
         {
             return type switch
             {
-                SocketMessageType.Ping or SocketMessageType.UserAddRequest => new UserMessage(),
+                SocketMessageType.Ping or SocketMessageType.UserAddRequest or SocketMessageType.MessageUser => new UserMessage(),
                 SocketMessageType.UserAddResponse => new BoolMessage(),
                 SocketMessageType.MessageText or SocketMessageType.SpecialLine => new TextMessage(),
-                SocketMessageType.MessageFile => new FileMessage(),
+                SocketMessageType.MessageFile or SocketMessageType.MessageFolder or SocketMessageType.MessageSync => new FileMessage(),
                 SocketMessageType.MessageAction or SocketMessageType.RequestSpecialLine => new ActionMessage(),
                 _ => null,
             };
