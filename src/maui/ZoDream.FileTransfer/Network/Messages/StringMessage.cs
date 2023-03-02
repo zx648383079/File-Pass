@@ -25,7 +25,7 @@ namespace ZoDream.FileTransfer.Network.Messages
 
         public void Unpack(SocketClient socket)
         {
-            FromStr(socket.ReceiveText())
+            FromStr(socket.ReceiveText());
         }
 
         public void Unpack(byte[] buffer)

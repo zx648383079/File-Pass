@@ -120,13 +120,19 @@ namespace ZoDream.FileTransfer.ViewModels
 
         private async Task TapMessageAsync(MessageTapEventArg arg)
 		{
-			switch (arg.EventType) {
+			var hub = App.Repository.ChatHub;
+
+            switch (arg.EventType) {
 				case MessageTapEvent.Cancel:
-					await App.Repository.ChatHub.CancelMessageAsync(User, arg.Data);
+					await hub.CancelMessageAsync(User, arg.Data);
 					break;
 				case MessageTapEvent.Confirm:
-					
-                    await App.Repository.ChatHub.ConfirmMessageAsync(User, arg.Data);
+					if (arg.Data is UserMessageItem u)
+					{
+						await hub.AddUserAsync(u.Data);
+						return;
+					} 
+                    await hub.ConfirmMessageAsync(User, arg.Data);
                     break;
 				default:
 					break;

@@ -15,6 +15,7 @@ namespace ZoDream.FileTransfer.Network
         Bool,
         Null,
         Ping,
+        PreClose, // 表明我已经准备结束了，由你结束
         Close,
         // 获取客户端基本信息
         CallInfo,
@@ -33,6 +34,11 @@ namespace ZoDream.FileTransfer.Network
         FileMerge,
         // 发送整个文件
         File,
+        FileDelete,
+        FileRename,
+        FileCheck, // 发出是否传输的询问
+        FileCheckResponse, // 回复是否传输
+
         Message,  // 发送消息
         MessageText,  // 发送消息
         MessagePing,  // 发送消息

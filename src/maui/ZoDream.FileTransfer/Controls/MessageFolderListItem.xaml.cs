@@ -26,14 +26,14 @@ public partial class MessageFolderListItem : ContentView
 
 
 
-    public FileMessageItem ItemSource {
-        get { return (FileMessageItem)GetValue(ItemSourceProperty); }
+    public FolderMessageItem ItemSource {
+        get { return (FolderMessageItem)GetValue(ItemSourceProperty); }
         set { SetValue(ItemSourceProperty, value); }
     }
 
     // Using a DependencyProperty as the backing store for ItemSource.  This enables animation, styling, binding, etc...
     public static readonly BindableProperty ItemSourceProperty =
-        BindableProperty.Create(nameof(ItemSource), typeof(FileMessageItem),
+        BindableProperty.Create(nameof(ItemSource), typeof(FolderMessageItem),
             typeof(MessageFolderListItem), null,
             propertyChanged: (d, _, o) => {
                 (d as MessageFolderListItem)?.UpdateView();
@@ -110,7 +110,7 @@ public partial class MessageFolderListItem : ContentView
                 if (ItemSource.Status == FileMessageStatus.Transferring)
                 {
                     SpeedBar.Progress = ItemSource.Progress / ItemSource.Size;
-                    StatusTb.Text = $"{Disk.FormatSize(ItemSource.Speed)}/s {Disk.FormatSize(ItemSource.Progress)}/{Disk.FormatSize(ItemSource.Size)}";
+                    StatusTb.Text = $"{ItemSource.FileName}\n{Disk.FormatSize(ItemSource.Speed)}/s {Disk.FormatSize(ItemSource.Progress)}/{Disk.FormatSize(ItemSource.Size)}";
                 }
                 break;
             default:

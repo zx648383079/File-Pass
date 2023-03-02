@@ -11,20 +11,19 @@ namespace ZoDream.FileTransfer.Network
     {
         public FileMessageSocket(
             SocketClient link, string messageId, 
-            string name, string fileName, 
-            Action<long,long> func)
+            string name, string fileName)
         {
             Link = link;
             Name = name;
             FileName = fileName;
-            OnProgress = func;
             MessageId = messageId;
         }
 
         private SocketClient Link;
         private string Name;
         private string FileName;
-        private Action<long, long> OnProgress;
+        public event MessageProgressEventHandler OnProgress;
+        public event MessageCompletedEventHandler OnCompleted;
         public string MessageId { get; private set; }
         private CancellationTokenSource TokenSource = new();
 
@@ -38,7 +37,10 @@ namespace ZoDream.FileTransfer.Network
             var token = TokenSource.Token;
             return Task.Factory.StartNew(() => {
                 var md5 = Disk.GetMD5(FileName);
-                Link.SendFile(Name, md5, FileName, OnProgress, token);
+                var res = Link.SendFile(Name, md5, FileName, (p, t) => {
+                    OnProgress?.Invoke(MessageId, Name, p, t);
+                }, token);
+                OnCompleted?.Invoke(MessageId, Name, res);
             }, token);
         }
 
@@ -46,7 +48,12 @@ namespace ZoDream.FileTransfer.Network
         {
             var token = TokenSource.Token;
             return Task.Factory.StartNew(() => {
-                // TODO
+                Name = Link.ReceiveFile(FileName, (p, t) => {
+                    OnProgress?.Invoke(MessageId, Name, p, t);
+                }, token);
+                OnCompleted?.Invoke(MessageId, Name, !string.IsNullOrEmpty(Name));
+                // 线程由接收方结束
+                App.Repository.NetHub.Close(Link);
             }, token);
         }
 

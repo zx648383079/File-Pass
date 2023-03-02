@@ -80,7 +80,7 @@ namespace ZoDream.FileTransfer.ViewModels
         {
             item.Status = 1;
             var success = await App.Repository.ChatHub.AddUserAsync(item);
-            item.Status = success ? 2 : 3;
+            item.Status = success ? 1 : 3;
         }
 
         private Task TapDisagree(UserInfoOption item)

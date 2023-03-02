@@ -7,7 +7,6 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using UIKit;
 using ZoDream.FileTransfer.Models;
 using ZoDream.FileTransfer.Network.Messages;
 
@@ -91,7 +90,7 @@ namespace ZoDream.FileTransfer.Network
         /// <summary>
         /// 通知所有客户端上线了
         /// </summary>
-        /// <param name="user"></param>
+        /// <param name="info"></param>
         public void Ping(IUser info)
         {
             var ip = Utils.Ip.GetIpInGroup();
@@ -195,29 +194,27 @@ namespace ZoDream.FileTransfer.Network
                 pack.Unpack(buffer[2..]);
             }
             var arg = new MessageEventArg(type, isRequest, pack);
-            MessageReceived?.Invoke(ip, port, arg);
+            MessageReceived?.Invoke(null, ip, port, arg);
             return arg;
         }
 
         internal MessageEventArg Emit(SocketClient client)
         {
-            var type = client.ReceiveMessageType();
-            var isRequest = client.ReceiveBool();
-            var pack = RenderUnpack(type);
-            if (pack is IMessageUnpackStream o)
+            var arg = RenderReceivePack(client);
+            if (arg.EventType == SocketMessageType.SpecialLine)
             {
-                o.Unpack(client);
-            } else if (pack is not null)
-            {
-                pack.Unpack(client.ReceiveBuffer());
+                Change(client);
             }
-            var arg = new MessageEventArg(type, isRequest, pack);
-            MessageReceived?.Invoke(client.Ip, client.Port, arg);
+            MessageReceived?.Invoke(client, client.Ip, client.Port, arg);
             return arg;
         }
-
+        /// <summary>
+        /// 切换成专线
+        /// </summary>
+        /// <param name="client"></param>
         public void Change(SocketClient client)
         {
+            client.StopLoopReceive();
             ClientItems.Remove(client);
             SpecialItems.Add(client);
         }
@@ -238,15 +235,33 @@ namespace ZoDream.FileTransfer.Network
             Tcp.Dispose();
         }
 
+        public static MessageEventArg RenderReceivePack(SocketClient client)
+        {
+            var type = client.ReceiveMessageType();
+            var isRequest = client.ReceiveBool();
+            var pack = RenderUnpack(type);
+            if (pack is IMessageUnpackStream o)
+            {
+                o.Unpack(client);
+            }
+            else
+            {
+                pack?.Unpack(client.ReceiveBuffer());
+            }
+            return new MessageEventArg(type, isRequest, pack);
+        }
 
         public static IMessageUnpack RenderUnpack(SocketMessageType type)
         {
-            switch (type)
+            return type switch
             {
-                case SocketMessageType.Ping:
-                    return new UserMessage();
-            }
-            return null;
+                SocketMessageType.Ping or SocketMessageType.UserAddRequest => new UserMessage(),
+                SocketMessageType.UserAddResponse => new BoolMessage(),
+                SocketMessageType.MessageText or SocketMessageType.SpecialLine => new TextMessage(),
+                SocketMessageType.MessageFile => new FileMessage(),
+                SocketMessageType.MessageAction or SocketMessageType.RequestSpecialLine => new ActionMessage(),
+                _ => null,
+            };
         }
 
         public static byte[] RenderPack(byte[] data, params byte[] prepend)

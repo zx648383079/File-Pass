@@ -95,6 +95,8 @@ namespace ZoDream.FileTransfer.Models
 
         public string Location { get; set; }
 
+        public string LocationFolder { get; set; }
+
         private long speed = 0;
 
         public long Speed
@@ -132,6 +134,20 @@ namespace ZoDream.FileTransfer.Models
             
         }
 
+    }
+
+    public class FolderMessageItem : FileMessageItem
+    {
+        public string FolderName { get; set; }
+    }
+
+    public class SyncMessageItem : FolderMessageItem
+    {
+    }
+
+    public class UserMessageItem: MessageItem
+    {
+        public IUser Data { get; set; }
     }
 
     public enum FileMessageStatus

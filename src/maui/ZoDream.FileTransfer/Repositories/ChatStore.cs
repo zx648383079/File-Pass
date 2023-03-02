@@ -7,7 +7,6 @@ using ZoDream.FileTransfer.Models;
 using ZoDream.FileTransfer.Network;
 using ZoDream.FileTransfer.Network.Messages;
 using ZoDream.FileTransfer.Utils;
-using static CoreFoundation.DispatchSource;
 
 namespace ZoDream.FileTransfer.Repositories
 {
@@ -27,6 +26,7 @@ namespace ZoDream.FileTransfer.Repositories
         /// </summary>
         public Dictionary<string, MessageItem> ConfirmItems = new();
         public Dictionary<string, IMessageSocket> LinkItems = new();
+        public List<IUser> ApplyItems = new();
 
         public event UsersUpdatedEventHandler UsersUpdated;
         public event NewUserEventHandler NewUser;
@@ -161,7 +161,7 @@ namespace ZoDream.FileTransfer.Repositories
         #endregion
 
 
-        private void NetHub_MessageReceived(string ip, int port, MessageEventArg message)
+        private void NetHub_MessageReceived(SocketClient client, string ip, int port, MessageEventArg message)
         {
             var user = Get(ip, port);
             var net = App.NetHub;
@@ -176,6 +176,20 @@ namespace ZoDream.FileTransfer.Repositories
                     break;
                 case SocketMessageType.UserAddRequest:
                     NewUser?.Invoke((message.Data as UserMessage).Data);
+                    break;
+                case SocketMessageType.UserAddResponse:
+                    foreach (var item in ApplyItems)
+                    {
+                        if (item.Ip == ip && item.Port == port)
+                        {
+                            if ((message.Data as BoolMessage).Data)
+                            {
+                                Add(item);
+                            }
+                            ApplyItems.Remove(user);
+                            return;
+                        }
+                    }
                     break;
                 case SocketMessageType.MessageText:
                     NewMessage?.Invoke(user.Id, new TextMessageItem() {
@@ -214,13 +228,20 @@ namespace ZoDream.FileTransfer.Repositories
                     var act = message.Data as ActionMessage;
                     if (ConfirmItems.TryGetValue(act.MessageId, out var mess))
                     {
-                        var client = App.NetHub.Connect(ip, port);
+                        var link = App.NetHub.Connect(ip, port);
                         if (client is null)
                         {
                             // 失败
                             return;
                         }
-                        SendConfirmedMessage(client, mess);
+                        SendConfirmedMessage(link, mess);
+                    }
+                    break;
+                case SocketMessageType.SpecialLine:
+                    var txt = message.Data as TextMessage;
+                    if (ConfirmItems.TryGetValue(txt.Data, out var mes))
+                    {
+                        SendConfirmedMessage(client, mes, true);
                     }
                     break;
                 default:
@@ -251,17 +272,54 @@ namespace ZoDream.FileTransfer.Repositories
             SendConfirmedMessage(client, message);
         }
 
-        private void SendConfirmedMessage(SocketClient client, MessageItem message)
+        private void SendConfirmedMessage(SocketClient client, 
+            MessageItem message, bool hasHeader = false)
         {
-            
-            IMessageSocket link = null;
-            if (message is FileMessageItem file)
+            if (!hasHeader)
             {
-                link = new FileMessageSocket(client, file.Id, 
-                    file.FileName, file.Location, (p,l) => {
-                        file.Size = l;
-                        file.Progress = p;
-                    });
+                client.Send(SocketMessageType.SpecialLine);
+                client.Send(new TextMessage()
+                {
+                    Data = message.Id
+                });
+            }
+            IMessageSocket link = null;
+            if (message is SyncMessageItem sync)
+            {
+                sync.Status = FileMessageStatus.Transferring;
+                link = new SyncMessageSocket(client, sync.Id, sync.LocationFolder);
+                link.OnProgress += (_, fileName, p, t) => {
+                    sync.FileName = fileName;
+                    sync.Size = t;
+                    sync.Progress = p;
+                };
+                link.OnCompleted += (_, _, suc) => {
+                    sync.Status = suc ? FileMessageStatus.Success : FileMessageStatus.Failure;
+                };
+            } else if (message is FolderMessageItem folder)
+            {
+                folder.Status = FileMessageStatus.Transferring;
+                link = new FolderMessageSocket(client, folder.Id, folder.LocationFolder);
+                link.OnProgress += (_, fileName, p, t) => {
+                    folder.FileName = fileName;
+                    folder.Size = t;
+                    folder.Progress = p;
+                };
+                link.OnCompleted += (_, _, suc) => {
+                    folder.Status = suc ? FileMessageStatus.Success : FileMessageStatus.Failure;
+                };
+            }
+            else if (message is FileMessageItem file)
+            {
+                file.Status = FileMessageStatus.Transferring;
+                link = new FileMessageSocket(client, file.Id,
+                    file.FileName, file.Location);
+                link.OnProgress += (_, _, p, t) => {
+                    file.Progress = p;
+                };
+                link.OnCompleted += (_, _, suc) => {
+                    file.Status = suc ? FileMessageStatus.Success : FileMessageStatus.Failure;
+                };
             }
             if (link is null)
             {
@@ -430,16 +488,26 @@ namespace ZoDream.FileTransfer.Repositories
             if (yes)
             {
                 Add(user);
+                ApplyItems.Remove(user);
             }
             return yes;
         }
 
         public async Task<bool> AddUserAsync(IUser user)
         {
-            return await App.NetHub.SendAsync(user, SocketMessageType.UserAddRequest, new UserMessage()
+            if (IndexOf(user.Id) >= 0 || ApplyItems.IndexOf(user) >= 0)
+            {
+                return true;
+            }
+            var res = await App.NetHub.SendAsync(user, SocketMessageType.UserAddRequest, new UserMessage()
             {
                 Data = App.Option
             });
+            if (res)
+            {
+                ApplyItems.Add(user);
+            }
+            return res;
         }
 
         public Task<bool> SearchUsersAsync(string ip, int port)

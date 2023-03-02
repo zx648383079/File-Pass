@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Maui.Storage;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -70,7 +71,52 @@ namespace ZoDream.FileTransfer.Repositories
         public Stream CacheWriter(string fileName)
         {
             var file = Combine(Constants.FILE_CACHE_FOLDER, fileName);
-            return File.OpenWrite(file);
+            return File.Create(file);
+        }
+
+        public long CacheMergeFile(string destFile, params string[] partFiles)
+        {
+            using var writer = CacheWriter(destFile);
+            foreach (var item in partFiles)
+            {
+                if (CacheExistFile(item))
+                {
+                    return 0L;
+                }
+                using var reader = CacheReader(item);
+                reader.CopyTo(writer);
+            }
+            return writer.Length;
+        }
+
+        public bool CacheExistFile(string fileName)
+        {
+            var file = Combine(Constants.FILE_CACHE_FOLDER, fileName);
+            return File.Exists(file);
+        }
+
+        public string CacheFileMD5(string fileName)
+        {
+            var file = Combine(Constants.FILE_CACHE_FOLDER, fileName);
+            return Disk.GetMD5(file);
+        }
+
+        public void CacheMove(string fileName, string destFile)
+        {
+            var file = Combine(Constants.FILE_CACHE_FOLDER, fileName);
+            File.Move(file, destFile);
+        }
+
+        public void CacheRemove(params string[] fileNames)
+        {
+            foreach (var item in fileNames)
+            {
+                var file = Combine(Constants.FILE_CACHE_FOLDER, item);
+                if (File.Exists(file))
+                {
+                    File.Delete(file);
+                }
+            }
         }
 
         public Task<long> GetSizeAsync(string fileName)

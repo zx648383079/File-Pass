@@ -2,6 +2,7 @@ using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Windows.Input;
 using ZoDream.FileTransfer.Models;
+using ZoDream.FileTransfer.Network;
 using ZoDream.FileTransfer.Utils;
 
 namespace ZoDream.FileTransfer.Controls;
@@ -120,7 +121,34 @@ public class MessageListView : ContentView
         if (item is TextMessageItem text)
         {
             return CreateTextMessage(text);
-        } else if (item is FileMessageItem file)
+        }
+        else if (item is UserMessageItem user)
+        {
+            return new MessageUserListItem()
+            {
+                ItemSource = user,
+                Command = new Command(() => {
+                    TapCommand?.Execute(new MessageTapEventArg(user, MessageTapEvent.Confirm));
+                })
+            };
+        }
+        else if (item is SyncMessageItem sync)
+        {
+            return new MessageSyncListItem()
+            {
+                ItemSource = sync,
+                TapCommand = TapCommand
+            };
+        }
+        else if (item is FolderMessageItem folder)
+        {
+            return new MessageFolderListItem()
+            {
+                ItemSource = folder,
+                TapCommand = TapCommand
+            };
+        }
+        else if (item is FileMessageItem file)
         {
             return CreateFileMessage(file);
         }
