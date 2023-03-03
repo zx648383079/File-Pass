@@ -181,7 +181,7 @@ namespace ZoDream.FileTransfer.Repositories
         private void NetHub_MessageReceived(SocketClient client, string ip, int port, MessageEventArg message)
         {
             var user = Get(ip, port);
-            App.Logger.Debug($"Receive<ip[{ip}:{port}]>:user[{user?.Name}:{user?.Id}]");
+            App.Logger.Debug($"Receive<ip[{ip}:{port}]user[{user?.Name}]>:{message.EventType}->{message.IsRequest}");
             var net = App.NetHub;
             MessageItem? msg = null; 
             switch (message.EventType)

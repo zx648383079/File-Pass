@@ -142,7 +142,7 @@ namespace ZoDream.FileTransfer.Network
         public void Ping(string ip, int port, IUser info)
         {
             var buffer = RenderPack(new UserMessage() { Data = info }.Pack(),
-                (byte)SocketMessageType.Ping, Convert.ToByte(false));
+                (byte)SocketMessageType.Ping, Convert.ToByte(true));
             Udp.Ping(ip, port, buffer);
         }
 

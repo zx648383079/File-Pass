@@ -20,7 +20,17 @@ namespace ZoDream.FileTransfer.ViewModels
 
         private void ChatHub_NewUser(IUser user)
         {
-            UserItems.Add(new UserInfoOption(user));
+            foreach (var item in UserItems)
+            {
+                if (item.Id == user.Id)
+                {
+                    return;
+                }
+            }
+            MainThread.BeginInvokeOnMainThread(() => {
+                IsLoading = false;
+                UserItems.Add(new UserInfoOption(user));
+            });
         }
 
         private bool isLoading = false;

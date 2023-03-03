@@ -19,7 +19,7 @@ namespace ZoDream.FileTransfer.Network
 
         private SocketHub Hub;
         private readonly byte[] CacheBuffer = new byte[65536];
-        private Socket ListenSocket;
+        private Socket? ListenSocket;
         public string ListenIp { get; private set; } = string.Empty;
         public int ListenPort { get; private set; } = 0;
         private CancellationTokenSource ListenToken = new();
@@ -56,13 +56,22 @@ namespace ZoDream.FileTransfer.Network
                     {
                         return;
                     }
-                    EndPoint sendIp = new IPEndPoint(IPAddress.Any, port);
-                    var length = tcpSocket.ReceiveFrom(CacheBuffer, 65536, 
-                        SocketFlags.None, ref sendIp);
-                    var buffer = new byte[length];
-                    Buffer.BlockCopy(CacheBuffer, 0, buffer, 0, length);
-                    // buffer
-                    Hub.Emit((sendIp as IPEndPoint).Address.ToString(), (sendIp as IPEndPoint).Port, buffer);
+                    try
+                    {
+                        EndPoint sendIp = new IPEndPoint(IPAddress.Any, port);
+                        var length = tcpSocket.ReceiveFrom(CacheBuffer, 65536,
+                            SocketFlags.None, ref sendIp);
+                        var buffer = new byte[length];
+                        Buffer.BlockCopy(CacheBuffer, 0, buffer, 0, length);
+                        if (sendIp is IPEndPoint o)
+                        {
+                            Hub.Emit(o.Address.ToString(), o.Port, buffer);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        App.Repository.Logger.Error(ex.Message);
+                    }
                 }
             }, token);
         }
@@ -71,7 +80,7 @@ namespace ZoDream.FileTransfer.Network
         {
             var remote = new IPEndPoint(IPAddress.Parse(ip), port);
             var buffer = new byte[1024];
-            ListenSocket.SendTo(buffer, remote);
+            ListenSocket?.SendTo(buffer, remote);
         }
 
         public void Ping(string ip, byte[] buffer)
@@ -82,7 +91,7 @@ namespace ZoDream.FileTransfer.Network
         public void Ping(string ip, int port, byte[] buffer)
         {
             var remote = new IPEndPoint(IPAddress.Parse(ip), port);
-            ListenSocket.SendTo(buffer, remote);
+            ListenSocket?.SendTo(buffer, remote);
         }
 
         public void Dispose()
