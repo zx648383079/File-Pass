@@ -32,7 +32,11 @@ namespace ZoDream.FileTransfer.Utils
 
             var fileInfo = theFolder.GetFiles();
             //遍历文件
-            files.AddRange(fileInfo.Select(nextFile => new FileInfoItem(nextFile.Name, nextFile.FullName, relativeFile + nextFile.Name, nextFile.Length)));
+            files.AddRange(fileInfo.Select(nextFile => 
+            new FileInfoItem(nextFile.Name, nextFile.FullName, relativeFile + nextFile.Name, nextFile.Length)
+            {
+                ModifyTime = nextFile.LastWriteTime
+            }));
             return files;
         }
 

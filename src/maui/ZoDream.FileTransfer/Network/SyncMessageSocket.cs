@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Maui.Storage;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -21,6 +22,7 @@ namespace ZoDream.FileTransfer.Network
 
         private SocketClient Link;
         private string Folder;
+        private Dictionary<string, FileInfoItem> FileItems = new();
         public event MessageProgressEventHandler OnProgress;
         public event MessageCompletedEventHandler OnCompleted;
         public string MessageId { get; private set; }
@@ -59,17 +61,83 @@ namespace ZoDream.FileTransfer.Network
                         return;
                     }
                     item.Md5 = Disk.GetMD5(item.File);
-                    SendFile(item, token);
+                    SendCheckFile(item, token);
                 }
                 Link.Send(SocketMessageType.PreClose);
             }, token);
         }
 
+        private void SendCheckFile(FileInfoItem file, CancellationToken token)
+        {
+            Link.Send(SocketMessageType.FileCheck);
+            Link.SendText(file.RelativeFile);
+            Link.SendText(file.Md5);
+            Link.SendText(file.ModifyTime.ToString());
+            FileItems.Add(file.RelativeFile, file);
+        }
+
         protected void SendFile(FileInfoItem file, CancellationToken token)
         {
-            Link.SendFile(file.RelativeFile, file.Md5, file.File, (p, t) => {
+            SendFile(file.RelativeFile, file.Md5, file.File, (p, t) => {
                 OnProgress?.Invoke(MessageId, file.Name, p, t);
             }, token);
+        }
+
+        public bool SendFile(string name,
+            string md5,
+            string fileName,
+            Action<long, long> onProgress = null,
+            CancellationToken token = default)
+        {
+            var chunkSize = 200000;
+            var modifyTime = File.GetLastWriteTime(fileName).ToString();
+            using var reader = File.OpenRead(fileName);
+            var length = reader.Length;
+            if (length <= chunkSize)
+            {
+                Link.Send(SocketMessageType.File);
+                Link.SendText(name);
+                Link.SendText(md5);
+                Link.SendText(modifyTime);
+                Link.Send(length);
+                Link.SendStream(reader, length);
+                onProgress?.Invoke(length, length);
+                return true;
+            }
+            var rate = length;
+            var partItems = new List<string>();
+            var i = 0;
+            while (rate > 0)
+            {
+                if (!Link.Connected || token.IsCancellationRequested)
+                {
+                    return false;
+                }
+                var partName = $"{md5}_{i}";
+                Link.Send(SocketMessageType.FilePart);
+                Link.SendText(partName);
+                var partLength = Math.Min(rate, chunkSize);
+                Link.Send(partLength);
+                Link.SendStream(reader, partLength);
+                partItems.Add(partName);
+                rate -= chunkSize;
+                i++;
+                onProgress?.Invoke(Math.Min(length - rate, length), length);
+            }
+            Link.Send(SocketMessageType.FileMerge);
+            Link.SendText(name);
+            Link.SendText(md5);
+            Link.SendText(modifyTime);
+            Link.SendText(string.Join(',', partItems));
+            return true;
+        }
+
+        protected void SendFile(string fileName, CancellationToken token)
+        {
+            if (FileItems.TryGetValue(fileName, out var file))
+            {
+                SendFile(file, token);
+            }
         }
 
         private void BindReceive()
@@ -79,7 +147,7 @@ namespace ZoDream.FileTransfer.Network
             Task.Factory.StartNew(() => {
                 while (true)
                 {
-                    if (token.IsCancellationRequested)
+                    if (!Link.Connected || token.IsCancellationRequested)
                     {
                         App.Repository.NetHub.Close(Link);
                         OnCompleted?.Invoke(MessageId, Folder, false);
@@ -100,7 +168,30 @@ namespace ZoDream.FileTransfer.Network
                             File.Move(oldPath, newPath);
                         }
                         continue;
-                    } else if (type == SocketMessageType.FileDelete)
+                    }
+                    else if (type == SocketMessageType.FileCheck)
+                    {
+                        var fileName = Link.ReceiveText();
+                        var md5 = Link.ReceiveText();
+                        var mTime = Link.ReceiveText();
+                        var res = CheckFile(fileName, md5, mTime);
+                        Link.Send(SocketMessageType.FileCheckResponse);
+                        Link.SendText(fileName);
+                        Link.Send(res);
+                        continue;
+                    }
+                    else if (type == SocketMessageType.FileCheckResponse)
+                    {
+                        var fileName = Link.ReceiveText();
+                        var shouldSend = Link.ReceiveBool();
+                        if (shouldSend)
+                        {
+                            SendFile(fileName, token);
+                        }
+                        FileItems.Remove(fileName);
+                        continue;
+                    }
+                    else if (type == SocketMessageType.FileDelete)
                     {
                         var delPath = Path.Combine(Folder, Link.ReceiveText());
                         if (File.Exists(delPath))
@@ -113,6 +204,7 @@ namespace ZoDream.FileTransfer.Network
                     {
                         var fileName = Link.ReceiveText();
                         var md5 = Link.ReceiveText();
+                        var modifyTime = Link.ReceiveText();
                         var length = Link.ReceiveContentLength();
                         var location = Path.Combine(Folder, fileName);
                         using (var fs = storage.CacheWriter(md5))
@@ -126,6 +218,7 @@ namespace ZoDream.FileTransfer.Network
                             continue;
                         }
                         storage.CacheMove(md5, location);
+                        File.SetLastWriteTime(location, DateTime.Parse(modifyTime));
                         continue;
                     }
                     else if (type == SocketMessageType.FileMerge)
@@ -133,6 +226,7 @@ namespace ZoDream.FileTransfer.Network
                         var fileName = Link.ReceiveText();
                         var location = Path.Combine(Folder, fileName);
                         var md5 = Link.ReceiveText();
+                        var modifyTime = Link.ReceiveText();
                         var partItems = Link.ReceiveText().Split(',');
                         var length = storage.CacheMergeFile(md5, partItems);
                         if (length <= 0 || md5 != storage.CacheFileMD5(md5))
@@ -143,6 +237,7 @@ namespace ZoDream.FileTransfer.Network
                         }
                         storage.CacheRemove(partItems);
                         storage.CacheMove(md5, location);
+                        File.SetLastWriteTime(location, DateTime.Parse(modifyTime));
                         OnProgress?.Invoke(MessageId, fileName, length, length);
                         continue;
                     }
@@ -166,12 +261,28 @@ namespace ZoDream.FileTransfer.Network
             }, token);
         }
 
+        private bool CheckFile(string fileName, string md5, string mTime)
+        {
+            var path = Path.Combine(Folder, fileName);
+            if (!File.Exists(path))
+            {
+                return true;
+            }
+            var time = File.GetLastWriteTime(path);
+            if (time > DateTime.Parse(mTime))
+            {
+                return false;
+            }
+            return Disk.GetMD5(path) != md5;
+        }
+
         private void BindWatcher()
         {
             if (Watcher == null)
             {
                 Watcher.Dispose();
             }
+            
             Watcher = new FileSystemWatcher(Folder)
             {
                 NotifyFilter = NotifyFilters.FileName | NotifyFilters.Size | NotifyFilters.DirectoryName,

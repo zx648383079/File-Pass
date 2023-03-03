@@ -104,7 +104,14 @@ namespace ZoDream.FileTransfer.Repositories
         public void CacheMove(string fileName, string destFile)
         {
             var file = Combine(Constants.FILE_CACHE_FOLDER, fileName);
-            File.Move(file, destFile);
+            if (!File.Exists(destFile))
+            {
+                File.Move(file, destFile);
+                return;
+            }
+            var createdTime = File.GetCreationTime(destFile);
+            File.Move(file, destFile, true);
+            File.SetCreationTime(destFile, createdTime);
         }
 
         public void CacheRemove(params string[] fileNames)

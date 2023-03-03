@@ -27,6 +27,8 @@ namespace ZoDream.FileTransfer.Network
             Port = port;
         }
 
+        public bool Connected => ClientSocket.Connected;
+
         public void LoopReceive()
         {
             IsLoopReceive = true;
@@ -305,6 +307,7 @@ namespace ZoDream.FileTransfer.Network
                         return string.Empty;
                     }
                     storage.CacheMove(md5, location);
+                    
                     return fileName;
                 } else if (type == SocketMessageType.FileMerge)
                 {

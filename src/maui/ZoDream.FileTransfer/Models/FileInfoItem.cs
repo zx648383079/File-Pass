@@ -18,7 +18,11 @@ namespace ZoDream.FileTransfer.Models
 
         public string Md5 { get; set; }
 
-        public FileInfoItem(string name, string fileName, string relativeFile, long size = 0)
+        public DateTime ModifyTime { get; set; } = DateTime.MinValue;
+
+        public FileInfoItem(string name, string fileName, 
+            string relativeFile, 
+            long size = 0)
         {
             Name = name;
             File = fileName;
