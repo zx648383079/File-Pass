@@ -77,7 +77,7 @@ namespace ZoDream.FileTransfer.Models
 
         private int status;
         /// <summary>
-        /// 状态，0 待处理 1 申请中 2 已同意 3 已拒绝
+        /// 状态，0 待处理 1 对方申请中 2我方申请中 2 已同意 3 已拒绝
         /// </summary>
         public int Status
         {
@@ -89,7 +89,7 @@ namespace ZoDream.FileTransfer.Models
         }
 
 
-        public event PropertyChangedEventHandler PropertyChanged;
+        public event PropertyChangedEventHandler? PropertyChanged;
 
         public void OnPropertyChanged([CallerMemberName] string name = "") =>
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));

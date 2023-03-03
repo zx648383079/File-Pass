@@ -18,18 +18,25 @@ namespace ZoDream.FileTransfer.ViewModels
             App.Repository.ChatHub.NewUser += ChatHub_NewUser;
         }
 
-        private void ChatHub_NewUser(IUser user)
+        private void ChatHub_NewUser(IUser user, bool isAddRequest = false)
         {
             foreach (var item in UserItems)
             {
                 if (item.Id == user.Id)
                 {
+                    if (isAddRequest)
+                    {
+                        item.Status = 1;
+                    }
                     return;
                 }
             }
             MainThread.BeginInvokeOnMainThread(() => {
                 IsLoading = false;
-                UserItems.Add(new UserInfoOption(user));
+                UserItems.Add(new UserInfoOption(user)
+                {
+                    Status = isAddRequest ? 1 : 0,
+                });
             });
         }
 
@@ -88,14 +95,20 @@ namespace ZoDream.FileTransfer.ViewModels
 
         private async Task TapAgree(UserInfoOption item)
         {
-            item.Status = 1;
-            var success = await App.Repository.ChatHub.AddUserAsync(item);
-            item.Status = success ? 1 : 3;
+            if (item.Status == 1)
+            {
+                var success = await App.Repository.ChatHub.AgreeAddUserAsync(item, true);
+                item.Status = success ? 3 : 4;
+            } else {
+                item.Status = 2;
+                var success = await App.Repository.ChatHub.AddUserAsync(item);
+                item.Status = success ? 2 : 4;
+            }
         }
 
         private Task TapDisagree(UserInfoOption item)
         {
-            item.Status = 3;
+            item.Status = 4;
             return Task.CompletedTask;
             //for (int i = UserItems.Count - 1; i >= 0; i--)
             //{

@@ -26,7 +26,7 @@
         <Label Text="{Binding Ip}" Grid.Column="1" Grid.Row="1"  Style="{StaticResource InputMetaLabel}"/>
 
         <HorizontalStackLayout Grid.Column="2" Grid.RowSpan="2" 
-                               IsVisible="{Binding Status,Converter={StaticResource VisibleCvt},ConverterParameter=0}">
+                               IsVisible="{Binding Status,Converter={StaticResource VisibleCvt},ConverterParameter='0,1'}">
             <Button x:Name="YesBtn" 
                     Clicked="YesBtn_Clicked"
                     Text="&#xe648;" SemanticProperties.Hint="加为好友" 
@@ -38,8 +38,8 @@
                     BackgroundColor="{StaticResource Gray500}"/>
         </HorizontalStackLayout>
         <Label Text="已添加" Grid.Column="2" Grid.RowSpan="2" Style="{StaticResource FinishTb}"
-               IsVisible="{Binding Status,Converter={StaticResource VisibleCvt},ConverterParameter=2}"/>
-        <Label Text="已拒绝" Grid.Column="2" Grid.RowSpan="2" Style="{StaticResource FinishTb}"
                IsVisible="{Binding Status,Converter={StaticResource VisibleCvt},ConverterParameter=3}"/>
+        <Label Text="已拒绝" Grid.Column="2" Grid.RowSpan="2" Style="{StaticResource FinishTb}"
+               IsVisible="{Binding Status,Converter={StaticResource VisibleCvt},ConverterParameter=4}"/>
     </Grid>
 </ContentView>

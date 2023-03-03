@@ -178,7 +178,7 @@ namespace ZoDream.FileTransfer.Repositories
         #endregion
 
 
-        private void NetHub_MessageReceived(SocketClient client, string ip, int port, MessageEventArg message)
+        private void NetHub_MessageReceived(SocketClient? client, string ip, int port, MessageEventArg message)
         {
             var user = Get(ip, port);
             App.Logger.Debug($"Receive<ip[{ip}:{port}]user[{user?.Name}]>:{message.EventType}->{message.IsRequest}");
@@ -191,10 +191,10 @@ namespace ZoDream.FileTransfer.Repositories
                     {
                         net.ResponsePing(ip, port, App.Option);
                     }
-                    NewUser?.Invoke((message.Data as UserMessage).Data);
+                    NewUser?.Invoke((message.Data as UserMessage).Data, false);
                     break;
                 case SocketMessageType.UserAddRequest:
-                    NewUser?.Invoke((message.Data as UserMessage).Data);
+                    NewUser?.Invoke((message.Data as UserMessage).Data, true);
                     break;
                 case SocketMessageType.UserAddResponse:
                     foreach (var item in ApplyItems)

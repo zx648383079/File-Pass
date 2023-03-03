@@ -17,7 +17,17 @@ namespace ZoDream.FileTransfer.Converters
             }
             if (parameter is not null)
             {
-                return value.ToString() == parameter.ToString();
+                var pStr = parameter.ToString();
+                var vStr = value.ToString();
+                if (pStr == vStr)
+                {
+                    return true;
+                }
+                if (vStr is null || pStr is null || !pStr.Contains(','))
+                {
+                    return false;
+                }
+                return pStr.Split(',').Contains(vStr);
             }
             if (value is int i)
             {
