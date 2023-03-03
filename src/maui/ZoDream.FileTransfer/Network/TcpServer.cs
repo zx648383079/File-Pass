@@ -21,7 +21,6 @@ namespace ZoDream.FileTransfer.Network
         private string ListenIp = string.Empty;
         private int ListenPort = 0;
         private CancellationTokenSource ListenToken = new();
-        public event MessageReceivedEventHandler MessageReceived;
 
         public void Listen(string ip, int port)
         {

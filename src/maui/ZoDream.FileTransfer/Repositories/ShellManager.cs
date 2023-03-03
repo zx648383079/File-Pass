@@ -9,6 +9,7 @@ namespace ZoDream.FileTransfer.Repositories
     public class ShellManager
     {
 
+        public Page CurrentPage { get; }
 
         public void RegisterRoute(string routeName, Type page)
         {

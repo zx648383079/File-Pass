@@ -10,7 +10,7 @@ namespace ZoDream.FileTransfer
             Repository ??= new AppRepository();
 
             MainPage = new AppShell();
-            _ =Repository.InitializeAsync(VersionTracking.Default.IsFirstLaunchEver);
+            _ = Repository.InitializeAsync(VersionTracking.Default.IsFirstLaunchEver);
         }
 
 
