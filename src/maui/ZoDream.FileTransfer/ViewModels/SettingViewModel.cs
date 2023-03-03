@@ -17,6 +17,10 @@ namespace ZoDream.FileTransfer.ViewModels
 			Option = App.Repository.Option;
 			PropertyChanged += (s, e) => 
 			{
+				if (e.PropertyName == nameof(IpTitle))
+				{
+					return;
+				}
 				App.Repository.ChangeOptionAsync(Option);
 			};
         }

@@ -31,6 +31,7 @@ namespace ZoDream.FileTransfer.Repositories
 
         public AppOption Option { get; private set; }
 
+        private CancellationTokenSource OptionToken = new();
 
         public Task WaitBoot()
         {
@@ -50,10 +51,22 @@ namespace ZoDream.FileTransfer.Repositories
 
         #region 用户数据处理方法
 
-        public async void ChangeOptionAsync(AppOption option)
+        public void ChangeOptionAsync(AppOption option)
         {
             Option = option;
-            await DataHub.SaveOptionAsync(option);
+            OptionToken.Cancel();
+            OptionToken = new CancellationTokenSource();
+            var token = OptionToken.Token;
+            Task.Factory.StartNew(() => {
+                Thread.Sleep(20 * 1000);
+                if (token.IsCancellationRequested)
+                {
+                    return;
+                }
+                DataHub.SaveOptionAsync(option);
+            }, token);
+            
+
         }
 
         private async Task<AppOption> LoadOptionAsync()

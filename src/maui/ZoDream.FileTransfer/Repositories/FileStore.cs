@@ -154,7 +154,7 @@ namespace ZoDream.FileTransfer.Repositories
             await WriteAsync($"{Constants.MESSAGE_FOLDER}/{roomId}.db", items);
         }
 
-        public async Task<T> ReadAsync<T>(string fileName) 
+        public async Task<T?> ReadAsync<T>(string fileName) 
         {
             var file = Storage.Combine(fileName);
             if (!File.Exists(file)) {
@@ -163,7 +163,6 @@ namespace ZoDream.FileTransfer.Repositories
             return await Task.Factory.StartNew(() => 
             {
                 using var fs = File.OpenRead(file);
-                // Create an encryptor to perform the stream transform.
                 var descriptor = Cipher.CreateDecryptor(Cipher.Key, Cipher.IV);
                 using var csDecrypt = new CryptoStream(fs, descriptor, CryptoStreamMode.Read);
                 var res = JsonSerializer.Deserialize(csDecrypt, typeof(T));
@@ -179,7 +178,7 @@ namespace ZoDream.FileTransfer.Repositories
             var file = Storage.Combine(fileName);
             await Task.Factory.StartNew(() => 
             {
-                using var fs = File.OpenWrite(file);
+                using var fs = File.Create(file);
 
                 // Create an encryptor to perform the stream transform.
                 var encryptor = Cipher.CreateEncryptor(Cipher.Key, Cipher.IV);
@@ -205,7 +204,7 @@ namespace ZoDream.FileTransfer.Repositories
         public async Task WriteFileAsync(string fileName, string content)
         {
             var file = Storage.Combine(fileName);
-            using var fs = File.OpenWrite(file);
+            using var fs = File.Create(file);
 
             // Create an encryptor to perform the stream transform.
             var encryptor = Cipher.CreateEncryptor(Cipher.Key, Cipher.IV);

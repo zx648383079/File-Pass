@@ -49,8 +49,9 @@ namespace ZoDream.FileTransfer.Network
             try
             {
                 socket.Connect(clientIp);
-            } catch (Exception)
+            } catch (Exception ex)
             {
+                App.Repository.Logger.Debug($"TCP[{ip}:{port}]: {ex.Message}");
                 return null;
             }
             if (!socket.Connected)
@@ -70,6 +71,10 @@ namespace ZoDream.FileTransfer.Network
             foreach (var item in ClientItems)
             {
                 if (item.Ip != ip || item.Port != port)
+                {
+                    continue;
+                }
+                if (!item.Connected)
                 {
                     continue;
                 }
