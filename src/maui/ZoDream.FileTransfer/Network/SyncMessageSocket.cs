@@ -1,4 +1,5 @@
-﻿using Microsoft.Maui.Storage;
+﻿using Microsoft.Maui.Devices.Sensors;
+using Microsoft.Maui.Storage;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -23,8 +24,8 @@ namespace ZoDream.FileTransfer.Network
         private SocketClient Link;
         private string Folder;
         private Dictionary<string, FileInfoItem> FileItems = new();
-        public event MessageProgressEventHandler OnProgress;
-        public event MessageCompletedEventHandler OnCompleted;
+        public event MessageProgressEventHandler? OnProgress;
+        public event MessageCompletedEventHandler? OnCompleted;
         public string MessageId { get; private set; }
         private readonly CancellationTokenSource TokenSource = new();
         private FileSystemWatcher Watcher;
@@ -74,6 +75,7 @@ namespace ZoDream.FileTransfer.Network
             Link.SendText(file.Md5);
             Link.SendText(file.ModifyTime.ToString());
             FileItems.Add(file.RelativeFile, file);
+            App.Repository.Logger.Debug($"Check File:{file.File}");
         }
 
         protected void SendFile(FileInfoItem file, CancellationToken token)
@@ -81,12 +83,13 @@ namespace ZoDream.FileTransfer.Network
             SendFile(file.RelativeFile, file.Md5, file.File, (p, t) => {
                 OnProgress?.Invoke(MessageId, file.Name, p, t);
             }, token);
+            App.Repository.Logger.Debug($"Send File:{file.File}");
         }
 
         public bool SendFile(string name,
             string md5,
             string fileName,
-            Action<long, long> onProgress = null,
+            Action<long, long>? onProgress = null,
             CancellationToken token = default)
         {
             var chunkSize = 200000;
@@ -165,8 +168,9 @@ namespace ZoDream.FileTransfer.Network
                         var oldPath = Path.Combine(Folder, Link.ReceiveText());
                         if (File.Exists(oldPath))
                         {
-                            File.Move(oldPath, newPath);
+                            File.Move(oldPath, newPath, true);
                         }
+                        App.Repository.Logger.Debug($"Move File:{oldPath}->{newPath}");
                         continue;
                     }
                     else if (type == SocketMessageType.FileCheck)
@@ -178,6 +182,7 @@ namespace ZoDream.FileTransfer.Network
                         Link.Send(SocketMessageType.FileCheckResponse);
                         Link.SendText(fileName);
                         Link.Send(res);
+                        App.Repository.Logger.Debug($"Check File:{fileName}->{res}");
                         continue;
                     }
                     else if (type == SocketMessageType.FileCheckResponse)
@@ -194,6 +199,7 @@ namespace ZoDream.FileTransfer.Network
                     else if (type == SocketMessageType.FileDelete)
                     {
                         var delPath = Path.Combine(Folder, Link.ReceiveText());
+                        App.Repository.Logger.Debug($"Delete File:{delPath}");
                         if (File.Exists(delPath))
                         {
                             File.Delete(delPath);
@@ -207,6 +213,7 @@ namespace ZoDream.FileTransfer.Network
                         var modifyTime = Link.ReceiveText();
                         var length = Link.ReceiveContentLength();
                         var location = Path.Combine(Folder, fileName);
+                        App.Repository.Logger.Debug($"Receive File:{location}");
                         using (var fs = storage.CacheWriter(md5))
                         {
                             Link.ReceiveStream(fs, length);
@@ -225,6 +232,7 @@ namespace ZoDream.FileTransfer.Network
                     {
                         var fileName = Link.ReceiveText();
                         var location = Path.Combine(Folder, fileName);
+                        App.Repository.Logger.Debug($"Receive File:{location}");
                         var md5 = Link.ReceiveText();
                         var modifyTime = Link.ReceiveText();
                         var partItems = Link.ReceiveText().Split(',');
@@ -278,7 +286,7 @@ namespace ZoDream.FileTransfer.Network
 
         private void BindWatcher()
         {
-            if (Watcher == null)
+            if (Watcher != null)
             {
                 Watcher.Dispose();
             }

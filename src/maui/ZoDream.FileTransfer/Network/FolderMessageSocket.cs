@@ -25,8 +25,8 @@ namespace ZoDream.FileTransfer.Network
 
         private SocketClient Link;
         private string Folder;
-        public event MessageProgressEventHandler OnProgress;
-        public event MessageCompletedEventHandler OnCompleted;
+        public event MessageProgressEventHandler? OnProgress;
+        public event MessageCompletedEventHandler? OnCompleted;
         public string MessageId { get; private set; }
         private readonly CancellationTokenSource TokenSource = new();
 
@@ -60,6 +60,7 @@ namespace ZoDream.FileTransfer.Network
             Link.SendFile(file.RelativeFile, file.Md5, file.File, (p, t) => {
                 OnProgress?.Invoke(MessageId, file.Name, p, t);
             }, token);
+            App.Repository.Logger.Debug($"Send File:{file.File}");
         }
 
         public Task ReceiveAsync()
@@ -92,6 +93,7 @@ namespace ZoDream.FileTransfer.Network
                         md5 = Link.ReceiveText();
                         length = Link.ReceiveContentLength();
                         location = Path.Combine(Folder, fileName);
+                        App.Repository.Logger.Debug($"Receive File:{location}");
                         using (var fs = storage.CacheWriter(md5))
                         {
                             Link.ReceiveStream(fs, length);
@@ -109,6 +111,7 @@ namespace ZoDream.FileTransfer.Network
                     {
                         fileName = Link.ReceiveText();
                         location = Path.Combine(Folder, fileName);
+                        App.Repository.Logger.Debug($"Receive File:{location}");
                         md5 = Link.ReceiveText();
                         var partItems = Link.ReceiveText().Split(',');
                         length = storage.CacheMergeFile(md5, partItems);

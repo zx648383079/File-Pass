@@ -14,8 +14,8 @@ namespace ZoDream.FileTransfer.Network
 
         public string MessageId { get; }
 
-        public event MessageProgressEventHandler OnProgress;
-        public event MessageCompletedEventHandler OnCompleted;
+        public event MessageProgressEventHandler? OnProgress;
+        public event MessageCompletedEventHandler? OnCompleted;
 
         public Task SendAsync();
 

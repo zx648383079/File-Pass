@@ -10,7 +10,7 @@ namespace ZoDream.FileTransfer.Network
         public string Ip { get; private set; } = string.Empty;
 
         public int Port { get; private set; } = 80;
-        public SocketHub Hub { get; set; }
+        public SocketHub? Hub { get; set; }
         private bool IsLoopReceive = false;
         private readonly Socket ClientSocket;
         private CancellationTokenSource ReceiveToken = new();

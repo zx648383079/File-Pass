@@ -19,7 +19,6 @@ namespace ZoDream.FileTransfer.Repositories
 
         private readonly AppRepository App;
 
-        public Dictionary<string, UserInfoItem> CacheItems { get; private set; } = new();
         public IList<UserItem> UserItems { get; private set; }
         /// <summary>
         /// 以确认的消息，允许后台进行操作，例如文件接收和发送
@@ -28,10 +27,10 @@ namespace ZoDream.FileTransfer.Repositories
         public Dictionary<string, IMessageSocket> LinkItems = new();
         public List<IUser> ApplyItems = new();
 
-        public event UsersUpdatedEventHandler UsersUpdated;
-        public event NewUserEventHandler NewUser;
-        public event NewMessageEventHandler NewMessage;
-        public event MessageUpdatedEventHandler MessageUpdated;
+        public event UsersUpdatedEventHandler? UsersUpdated;
+        public event NewUserEventHandler? NewUser;
+        public event NewMessageEventHandler? NewMessage;
+        public event MessageUpdatedEventHandler? MessageUpdated;
 
         public async Task InitializeAsync()
         {
@@ -152,7 +151,7 @@ namespace ZoDream.FileTransfer.Repositories
             return IndexOfIp(ip) >= 0;
         }
 
-        public UserItem Get(string id)
+        public UserItem? Get(string id)
         {
             foreach (var item in UserItems)
             {
@@ -164,7 +163,7 @@ namespace ZoDream.FileTransfer.Repositories
             return null;
         }
 
-        public UserItem Get(string ip, int port)
+        public UserItem? Get(string ip, int port)
         {
             foreach (var item in UserItems)
             {
@@ -182,8 +181,9 @@ namespace ZoDream.FileTransfer.Repositories
         private void NetHub_MessageReceived(SocketClient client, string ip, int port, MessageEventArg message)
         {
             var user = Get(ip, port);
+            App.Logger.Debug($"Receive<ip[{ip}:{port}]>:user[{user?.Name}:{user?.Id}]");
             var net = App.NetHub;
-            MessageItem msg = null; 
+            MessageItem? msg = null; 
             switch (message.EventType)
             {
                 case SocketMessageType.Ping:
@@ -373,7 +373,7 @@ namespace ZoDream.FileTransfer.Repositories
                     Data = message.Id
                 });
             }
-            IMessageSocket link = null;
+            IMessageSocket? link = null;
             if (message is SyncMessageItem sync)
             {
                 sync.Status = FileMessageStatus.Transferring;

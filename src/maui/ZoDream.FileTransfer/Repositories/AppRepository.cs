@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using ZoDream.FileTransfer.Loggers;
 using ZoDream.FileTransfer.Models;
 using ZoDream.FileTransfer.Network;
 using ZoDream.FileTransfer.Utils;
@@ -10,6 +11,7 @@ namespace ZoDream.FileTransfer.Repositories
 
         public AppRepository()
         {
+            Logger = new EventLogger();
             ChatHub = new ChatStore(this);
         }
 
@@ -20,6 +22,8 @@ namespace ZoDream.FileTransfer.Repositories
         public IDatabaseStore DataHub { get; private set; }
 
         public StorageRepository Storage { get; private set; }
+
+        public ILogger Logger { get; private set; }
 
         public SocketHub NetHub { get; private set; }
 
@@ -90,6 +94,7 @@ namespace ZoDream.FileTransfer.Repositories
                 await Storage.InitializeAsync();
             }
             SecureKey = await LoadKeyAsync();
+            Logger.Debug(SecureKey);
             // 
             DataHub = Constants.UseSQL ? new SqlStore(Storage, SecureKey)
                 : new FileStore(Storage, SecureKey);
@@ -97,10 +102,11 @@ namespace ZoDream.FileTransfer.Repositories
                 await DataHub.InitializeAsync();
             }
             Option = await LoadOptionAsync();
+            Logger.Debug(UserInfoItem.ToStr(Option));
             NetHub = new SocketHub();
             await ChatHub.InitializeAsync();
             Booted = true;
-            
+            Logger.Info("System Booted");
         }
 
         #endregion

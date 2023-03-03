@@ -7,7 +7,7 @@ using ZoDream.FileTransfer.Models;
 
 namespace ZoDream.FileTransfer.Network
 {
-    public delegate void MessageReceivedEventHandler(SocketClient client, string ip, int port, MessageEventArg arg);
+    public delegate void MessageReceivedEventHandler(SocketClient? client, string ip, int port, MessageEventArg arg);
 
     public delegate void UsersUpdatedEventHandler();
     public delegate void NewUserEventHandler(IUser user);
@@ -15,7 +15,7 @@ namespace ZoDream.FileTransfer.Network
     public delegate void NewMessageEventHandler(string userId, MessageItem message);
 
     public delegate void MessageUpdatedEventHandler(string messageId, 
-        MessageTapEvent eventType, object data);
+        MessageTapEvent eventType, object? data);
 
     public delegate void MessageTapEventHandler(object sender, MessageTapEventArg arg);
     public delegate void MessageProgressEventHandler(string messageId, 
@@ -27,7 +27,7 @@ namespace ZoDream.FileTransfer.Network
     {
         public MessageTapEvent EventType { get; private set; }
 
-        public MessageItem Data { get; private set; }
+        public MessageItem? Data { get; private set; }
 
         public MessageTapEventArg(MessageItem message, MessageTapEvent eventType)
         {

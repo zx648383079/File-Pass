@@ -29,7 +29,7 @@ namespace ZoDream.FileTransfer.Network
         public TcpServer Tcp { get; private set; }
         private readonly IList<SocketClient> ClientItems = new List<SocketClient>();
         private readonly IList<SocketClient> SpecialItems = new List<SocketClient>();
-        public event MessageReceivedEventHandler MessageReceived;
+        public event MessageReceivedEventHandler? MessageReceived;
 
         public void Add(SocketClient client)
         {
@@ -42,7 +42,7 @@ namespace ZoDream.FileTransfer.Network
         }
 
 
-        public SocketClient Connect(string ip, int port)
+        public SocketClient? Connect(string ip, int port)
         {
             var clientIp = new IPEndPoint(IPAddress.Parse(ip), port);
             var socket = new Socket(clientIp.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
@@ -60,12 +60,12 @@ namespace ZoDream.FileTransfer.Network
             return new SocketClient(socket, ip, port);
         }
 
-        public async Task<SocketClient> GetAsync(IUser user)
+        public async Task<SocketClient?> GetAsync(IUser user)
         {
             return await GetAsync(user.Ip, user.Port);
         }
 
-        public async Task<SocketClient> GetAsync(string ip, int port)
+        public async Task<SocketClient?> GetAsync(string ip, int port)
         {
             foreach (var item in ClientItems)
             {
@@ -251,7 +251,7 @@ namespace ZoDream.FileTransfer.Network
             return new MessageEventArg(type, isRequest, pack);
         }
 
-        public static IMessageUnpack RenderUnpack(SocketMessageType type)
+        public static IMessageUnpack? RenderUnpack(SocketMessageType type)
         {
             return type switch
             {

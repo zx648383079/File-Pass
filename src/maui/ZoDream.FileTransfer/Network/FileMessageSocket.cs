@@ -22,8 +22,8 @@ namespace ZoDream.FileTransfer.Network
         private SocketClient Link;
         private string Name;
         private string FileName;
-        public event MessageProgressEventHandler OnProgress;
-        public event MessageCompletedEventHandler OnCompleted;
+        public event MessageProgressEventHandler? OnProgress;
+        public event MessageCompletedEventHandler? OnCompleted;
         public string MessageId { get; private set; }
         private CancellationTokenSource TokenSource = new();
 
@@ -40,6 +40,7 @@ namespace ZoDream.FileTransfer.Network
                 var res = Link.SendFile(Name, md5, FileName, (p, t) => {
                     OnProgress?.Invoke(MessageId, Name, p, t);
                 }, token);
+                App.Repository.Logger.Debug($"Send File:{FileName}");
                 OnCompleted?.Invoke(MessageId, Name, res);
             }, token);
         }
@@ -52,6 +53,7 @@ namespace ZoDream.FileTransfer.Network
                     OnProgress?.Invoke(MessageId, Name, p, t);
                 }, token);
                 OnCompleted?.Invoke(MessageId, Name, !string.IsNullOrEmpty(Name));
+                App.Repository.Logger.Debug($"Receive File:{Name}");
                 // 线程由接收方结束
                 App.Repository.NetHub.Close(Link);
             }, token);
