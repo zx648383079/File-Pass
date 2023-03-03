@@ -29,10 +29,17 @@ namespace ZoDream.FileTransfer.Models
         public UserInfoItem(IUser item)
         {
             Id = item.Id;
-            Avatar = item.Avatar;
+            Avatar = string.IsNullOrWhiteSpace(item.Avatar) ? RandomAvatar() : item.Avatar;
             Name = item.Name;
             Ip = item.Ip;
             Port = item.Port;
+        }
+
+        public static string RandomAvatar()
+        {
+            var random = new Random();
+            var i = random.Next(0, 5);
+            return $"avatar{i}.png";
         }
 
 

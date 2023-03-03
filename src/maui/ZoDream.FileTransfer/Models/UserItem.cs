@@ -92,7 +92,7 @@ namespace ZoDream.FileTransfer.Models
         public UserItem(IUser item)
         {
             Id = item.Id;
-            Avatar = item.Avatar;
+            Avatar = string.IsNullOrWhiteSpace(item.Avatar) ? UserInfoItem.RandomAvatar() : item.Avatar;
             Name = item.Name;
             Ip = item.Ip;
             Port = item.Port;

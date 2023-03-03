@@ -38,7 +38,7 @@ public partial class NotifyDialog : ContentView
             typeof(NotifyDialog),
             new List<IUser>());
 
-    private Grid InnerPanel;
+    private Grid? InnerPanel;
     public ICommand AgreeCommand { get; private set; }
     public ICommand DisagreeCommand { get; private set; }
 
@@ -87,9 +87,14 @@ public partial class NotifyDialog : ContentView
                 return;
             }
         }
+        var items = new List<IUser>
+        {
+            new UserInfoOption(user)
+        };
+        items.AddRange(Items);
         MainThread.BeginInvokeOnMainThread(() => {
             IsOpen = true;
-            Items.Prepend(new UserInfoOption(user));
+            Items = items;
         });
     }
 
