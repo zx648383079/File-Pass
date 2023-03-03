@@ -5,6 +5,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
+using ZoDream.FileTransfer.Repositories;
 
 namespace ZoDream.FileTransfer.Network
 {
@@ -17,13 +18,14 @@ namespace ZoDream.FileTransfer.Network
             Hub = hub;
         }
 
-        private SocketHub Hub;
-        private readonly byte[] CacheBuffer = new byte[65536];
+        private readonly SocketHub Hub;
+        private readonly byte[] CacheBuffer = new byte[Constants.UDP_BUFFER_SIZE];
         private Socket? ListenSocket;
         public string ListenIp { get; private set; } = string.Empty;
         public int ListenPort { get; private set; } = 0;
         private CancellationTokenSource ListenToken = new();
 
+        public bool IsListening => ListenSocket is not null && !ListenToken.IsCancellationRequested;
         public void Listen(string ip, int port)
         {
             if (ListenIp == ip && ListenPort == port)
@@ -59,7 +61,7 @@ namespace ZoDream.FileTransfer.Network
                     try
                     {
                         EndPoint sendIp = new IPEndPoint(IPAddress.Any, port);
-                        var length = tcpSocket.ReceiveFrom(CacheBuffer, 65536,
+                        var length = tcpSocket.ReceiveFrom(CacheBuffer, Constants.UDP_BUFFER_SIZE,
                             SocketFlags.None, ref sendIp);
                         var buffer = new byte[length];
                         Buffer.BlockCopy(CacheBuffer, 0, buffer, 0, length);
@@ -76,11 +78,23 @@ namespace ZoDream.FileTransfer.Network
             }, token);
         }
 
-        public void Send(string ip, int port)
+        public Task<bool> SendAsync(string ip, int port, SocketMessageType type, bool isRequest, IMessagePack? pack)
         {
-            var remote = new IPEndPoint(IPAddress.Parse(ip), port);
-            var buffer = new byte[1024];
-            ListenSocket?.SendTo(buffer, remote);
+            byte[] buffer;
+            if (pack is not null)
+            {
+                buffer = SocketHub.RenderPack(pack.Pack(), (byte)type, Convert.ToByte(isRequest));
+            } else
+            {
+                buffer = new byte[] { (byte)type, Convert.ToByte(isRequest) };
+            }
+            if (buffer.Length > Constants.UDP_BUFFER_SIZE)
+            {
+                App.Repository.Logger.Error($"UDP Send Max Size: {Constants.UDP_BUFFER_SIZE}");
+                return Task.FromResult(false);
+            }
+            Send(ip, port, buffer);
+            return Task.FromResult(true);
         }
 
         public void Ping(string ip, byte[] buffer)
@@ -89,6 +103,11 @@ namespace ZoDream.FileTransfer.Network
         }
 
         public void Ping(string ip, int port, byte[] buffer)
+        {
+            Send(ip, port, buffer);
+        }
+
+        public void Send(string ip, int port, byte[] buffer)
         {
             var remote = new IPEndPoint(IPAddress.Parse(ip), port);
             ListenSocket?.SendTo(buffer, remote);

@@ -21,14 +21,14 @@ namespace ZoDream.FileTransfer.Network
             MessageId = messageId;
         }
 
-        private SocketClient Link;
-        private string Folder;
+        private readonly SocketClient Link;
+        private readonly string Folder;
         private Dictionary<string, FileInfoItem> FileItems = new();
         public event MessageProgressEventHandler? OnProgress;
         public event MessageCompletedEventHandler? OnCompleted;
         public string MessageId { get; private set; }
         private readonly CancellationTokenSource TokenSource = new();
-        private FileSystemWatcher Watcher;
+        private FileSystemWatcher? Watcher;
 
         public void Dispose()
         {
@@ -261,6 +261,7 @@ namespace ZoDream.FileTransfer.Network
                     }
                     else
                     {
+                        App.Repository.Logger.Warning($"File Receive Unknown Type:{type}");
                         App.Repository.NetHub.Close(Link);
                         OnCompleted?.Invoke(MessageId, Folder, false);
                         return;

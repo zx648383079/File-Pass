@@ -8,9 +8,10 @@ namespace ZoDream.FileTransfer.Network
 {
     public interface ISocketServer: IDisposable
     {
+        public bool IsListening { get; }
         public void Listen(string ip, int port);
 
-        public void Send(string ip, int port);
+        public Task<bool> SendAsync(string ip, int port, SocketMessageType type, bool isRequest, IMessagePack? pack);
 
     }
 }

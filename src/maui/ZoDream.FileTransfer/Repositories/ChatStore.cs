@@ -187,25 +187,41 @@ namespace ZoDream.FileTransfer.Repositories
             switch (message.EventType)
             {
                 case SocketMessageType.Ping:
-                    if (message.IsRequest)
+                    if (message.IsRequest && !App.Option.IsHideClient)
                     {
                         net.ResponsePing(ip, port, App.Option);
                     }
-                    NewUser?.Invoke((message.Data as UserMessage).Data, false);
+                    NewUser?.Invoke((message.Data as UserMessage)!.Data, false);
                     break;
                 case SocketMessageType.UserAddRequest:
-                    NewUser?.Invoke((message.Data as UserMessage).Data, true);
+                    var requestUser = (message.Data as UserMessage)!.Data;
+                    if (requestUser is null)
+                    {
+                        break;
+                    }
+                    var existUser = Get(requestUser.Id);
+                    if (existUser is not null)
+                    {
+                        existUser.Update(requestUser);
+                    }
+                    if (existUser is not null || App.Option.IsOpenLink)
+                    {
+                        _ = AgreeAddUserAsync(requestUser, true);
+                        break;
+                    }
+                    NewUser?.Invoke(requestUser, true);
                     break;
                 case SocketMessageType.UserAddResponse:
+                    var isAgree = (message.Data as BoolMessage)!.Data;
                     foreach (var item in ApplyItems)
                     {
                         if (item.Ip == ip && item.Port == port)
                         {
-                            if ((message.Data as BoolMessage).Data)
+                            if (isAgree)
                             {
                                 Add(item);
                             }
-                            ApplyItems.Remove(user);
+                            ApplyItems.Remove(item);
                             return;
                         }
                     }
@@ -213,9 +229,9 @@ namespace ZoDream.FileTransfer.Repositories
                 case SocketMessageType.MessageText:
                     msg = new TextMessageItem()
                     {
-                        UserId = user.Id,
+                        UserId = user!.Id,
                         ReceiveId = App.Option.Id,
-                        Content = (message.Data as TextMessage).Data,
+                        Content = (message.Data as TextMessage)!.Data,
                         IsSender = false,
                         CreatedAt = DateTime.Now,
                         IsSuccess = true,
@@ -227,7 +243,7 @@ namespace ZoDream.FileTransfer.Repositories
                 case SocketMessageType.MessagePing:
                     msg = new ActionMessageItem(message.EventType)
                     {
-                        UserId = user.Id,
+                        UserId = user!.Id,
                         ReceiveId = App.Option.Id,
                         IsSender = false,
                         CreatedAt = DateTime.Now,
@@ -243,8 +259,8 @@ namespace ZoDream.FileTransfer.Repositories
                     var file = message.Data as FileMessage;
                     msg = new FileMessageItem()
                     {
-                        Id = file.MessageId,
-                        UserId = user.Id,
+                        Id = file!.MessageId,
+                        UserId = user!.Id,
                         ReceiveId = App.Option.Id,
                         FileName = file.FileName,
                         Size = file.Length,
@@ -259,8 +275,8 @@ namespace ZoDream.FileTransfer.Repositories
                     var folder = message.Data as FileMessage;
                     msg = new FolderMessageItem()
                     {
-                        Id = folder.MessageId,
-                        UserId = user.Id,
+                        Id = folder!.MessageId,
+                        UserId = user!.Id,
                         ReceiveId = App.Option.Id,
                         FolderName = folder.FileName,
                         IsSender = false,
@@ -274,8 +290,8 @@ namespace ZoDream.FileTransfer.Repositories
                     var sync = message.Data as FileMessage;
                     msg = new SyncMessageItem()
                     {
-                        Id = sync.MessageId,
-                        UserId = user.Id,
+                        Id = sync!.MessageId,
+                        UserId = user!.Id,
                         ReceiveId = App.Option.Id,
                         FolderName = sync.FileName,
                         IsSender = false,
@@ -289,9 +305,9 @@ namespace ZoDream.FileTransfer.Repositories
                     var u = message.Data as UserMessage;
                     msg = new UserMessageItem()
                     {
-                        UserId = user.Id,
+                        UserId = user!.Id,
                         ReceiveId = App.Option.Id,
-                        Data = u.Data,
+                        Data = u!.Data,
                         IsSender = false,
                         CreatedAt = DateTime.Now,
                         IsSuccess = true,
@@ -301,13 +317,13 @@ namespace ZoDream.FileTransfer.Repositories
                     break;
                 case SocketMessageType.MessageAction:
                     var action = message.Data as ActionMessage;
-                    if (action.EventType == MessageTapEvent.Withdraw)
+                    if (action!.EventType == MessageTapEvent.Withdraw)
                     {
                         App.DataHub.RemoveMessageAsync(new TextMessageItem()
                         {
                             Id = action.MessageId,
                             IsSender = false,
-                            UserId = user.Id,
+                            UserId = user!.Id,
                             ReceiveId = App.Option.Id,
                             CreatedAt = DateTime.MinValue
                         });
@@ -316,12 +332,13 @@ namespace ZoDream.FileTransfer.Repositories
                     break;
                 case SocketMessageType.RequestSpecialLine:
                     var act = message.Data as ActionMessage;
-                    if (ConfirmItems.TryGetValue(act.MessageId, out var mess))
+                    if (ConfirmItems.TryGetValue(act!.MessageId, out var mess))
                     {
-                        var link = App.NetHub.Connect(ip, port);
-                        if (client is null)
+                        var link = SocketHub.Connect(ip, port);
+                        if (link is null)
                         {
                             // 失败
+                            App.Logger.Error($"Request Special Line Error: {ip}:{port}");
                             return;
                         }
                         SendConfirmedMessage(link, mess);
@@ -329,9 +346,9 @@ namespace ZoDream.FileTransfer.Repositories
                     break;
                 case SocketMessageType.SpecialLine:
                     var txt = message.Data as TextMessage;
-                    if (ConfirmItems.TryGetValue(txt.Data, out var mes))
+                    if (ConfirmItems.TryGetValue(txt!.Data, out var mes))
                     {
-                        SendConfirmedMessage(client, mes, true);
+                        SendConfirmedMessage(client!, mes, true);
                     }
                     break;
                 default:
@@ -347,7 +364,7 @@ namespace ZoDream.FileTransfer.Repositories
         public void AddConfirmMessage(IUser user, MessageItem message)
         {
             AddConfirmMessage(message);
-            var client = App.NetHub.Connect(user.Ip, user.Port);
+            var client = SocketHub.Connect(user.Ip, user.Port);
             if (client is null)
             {
                 // 无法创建连接，发送消息给对面，让对方创建

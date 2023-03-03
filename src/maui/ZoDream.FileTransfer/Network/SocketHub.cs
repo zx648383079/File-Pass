@@ -42,7 +42,7 @@ namespace ZoDream.FileTransfer.Network
         }
 
 
-        public SocketClient? Connect(string ip, int port)
+        public static SocketClient? Connect(string ip, int port)
         {
             var clientIp = new IPEndPoint(IPAddress.Parse(ip), port);
             var socket = new Socket(clientIp.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
@@ -51,6 +51,7 @@ namespace ZoDream.FileTransfer.Network
                 socket.Connect(clientIp);
             } catch (Exception ex)
             {
+                // 可能对方没有开启tcp
                 App.Repository.Logger.Debug($"TCP[{ip}:{port}]: {ex.Message}");
                 return null;
             }
@@ -81,7 +82,7 @@ namespace ZoDream.FileTransfer.Network
                 return item;
             }
             return await Task.Factory.StartNew(() => {
-                var client = Connect(ip, port);
+                var client = SocketHub.Connect(ip, port);
                 if (client == null)
                 {
                     return null;
@@ -164,11 +165,12 @@ namespace ZoDream.FileTransfer.Network
             return await SendAsync(user.Ip, user.Port, type, false, message);
         }
 
-        public async Task<bool> SendAsync(string ip, int port, SocketMessageType type, bool isRequest, IMessagePack pack)
+        public async Task<bool> SendAsync(string ip, int port, SocketMessageType type, bool isRequest, IMessagePack? pack)
         {
             var client = await GetAsync(ip, port);
             if (client == null)
             {
+                await UdpSendAsync(ip, port, type, isRequest, pack);
                 return false;
             }
             client.Send(type);
@@ -178,6 +180,11 @@ namespace ZoDream.FileTransfer.Network
                 return true;
             }
             return client.Send(pack);
+        }
+
+        public async Task<bool> UdpSendAsync(string ip, int port, SocketMessageType type, bool isRequest, IMessagePack? pack)
+        {
+            return await Udp.SendAsync(ip, port, type, isRequest, pack);
         }
         public async Task<bool> RequestAsync(string ip, int port, SocketMessageType type, IMessagePack pack)
         {
@@ -243,7 +250,17 @@ namespace ZoDream.FileTransfer.Network
 
         public static MessageEventArg RenderReceivePack(SocketClient client)
         {
-            var type = client.ReceiveMessageType();
+            return RenderReceivePack(client, null);
+        }
+
+        /// <summary>
+        /// 解包一个类型
+        /// </summary>
+        /// <param name="client"></param>
+        /// <returns></returns>
+        public static MessageEventArg RenderReceivePack(SocketClient client, SocketMessageType? type)
+        {
+            type ??= client.ReceiveMessageType();
             var isRequest = client.ReceiveBool();
             var pack = RenderUnpack(type);
             if (pack is IMessageUnpackStream o)
@@ -258,10 +275,15 @@ namespace ZoDream.FileTransfer.Network
             {
                 client.Address = address;
             }
-            return new MessageEventArg(type, isRequest, pack);
+            return new MessageEventArg((SocketMessageType)type, isRequest, pack);
         }
 
-        public static IMessageUnpack? RenderUnpack(SocketMessageType type)
+        /// <summary>
+        /// 根据类型创建解包器
+        /// </summary>
+        /// <param name="type"></param>
+        /// <returns></returns>
+        public static IMessageUnpack? RenderUnpack(SocketMessageType? type)
         {
             return type switch
             {
@@ -273,6 +295,27 @@ namespace ZoDream.FileTransfer.Network
                 SocketMessageType.Ip => new IpMessage(),
                 _ => null,
             };
+        }
+
+        /// <summary>
+        /// 自动跳过一些不需要的类型
+        /// </summary>
+        /// <param name="client"></param>
+        /// <param name="wantTypeItems"></param>
+        /// <returns></returns>
+        public static SocketMessageType JumpUnknownType(SocketClient client, 
+            params SocketMessageType[] wantTypeItems)
+        {
+            while (client.Connected)
+            {
+                var type = client.ReceiveMessageType();
+                if (wantTypeItems.Contains(type))
+                {
+                    return type;
+                }
+                RenderReceivePack(client, type);
+            }
+            return SocketMessageType.Close;
         }
 
         public static byte[] RenderPack(byte[] data, params byte[] prepend)

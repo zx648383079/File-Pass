@@ -364,6 +364,7 @@ namespace ZoDream.FileTransfer.Network
                     onProgress?.Invoke(length, 0L);
                 } else
                 {
+                    App.Repository.Logger.Warning($"File Receive Unknown Type:{type}");
                     return string.Empty;
                 }
             }

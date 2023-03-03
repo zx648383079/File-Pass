@@ -63,6 +63,10 @@ namespace ZoDream.FileTransfer.Repositories
                 {
                     return;
                 }
+                if (!option.IsHideClient)
+                {
+                    NetHub.Tcp.Listen(option.Ip, option.Port);
+                }
                 DataHub.SaveOptionAsync(option);
             }, token);
             

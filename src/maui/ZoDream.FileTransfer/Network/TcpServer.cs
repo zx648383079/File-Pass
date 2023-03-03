@@ -1,10 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
+﻿using System.Net;
 using System.Net.Sockets;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ZoDream.FileTransfer.Network
 {
@@ -16,11 +11,13 @@ namespace ZoDream.FileTransfer.Network
             Hub = hub;
         }
 
-        private SocketHub Hub;
-        private Socket ListenSocket;
+        private readonly SocketHub Hub;
+        private Socket? ListenSocket;
         private string ListenIp = string.Empty;
         private int ListenPort = 0;
         private CancellationTokenSource ListenToken = new();
+
+        public bool IsListening => ListenSocket is not null && !ListenToken.IsCancellationRequested;
 
         public void Listen(string ip, int port)
         {
@@ -59,9 +56,20 @@ namespace ZoDream.FileTransfer.Network
             }, token);
         }
 
-        public void Send(string ip, int port)
+        public async Task<bool> SendAsync(string ip, int port, SocketMessageType type, bool isRequest, IMessagePack? pack)
         {
-            
+            var client = await Hub.GetAsync(ip, port);
+            if (client == null)
+            {
+                return false;
+            }
+            client.Send(type);
+            client.Send(isRequest);
+            if (pack is null)
+            {
+                return true;
+            }
+            return client.Send(pack);
         }
 
         public void Dispose()

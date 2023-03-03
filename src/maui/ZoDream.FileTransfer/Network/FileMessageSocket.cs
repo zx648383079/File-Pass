@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using ZoDream.FileTransfer.Utils;
+﻿using ZoDream.FileTransfer.Utils;
 
 namespace ZoDream.FileTransfer.Network
 {
@@ -19,9 +14,9 @@ namespace ZoDream.FileTransfer.Network
             MessageId = messageId;
         }
 
-        private SocketClient Link;
+        private readonly SocketClient Link;
         private string Name;
-        private string FileName;
+        private readonly string FileName;
         public event MessageProgressEventHandler? OnProgress;
         public event MessageCompletedEventHandler? OnCompleted;
         public string MessageId { get; private set; }

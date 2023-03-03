@@ -10,7 +10,7 @@ namespace ZoDream.FileTransfer.Models
     [Serializable()]
     public class UserItem: BindableObject, IUser
     {
-        public string Id { get; set; }
+        public string Id { get; set; } = string.Empty;
 
         public string Avatar { get; set; } = string.Empty;
 
@@ -20,7 +20,7 @@ namespace ZoDream.FileTransfer.Models
 
         public int Port { get; set; }
 
-        private string markName;
+        private string markName = string.Empty;
 
         public string MarkName
         {
@@ -81,7 +81,7 @@ namespace ZoDream.FileTransfer.Models
         }
 
 
-        public Color AvatarBackground { get; set; }
+        public Color? AvatarBackground { get; set; }
 
 
         public UserItem()
@@ -91,12 +91,23 @@ namespace ZoDream.FileTransfer.Models
 
         public UserItem(IUser item)
         {
+            Update(item);
+        }
+
+        public void Update(IUser item)
+        {
             Id = item.Id;
-            Avatar = string.IsNullOrWhiteSpace(item.Avatar) ? UserInfoItem.RandomAvatar() : item.Avatar;
+            if (!string.IsNullOrWhiteSpace(item.Avatar) || string.IsNullOrWhiteSpace(Avatar))
+            {
+                Avatar = string.IsNullOrWhiteSpace(item.Avatar) ? UserInfoItem.RandomAvatar() : item.Avatar;
+            }
             Name = item.Name;
             Ip = item.Ip;
             Port = item.Port;
-            MarkName = Name;
+            if (string.IsNullOrWhiteSpace(MarkName))
+            {
+                MarkName = Name;
+            }
         }
     }
 }
