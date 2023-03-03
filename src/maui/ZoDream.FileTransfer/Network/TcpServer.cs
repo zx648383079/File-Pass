@@ -61,7 +61,7 @@ namespace ZoDream.FileTransfer.Network
 
         public void Send(string ip, int port)
         {
-            throw new NotImplementedException();
+            
         }
 
         public void Dispose()

@@ -82,6 +82,7 @@ namespace ZoDream.FileTransfer.Network
                     return null;
                 }
                 Add(client);
+                client.SendIp(App.Repository.Option);
                 return client;
             });
         }
@@ -248,6 +249,10 @@ namespace ZoDream.FileTransfer.Network
             {
                 pack?.Unpack(client.ReceiveBuffer());
             }
+            if (type == SocketMessageType.Ip && pack is IpMessage address)
+            {
+                client.Address = address;
+            }
             return new MessageEventArg(type, isRequest, pack);
         }
 
@@ -260,6 +265,7 @@ namespace ZoDream.FileTransfer.Network
                 SocketMessageType.MessageText or SocketMessageType.SpecialLine => new TextMessage(),
                 SocketMessageType.MessageFile or SocketMessageType.MessageFolder or SocketMessageType.MessageSync => new FileMessage(),
                 SocketMessageType.MessageAction or SocketMessageType.RequestSpecialLine => new ActionMessage(),
+                SocketMessageType.Ip => new IpMessage(),
                 _ => null,
             };
         }

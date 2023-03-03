@@ -1,7 +1,7 @@
-﻿using Microsoft.Maui.Controls;
-using System.Net.Sockets;
+﻿using System.Net.Sockets;
 using System.Text;
-using ZoDream.FileTransfer.Utils;
+using ZoDream.FileTransfer.Models;
+using ZoDream.FileTransfer.Network.Messages;
 
 namespace ZoDream.FileTransfer.Network
 {
@@ -28,6 +28,17 @@ namespace ZoDream.FileTransfer.Network
         }
 
         public bool Connected => ClientSocket.Connected;
+
+        public IClientAddress Address 
+        {
+            get {
+                return new ClientAddress(Ip, Port);
+            }
+            set {
+                Ip = value.Ip;
+                Port = value.Port;
+            }
+        }
 
         public void LoopReceive()
         {
@@ -178,6 +189,20 @@ namespace ZoDream.FileTransfer.Network
         public void Send(SocketMessageType messageType)
         {
             Send((byte)messageType);
+        }
+
+        public bool SendIp(IClientAddress address)
+        {
+            if (!ClientSocket.Connected || ReceiveToken.IsCancellationRequested)
+            {
+                return false;
+            }
+            Send(SocketMessageType.Ip);
+            new IpMessage() { 
+                Ip = address.Ip,
+                Port = address.Port,
+            }.Pack(this);
+            return true;
         }
 
         public bool Send(IMessagePack message)
