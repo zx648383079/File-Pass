@@ -29,8 +29,8 @@ namespace ZoDream.FileTransfer.Network
             Port = port;
         }
 
-        public bool Connected => ClientSocket.Connected;
-
+        private bool connected = true;
+        public bool Connected => connected && ClientSocket.Connected;
         public IClientAddress Address 
         {
             get {
@@ -76,7 +76,7 @@ namespace ZoDream.FileTransfer.Network
 
         #region 接受消息
 
-        private byte[] Receive(long length)
+        private byte[] Receive(int length)
         {
             if (length <= 0 || length > FileChunkSize)
             {
@@ -85,10 +85,17 @@ namespace ZoDream.FileTransfer.Network
             var buffer = new byte[length];
             try
             {
-                ClientSocket.Receive(buffer);
+                var index = 0;
+                while (index < length)
+                {
+                    var size = ClientSocket.Receive(buffer, index,
+                        length - index, SocketFlags.None);
+                    index += size;
+                }
             }
             catch (Exception ex)
             {
+                connected = false;
                 Hub?.Logger.Error(ex.Message);
             }
             return buffer;
@@ -109,13 +116,13 @@ namespace ZoDream.FileTransfer.Network
         public string ReceiveText()
         {
             var length = ReceiveContentLength();
-            return ReceiveText(length);
+            return ReceiveText((int)length);
         }
 
         public byte[] ReceiveBuffer()
         {
             var length = ReceiveContentLength();
-            return Receive(length);
+            return Receive((int)length);
         }
 
         public void ReceiveStream(Stream writer,long length)
@@ -123,7 +130,7 @@ namespace ZoDream.FileTransfer.Network
             var rate = length;
             while (rate > 0)
             {
-                var buffer = Receive(Math.Min(rate, ChunkSize));
+                var buffer = Receive((int)Math.Min(rate, ChunkSize));
                 if (buffer.Length < 1)
                 {
                     return;
@@ -133,7 +140,7 @@ namespace ZoDream.FileTransfer.Network
             }
         }
 
-        public string ReceiveText(long length)
+        public string ReceiveText(int length)
         {
             var buffer = Receive(length);
             return Encoding.UTF8.GetString(buffer);
@@ -277,13 +284,31 @@ namespace ZoDream.FileTransfer.Network
 
         #region 发送消息
 
-        public void Send(byte[] buffer)
+        private void Send(byte[] buffer, int length)
         {
-            if (!ClientSocket.Connected)
+            if (!Connected)
             {
                 return;
             }
-            ClientSocket.Send(buffer);
+            try
+            {
+                var index = 0;
+                while (index < length)
+                {
+                    var size = ClientSocket.Send(buffer, index, length - index, SocketFlags.None);
+                    index += size;
+                }
+            }
+            catch (Exception ex)
+            {
+                connected = false;
+                Hub?.Logger.Error(ex.Message);
+            }
+        }
+
+        public void Send(byte[] buffer)
+        {
+            Send(buffer, buffer.Length);
         }
         public void Send(long length)
         {
@@ -357,14 +382,20 @@ namespace ZoDream.FileTransfer.Network
                 {
                     return;
                 }
-                var buffer = new byte[Math.Min(length - sent, ChunkSize)];
-                reader.Read(buffer, 0, buffer.Length);
+                var size = (int)Math.Min(length - sent, ChunkSize);
+                var buffer = new byte[size];
+                size = reader.Read(buffer, 0, size);
+                if (size != buffer.Length)
+                {
+                    Hub?.Logger.Error("长度不对");
+                }
                 try
                 {
-                    ClientSocket.Send(buffer);
+                    Send(buffer, size);
                 }
                 catch (Exception ex)
                 {
+                    connected = false;
                     Hub?.Logger.Error(ex.Message);
                     return;
                 }

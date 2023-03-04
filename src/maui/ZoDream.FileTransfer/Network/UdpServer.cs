@@ -33,10 +33,10 @@ namespace ZoDream.FileTransfer.Network
                 return;
             }
             var serverIp = new IPEndPoint(IPAddress.Parse(ip), port);
-            var tcpSocket = new Socket(serverIp.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
+            var udpSocket = new Socket(serverIp.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
             try
             {
-                tcpSocket.Bind(serverIp);
+                udpSocket.Bind(serverIp);
             }
             catch (Exception)
             {
@@ -45,7 +45,7 @@ namespace ZoDream.FileTransfer.Network
             ListenToken?.Cancel();
             ListenSocket?.Close();
 
-            ListenSocket = tcpSocket;
+            ListenSocket = udpSocket;
 
             ListenIp = ip;
             ListenPort = port;
@@ -61,7 +61,7 @@ namespace ZoDream.FileTransfer.Network
                     try
                     {
                         EndPoint sendIp = new IPEndPoint(IPAddress.Any, port);
-                        var length = tcpSocket.ReceiveFrom(CacheBuffer, Constants.UDP_BUFFER_SIZE,
+                        var length = udpSocket.ReceiveFrom(CacheBuffer, Constants.UDP_BUFFER_SIZE,
                             SocketFlags.None, ref sendIp);
                         var buffer = new byte[length];
                         Buffer.BlockCopy(CacheBuffer, 0, buffer, 0, length);

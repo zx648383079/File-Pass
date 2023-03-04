@@ -162,10 +162,11 @@ namespace ZoDream.FileTransfer.Network
             }
             try
             {
-                var sent = ClientSocket.Send(buffer, length, SocketFlags.None);
-                if (sent != length)
+                var index = 0;
+                while (index < length)
                 {
-                    Hub?.Logger.Error($"Sent Error: {length}->{sent}");
+                    var size = ClientSocket.Send(buffer, index, length - index, SocketFlags.None);
+                    index += size;
                 }
             }
             catch (Exception ex)
