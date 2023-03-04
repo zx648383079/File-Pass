@@ -8,7 +8,7 @@ namespace ZoDream.FileTransfer.Network
     public class SocketClient : IDisposable
     {
         private readonly int ChunkSize = 500;
-        private readonly int FileChunkSize = 16 * 1024;
+        private readonly int FileChunkSize = 100 * 1024;
         public string Ip { get; private set; } = string.Empty;
 
         public int Port { get; private set; } = 80;
@@ -76,17 +76,33 @@ namespace ZoDream.FileTransfer.Network
 
         #region 接受消息
 
+        private byte[] Receive(long length)
+        {
+            if (length <= 0 || length > FileChunkSize)
+            {
+                return Array.Empty<byte>();
+            }
+            var buffer = new byte[length];
+            try
+            {
+                ClientSocket.Receive(buffer);
+            }
+            catch (Exception ex)
+            {
+                Hub?.Logger.Error(ex.Message);
+            }
+            return buffer;
+        }
+
         public SocketMessageType ReceiveMessageType()
         {
-            var buffer = new byte[1];
-            ClientSocket.Receive(buffer);
+            var buffer = Receive(1);
             return (SocketMessageType)buffer[0];
         }
 
         public long ReceiveContentLength()
         {
-            var buffer = new byte[8];
-            ClientSocket.Receive(buffer);
+            var buffer = Receive(8);
             return BitConverter.ToInt64(buffer, 0);
         }
 
@@ -99,9 +115,7 @@ namespace ZoDream.FileTransfer.Network
         public byte[] ReceiveBuffer()
         {
             var length = ReceiveContentLength();
-            var buffer = new byte[length];
-            ClientSocket.Receive(buffer);
-            return buffer;
+            return Receive(length);
         }
 
         public void ReceiveStream(Stream writer,long length)
@@ -109,8 +123,11 @@ namespace ZoDream.FileTransfer.Network
             var rate = length;
             while (rate > 0)
             {
-                var buffer = new byte[Math.Min(rate, ChunkSize)];
-                ClientSocket.Receive(buffer);
+                var buffer = Receive(Math.Min(rate, ChunkSize));
+                if (buffer.Length < 1)
+                {
+                    return;
+                }
                 writer.Write(buffer, 0, buffer.Length);
                 rate -= buffer.Length;
             }
@@ -118,15 +135,13 @@ namespace ZoDream.FileTransfer.Network
 
         public string ReceiveText(long length)
         {
-            var buffer = new byte[length];
-            ClientSocket.Receive(buffer);
+            var buffer = Receive(length);
             return Encoding.UTF8.GetString(buffer);
         }
 
         public bool ReceiveBool()
         {
-            var buffer = new byte[1];
-            ClientSocket.Receive(buffer);
+            var buffer = Receive(1);
             return Convert.ToBoolean(buffer[0]);
         }
 
@@ -335,17 +350,25 @@ namespace ZoDream.FileTransfer.Network
 
         public void SendStream(Stream reader, long length)
         {
-            var rate = length;
-            while (rate > 0)
+            var sent = 0L;
+            while (sent < length)
             {
-                if (SendToken.IsCancellationRequested)
+                if (!ClientSocket.Connected || SendToken.IsCancellationRequested)
                 {
                     return;
                 }
-                var buffer = new byte[Math.Min(rate, ChunkSize)];
+                var buffer = new byte[Math.Min(length - sent, ChunkSize)];
                 reader.Read(buffer, 0, buffer.Length);
-                ClientSocket.Send(buffer);
-                rate -= buffer.Length;
+                try
+                {
+                    ClientSocket.Send(buffer);
+                }
+                catch (Exception ex)
+                {
+                    Hub?.Logger.Error(ex.Message);
+                    return;
+                }
+                sent += buffer.Length;
             }
         }
 

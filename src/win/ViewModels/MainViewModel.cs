@@ -90,7 +90,7 @@ namespace ZoDream.FileTransfer.ViewModels
             set => Set(ref saveFolder, value);
         }
 
-        private bool overwrite;
+        private bool overwrite = true;
 
         public bool Overwrite {
             get => overwrite;
@@ -164,6 +164,7 @@ namespace ZoDream.FileTransfer.ViewModels
                 {
                     return;
                 }
+                item.Status = isSend ? FileStatus.Sending : FileStatus.Receiving;
                 item.Length = total;
                 item.Progress = progress;
             });
@@ -174,7 +175,7 @@ namespace ZoDream.FileTransfer.ViewModels
         {
             if (string.IsNullOrWhiteSpace(ClientIp) || ClientPort < 1000)
             {
-                MessageBox.Show("本机ip或端口错误");
+                MessageBox.Show(LocalizedLangExtension.GetString("clientIpError"));
                 return;
             }
             if (string.IsNullOrWhiteSpace(SaveFolder))
@@ -186,15 +187,16 @@ namespace ZoDream.FileTransfer.ViewModels
                 };
                 if (openFolderDialog.ShowDialog() != System.Windows.Forms.DialogResult.OK)
                 {
-                    MessageBox.Show("请选择保存文件夹");
+                    MessageBox.Show(LocalizedLangExtension.GetString("pickSaveFolderTip"));
                     IsNotListen = true;
                     return;
                 }
                 SaveFolder = openFolderDialog.SelectedPath;
             }
-            ServerMessage = "接收中...";
+            ServerMessage = LocalizedLangExtension.GetString("receivingTip");
             IsNotListen = false;
             Hub.WorkFolder = SaveFolder;
+            Hub.Overwrite = Overwrite;
             Hub.Listen(ClientIp, ClientPort);
         }
 
@@ -208,7 +210,10 @@ namespace ZoDream.FileTransfer.ViewModels
             };
             if (openFolderDialog.ShowDialog() != System.Windows.Forms.DialogResult.OK)
             {
-                MessageBox.Show("请选择保存文件夹");
+                if (string.IsNullOrWhiteSpace(SaveFolder))
+                {
+                    MessageBox.Show(LocalizedLangExtension.GetString("pickSaveFolderTip"));
+                }
                 return;
             }
             SaveFolder = openFolderDialog.SelectedPath;
@@ -232,7 +237,7 @@ namespace ZoDream.FileTransfer.ViewModels
         {
             if (!IsVerifySendAddress)
             {
-                MessageBox.Show("目标IP地址不正确");
+                MessageBox.Show(LocalizedLangExtension.GetString("remoteIpError"));
                 return;
             }
             var openFolderDialog = new System.Windows.Forms.FolderBrowserDialog
@@ -242,7 +247,6 @@ namespace ZoDream.FileTransfer.ViewModels
             };
             if (openFolderDialog.ShowDialog() != System.Windows.Forms.DialogResult.OK)
             {
-                MessageBox.Show("请选择保存文件夹");
                 return;
             }
             var folder = openFolderDialog.SelectedPath;
@@ -283,7 +287,10 @@ namespace ZoDream.FileTransfer.ViewModels
             {
                 return item;
             }
-            item = new FileItem(name, fileName);
+            item = new FileItem(name, fileName)
+            {
+                Status = isSend ? FileStatus.ReadySend : FileStatus.ReadyReceive
+            };
             FileItems.Add(item);
             return item;
         }
@@ -398,7 +405,8 @@ namespace ZoDream.FileTransfer.ViewModels
                     }
                 }
             }
-            var message = $"成功{finish}/失败{failure}/共{total}";
+            var message = string.Format(
+                LocalizedLangExtension.GetString("messageTip"), finish, failure, total);
             if (isClient)
             {
                 ClientMessage = message;
@@ -425,7 +433,7 @@ namespace ZoDream.FileTransfer.ViewModels
         {
             if (!IsVerifySendAddress)
             {
-                MessageBox.Show("目标IP地址不正确");
+                MessageBox.Show(LocalizedLangExtension.GetString("remoteIpError"));
                 return;
             }
             foreach (var item in items)

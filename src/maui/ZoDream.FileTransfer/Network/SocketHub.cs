@@ -7,6 +7,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using ZoDream.FileTransfer.Loggers;
 using ZoDream.FileTransfer.Models;
 using ZoDream.FileTransfer.Network.Messages;
 
@@ -19,12 +20,14 @@ namespace ZoDream.FileTransfer.Network
     public class SocketHub : IDisposable, IMessageSender
     {
 
-        public SocketHub()
+        public SocketHub(ILogger logger)
         {
+            Logger = logger;
             Udp = new UdpServer(this);
             Tcp = new TcpServer(this);
         }
 
+        public ILogger Logger { get; private set; }
         public UdpServer Udp { get; private set; }
         public TcpServer Tcp { get; private set; }
         private readonly IList<SocketClient> ClientItems = new List<SocketClient>();

@@ -54,12 +54,13 @@ namespace ZoDream.FileTransfer.Models
 
         public void UpdateSpeed(long newProgress, long oldProgress = 0)
         {
+            var now = DateTime.Now;
             if (LastTime == DateTime.MinValue)
             {
                 Speed = newProgress;
+                LastTime = now;
                 return;
             }
-            var now = DateTime.Now;
             var diff = (now - LastTime).TotalSeconds;
             LastTime = now;
             if (diff <= 0)
