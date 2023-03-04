@@ -86,8 +86,7 @@ namespace ZoDream.FileTransfer.Network
                         App.Repository.NetHub.Close(Link);
                         OnCompleted?.Invoke(MessageId, Folder, true);
                         return;
-                    }
-                    if (type == SocketMessageType.File)
+                    } else if (type == SocketMessageType.File)
                     {
                         fileName = Link.ReceiveText();
                         md5 = Link.ReceiveText();

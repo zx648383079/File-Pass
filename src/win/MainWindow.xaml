@@ -4,11 +4,15 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:cvt="clr-namespace:ZoDream.FileTransfer.Converters"
+        xmlns:vm="clr-namespace:ZoDream.FileTransfer.ViewModels"
         xmlns:local="clr-namespace:ZoDream.FileTransfer"
         mc:Ignorable="d"
         Title="File Transfer" Height="450" Width="800" 
         WindowStartupLocation="CenterScreen"
-        Loaded="Window_Loaded" Unloaded="Window_Unloaded">
+        Unloaded="Window_Unloaded">
+    <Window.DataContext>
+        <vm:MainViewModel/>
+    </Window.DataContext>
     <Window.Resources>
         <cvt:FileStatusConverter x:Key="StatusConverter"/>
         <cvt:SizeConverter x:Key="SizeConverter"/>
@@ -40,36 +44,36 @@
             <RowDefinition Height="auto"/>
         </Grid.RowDefinitions>
         <TextBlock Text="当前IP："/>
-        <TextBox x:Name="IpTb" Grid.Column="1" MinLines="1" TextChanged="IpTb_TextChanged"/>
+        <TextBox x:Name="IpTb" Text="{Binding ClientIp,Mode=TwoWay}" Grid.Column="1" MinLines="1"/>
         <TextBlock Text="目标IP：" Grid.Row="1"/>
         <ComboBox x:Name="DistTb" Grid.Row="1" Grid.Column="1" 
+                   Text="{Binding SendIp,Mode=TwoWay}"
                   ItemsSource="{Binding IpItems}"
                   IsEditable="True" 
                   VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
 
         <TextBlock Text="监听端口：" Grid.Column="2"/>
-        <TextBox x:Name="ListenPortTb" Grid.Column="3" Text="65530"/>
+        <TextBox x:Name="ListenPortTb" Grid.Column="3"  
+                 Text="{Binding ClientPort,Mode=TwoWay}" IsEnabled="{Binding IsNotListen}"/>
         <TextBlock Text="目标端口：" Grid.Row="1" Grid.Column="2"/>
-        <TextBox x:Name="SendPortTb" Grid.Row="1" Grid.Column="3"  Text="65530"/>
+        <TextBox x:Name="SendPortTb" Grid.Row="1" Grid.Column="3"  Text="{Binding SendPort,Mode=TwoWay}"/>
 
-        <Button x:Name="ListenBtn" Content="监听" Grid.Column="4" Click="ListenBtn_Click"/>
-        <Button x:Name="ChooseBtn" Content="选择文件" Grid.Column="4" Grid.Row="1" Click="ChooseBtn_Click"/>
+        <Button x:Name="ListenBtn" Content="监听" Grid.Column="4" Command="{Binding ListenCommand}"/>
+        <Button x:Name="ChooseBtn" Content="选择文件" Grid.Column="4" Grid.Row="1" Command="{Binding DragFileCommand}"/>
 
         <TextBlock Text="保存文件夹：" Grid.Row="2"/>
-        <TextBox x:Name="SaveFolderTb" Grid.Row="2" Grid.Column="1" IsReadOnly="True"/>
-        <Button x:Name="SaveFolderBtn" Content="选择" Grid.Row="2" Grid.Column="2" Click="SaveFolderBtn_Click"/>
-        <CheckBox x:Name="OverCb" IsChecked="True" Content="自动覆盖文件" 
-                  Checked="OverCb_Checked"
-                  Unchecked="OverCb_Unchecked"
+        <TextBox x:Name="SaveFolderTb"  Text="{Binding SaveFolder}" Grid.Row="2" Grid.Column="1" IsReadOnly="True"/>
+        <Button x:Name="SaveFolderBtn" Content="选择" Grid.Row="2" Grid.Column="2" Command="{Binding SaveCommand}"/>
+        <CheckBox x:Name="OverCb" IsChecked="{Binding Overwrite}" Content="自动覆盖文件" 
                   VerticalAlignment="Center" ToolTip="遇见重名文件自动覆盖或跳过" Grid.Row="2" Grid.Column="3"  Grid.ColumnSpan="2"/>
 
         <ListView x:Name="FileBox" Grid.Row="3" Grid.ColumnSpan="5" ItemsSource="{Binding FileItems}" AllowDrop="True" 
                   PreviewDragOver="FileBox_PreviewDragOver" Drop="FileBox_Drop">
             <ListView.ContextMenu>
                 <ContextMenu>
-                    <MenuItem x:Name="ChooseFileMenu" Header="选择文件" Click="ChooseFileMenu_Click"/>
-                    <MenuItem x:Name="ChooseFolderMenu" Header="选择文件夹" Click="ChooseFolderMenu_Click"/>
-                    <MenuItem x:Name="ClearMenu" Header="清空" Click="ClearMenu_Click"/>
+                    <MenuItem x:Name="ChooseFileMenu" Header="选择文件" Command="{Binding DragFileCommand}"/>
+                    <MenuItem x:Name="ChooseFolderMenu" Header="选择文件夹" Command="{Binding DragFolderCommand}"/>
+                    <MenuItem x:Name="ClearMenu" Header="清空" Command="{Binding ClearCommand}"/>
                 </ContextMenu>
             </ListView.ContextMenu>
             <ListView.View>

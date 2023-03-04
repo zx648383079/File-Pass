@@ -82,7 +82,7 @@ namespace ZoDream.FileTransfer.Network
                 return item;
             }
             return await Task.Factory.StartNew(() => {
-                var client = SocketHub.Connect(ip, port);
+                var client = Connect(ip, port);
                 if (client == null)
                 {
                     return null;

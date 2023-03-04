@@ -134,7 +134,7 @@ namespace ZoDream.FileTransfer.Network
         /// </summary>
         /// <param name="messageType"></param>
         /// <returns></returns>
-        public IMessageUnpack Receive(SocketMessageType messageType)
+        public IMessageUnpack? Receive(SocketMessageType messageType)
         {
             if (IsLoopReceive)
             {

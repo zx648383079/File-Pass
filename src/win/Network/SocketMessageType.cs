@@ -8,14 +8,15 @@ namespace ZoDream.FileTransfer.Network
 {
     public enum SocketMessageType: byte
     {
-        None = 0,
-        Ip,
-        String,
-        Numeric,
-        Bool,
-        Null,
-        Ping,
+        None,
+        PreClose,
+        // 发送部分分块文件
+        FilePart,
+        // 发送合并分块文件请求
+        FileMerge,
+        // 发送整个文件
         File,
-        Close,
+        FileCheck, // 发出是否传输的询问
+        FileCheckResponse, // 回复是否传输
     }
 }
