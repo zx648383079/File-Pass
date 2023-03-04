@@ -1,5 +1,6 @@
 ﻿using NetFwTypeLib;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
@@ -25,7 +26,7 @@ namespace ZoDream.FileTransfer.Network
         private bool IsSending = false;
         private readonly List<SocketClient> ReceiveItems = new();
         private readonly List<SocketClient> SendItems = new();
-        private readonly Dictionary<string, FileMessageSocket> FileItems = new();
+        private readonly ConcurrentDictionary<string, FileMessageSocket> FileItems = new();
 
         public SocketHub(ILogger logger)
         {
@@ -160,7 +161,7 @@ namespace ZoDream.FileTransfer.Network
                 return file;
             }
             file = new FileMessageSocket(this, ip, port);
-            FileItems.Add(ip, file);
+            FileItems.TryAdd(ip, file);
             return file;
         }
 

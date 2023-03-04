@@ -67,8 +67,13 @@ namespace ZoDream.FileTransfer.Network
                         return i;
                     }
                     Task.Factory.StartNew(() => {
-                        var md5 = Disk.GetMD5(file.File);
-                        client.SendFile(file.RelativeFile, md5, file.File, token);
+                        if (string.IsNullOrEmpty(file.Md5))
+                        {
+                            file.Md5 = Disk.GetMD5(file.FileName);
+                        }
+                        client.SendFile(file.RelativeFile, 
+                            file.Md5, 
+                            file.FileName, file.Length, token);
                         client.Send(SocketMessageType.PreClose);
                         Hub.Logger.Debug($"Send Complete: {file.RelativeFile}");
                     }, token);

@@ -7,6 +7,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using ZoDream.FileTransfer.Loggers;
 using ZoDream.FileTransfer.Models;
@@ -329,7 +330,7 @@ namespace ZoDream.FileTransfer.ViewModels
 
         public void AddFile(FileInfoItem file, bool isClient = true)
         {
-            AddFile(new FileItem(file.Name, file.File)
+            AddFile(new FileItem(file.Name, file.FileName)
             {
                 Status = isClient ? FileStatus.ReadySend : FileStatus.ReadyReceive,
                 Length = file.Length,
@@ -441,6 +442,11 @@ namespace ZoDream.FileTransfer.ViewModels
 
         public void DragFile(IEnumerable<string> items)
         {
+            if (!IsVerifySendAddress)
+            {
+                MessageBox.Show(LocalizedLangExtension.GetString("remoteIpError"));
+                return;
+            }
             foreach (var item in items)
             {
                 DragFile(item);
@@ -450,30 +456,39 @@ namespace ZoDream.FileTransfer.ViewModels
         public void DragFile(string fileName)
         {
             var fileInfo = new FileInfo(fileName);
-            if (!fileInfo.Exists)
+            if (fileInfo.Exists)
             {
+                DragFile(new FileInfoItem(fileInfo.Name, fileName, fileInfo.Name, fileInfo.Length));
                 return;
             }
-            DragFile(new FileInfoItem(fileInfo.Name, fileName, fileInfo.Name, fileInfo.Length));
+            var folderInfo = new DirectoryInfo(fileName);
+            if (folderInfo.Exists)
+            {
+                Task.Factory.StartNew(() => {
+                    DragFile(Disk.GetAllFile(folderInfo.FullName, folderInfo.Name + "\\"));
+                });
+                return;
+            }
+            
         }
 
         public void DragFile(FileInfoItem item)
         {
-            if (!IsVerifySendAddress)
-            {
-                MessageBox.Show(LocalizedLangExtension.GetString("remoteIpError"));
-                return;
-            }
             App.Current.Dispatcher.Invoke(() => {
-                var fileItem = GetOrAdd(item.RelativeFile, item.File, true);
+                var fileItem = GetOrAdd(item.RelativeFile, item.FileName, true);
                 if (fileItem == null)
                 {
                     return;
                 }
+                fileItem.FileInfo = item;
                 fileItem.Status = FileStatus.ReadySend;
                 fileItem.Length = item.Length;
             });
             Task.Factory.StartNew(() => {
+                if (string.IsNullOrEmpty(item.Md5))
+                {
+                    item.Md5 = Disk.GetMD5(item.FileName);
+                }
                 Hub.SendFileAsync(SendIp, SendPort, item);
             });
         }

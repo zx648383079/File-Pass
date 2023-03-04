@@ -10,16 +10,18 @@ namespace ZoDream.FileTransfer.Models
     {
         public string Name { get; set; }
 
-        public string File { get; set; }
+        public string FileName { get; set; }
 
         public string RelativeFile { get; set; }
 
         public long Length { get; set; }
 
+        public string Md5 { get; set; } = string.Empty;
+
         public FileInfoItem(string name, string fileName, string relativeFile, long size = 0)
         {
             Name = name;
-            File = fileName;
+            FileName = fileName;
             RelativeFile = relativeFile;
             Length = size;
         }

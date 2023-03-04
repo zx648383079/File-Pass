@@ -50,6 +50,7 @@ namespace ZoDream.FileTransfer.Models
             set => Set(ref speed, value);
         }
 
+        public FileInfoItem? FileInfo { get; set; }
         private DateTime LastTime = DateTime.MinValue;
 
         public void UpdateSpeed(long newProgress, long oldProgress = 0)
