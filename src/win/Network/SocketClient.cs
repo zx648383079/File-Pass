@@ -9,8 +9,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Controls;
 using System.Windows.Forms;
+using System.Xml.Linq;
 using ZoDream.FileTransfer.Utils;
-using static System.Windows.Forms.LinkLabel;
 
 namespace ZoDream.FileTransfer.Network
 {
@@ -20,6 +20,8 @@ namespace ZoDream.FileTransfer.Network
 
         public int Port { get; private set; } = 80;
 
+        private readonly int ChunkSize = 500;
+        private readonly int FileChunkSize = 16 * 1024;
         private readonly Socket ClientSocket;
         private readonly CancellationTokenSource CancellationToken = new();
         public SocketHub? Hub { get; set; }
@@ -61,11 +63,10 @@ namespace ZoDream.FileTransfer.Network
 
         public void ReceiveStream(Stream writer, long length)
         {
-            var chunkSize = 400;
             var rate = length;
             while (rate > 0)
             {
-                var buffer = new byte[Math.Min(rate, chunkSize)];
+                var buffer = new byte[Math.Min(rate, ChunkSize)];
                 ClientSocket.Receive(buffer);
                 writer.Write(buffer, 0, buffer.Length);
                 rate -= buffer.Length;
@@ -84,6 +85,28 @@ namespace ZoDream.FileTransfer.Network
             var buffer = new byte[1];
             ClientSocket.Receive(buffer);
             return Convert.ToBoolean(buffer[0]);
+        }
+        /// <summary>
+        /// 跳过
+        /// </summary>
+        public void Jump()
+        {
+            Jump(ReceiveContentLength());
+        }
+
+        /// <summary>
+        /// 跳过指定字节
+        /// </summary>
+        /// <param name="length"></param>
+        public void Jump(long length)
+        {
+            var rate = length;
+            while (rate > 0)
+            {
+                var buffer = new byte[Math.Min(rate, ChunkSize)];
+                ClientSocket.Receive(buffer);
+                rate -= buffer.Length;
+            }
         }
         #endregion
 
@@ -154,6 +177,7 @@ namespace ZoDream.FileTransfer.Network
             Send(SocketMessageType.FileCheck);
             SendText(name);
             SendText(md5);
+            Hub?.Logger.Debug($"Check File:{name}");
             var type = ReceiveMessageType();
             if (type == SocketMessageType.FileCheckResponse)
             {
@@ -161,12 +185,13 @@ namespace ZoDream.FileTransfer.Network
                 var shouldSend = ReceiveBool();
                 if (!shouldSend)
                 {
+                    Hub?.Logger.Debug($"Quicky Send :{name}");
                     // 秒传
                     return true;
                     // SendFile(fileName, token);
                 }
             }
-            var chunkSize = 20000;
+            var chunkSize = FileChunkSize;
             using var reader = File.OpenRead(fileName);
             var length = reader.Length;
             if (length <= chunkSize)
@@ -177,6 +202,7 @@ namespace ZoDream.FileTransfer.Network
                 Send(length);
                 SendStream(reader, length);
                 Hub?.EmitSend(name, fileName, length, length);
+                Hub?.Logger.Debug($"File Send :{name}");
                 return true;
             }
             var partItems = new List<string>();
@@ -202,6 +228,7 @@ namespace ZoDream.FileTransfer.Network
                 partItems.Add(partName);
                 i++;
                 Hub?.EmitSend(name, fileName, endPos, length);
+                Hub?.Logger.Debug($"File Send Part :{name}[{startPos}-{endPos}]");
                 startPos = endPos;
             }
             Send(SocketMessageType.FileMerge);
@@ -209,6 +236,7 @@ namespace ZoDream.FileTransfer.Network
             SendText(md5);
             SendText(string.Join(",", partItems));
             Hub?.EmitSend(name, fileName, length, length);
+            Hub?.Logger.Debug($"File Send Merge :{name}");
             return true;
         }
 
@@ -227,6 +255,7 @@ namespace ZoDream.FileTransfer.Network
                 var type = ReceiveMessageType();
                 if (type == SocketMessageType.PreClose)
                 {
+                    Hub?.Logger.Debug("Receive Complete");
                     Hub?.Close(this);
                     return;
                 }
@@ -238,6 +267,7 @@ namespace ZoDream.FileTransfer.Network
                     Send(SocketMessageType.FileCheckResponse);
                     SendText(fileName);
                     Send(res);
+                    Hub?.Logger.Debug($"Receive Check: {fileName}->{res}");
                     continue;
                 }
                 else if (type == SocketMessageType.FileCheckResponse)
@@ -255,7 +285,10 @@ namespace ZoDream.FileTransfer.Network
                     var fileName = ReceiveText();
                     var location = Path.Combine(folder, fileName);
                     if (File.Exists(fileName) && overwrite) {
+                        Jump();
+                        Jump();
                         Hub?.EmitReceive(fileName, location, 0,0);
+                        Hub?.Logger.Debug($"Receive File Exist: {fileName}->{overwrite}");
                         continue;
                     }
                     var md5 = ReceiveText();
@@ -267,12 +300,14 @@ namespace ZoDream.FileTransfer.Network
                     }
                     if (md5 != Disk.GetMD5(tempFile))
                     {
+                        Hub?.Logger.Debug($"Receive File Failure: {fileName}->{md5}");
                         Hub?.EmitReceive(fileName, location, 0, 0);
                         File.Delete(tempFile);
                         continue;
                     }
                     Directory.CreateDirectory(Path.GetDirectoryName(location));
                     File.Move(tempFile, location);
+                    Hub?.Logger.Debug($"Receive File Complete: {fileName}->{length}");
                     Hub?.EmitReceive(fileName, location, length, length);
                     continue;
                 }
@@ -287,11 +322,13 @@ namespace ZoDream.FileTransfer.Network
                     if (length <= 0
                         || md5 != Disk.GetMD5(cacheFile))
                     {
+                        Hub?.Logger.Debug($"Receive File Failure: {fileName}->{md5}");
                         File.Delete(cacheFile);
                         continue;
                     }
                     Directory.CreateDirectory(Path.GetDirectoryName(location));
                     File.Move(cacheFile, location);
+                    Hub?.Logger.Debug($"Receive File Complete: {fileName}->{length}");
                     Hub?.EmitReceive(fileName, location, length, length);
                     continue;
                 }
@@ -309,6 +346,7 @@ namespace ZoDream.FileTransfer.Network
                     {
                         ReceiveStream(fs, partLength);
                     }
+                    Hub?.Logger.Debug($"Receive File Part: {fileName}[{rang[0]}-{endPos}]");
                     Hub?.EmitReceive(fileName, location, endPos, length);
                 }
                 else

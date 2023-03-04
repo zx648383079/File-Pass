@@ -7,6 +7,8 @@ namespace ZoDream.FileTransfer.Network
 {
     public class SocketClient : IDisposable
     {
+        private readonly int ChunkSize = 500;
+        private readonly int FileChunkSize = 16 * 1024;
         public string Ip { get; private set; } = string.Empty;
 
         public int Port { get; private set; } = 80;
@@ -104,11 +106,10 @@ namespace ZoDream.FileTransfer.Network
 
         public void ReceiveStream(Stream writer,long length)
         {
-            var chunkSize = 400;
             var rate = length;
             while (rate > 0)
             {
-                var buffer = new byte[Math.Min(rate, chunkSize)];
+                var buffer = new byte[Math.Min(rate, ChunkSize)];
                 ClientSocket.Receive(buffer);
                 writer.Write(buffer, 0, buffer.Length);
                 rate -= buffer.Length;
@@ -159,6 +160,104 @@ namespace ZoDream.FileTransfer.Network
             }
         }
 
+
+        public string ReceiveFile(string folder,
+            Action<long, long> onProgress,
+            CancellationToken token = default)
+        {
+            var fileName = string.Empty;
+            var md5 = string.Empty;
+            var length = 0L;
+            var location = string.Empty;
+            var storage = App.Repository.Storage;
+            while (true)
+            {
+                if (!ClientSocket.Connected || token.IsCancellationRequested
+                    || SendToken.IsCancellationRequested)
+                {
+                    return string.Empty;
+                }
+                var type = ReceiveMessageType();
+                if (type == SocketMessageType.File)
+                {
+                    fileName = ReceiveText();
+                    md5 = ReceiveText();
+                    length = ReceiveContentLength();
+                    location = Path.Combine(folder, fileName);
+                    using (var fs = storage.CacheWriter(md5))
+                    {
+                        ReceiveStream(fs, length);
+                    }
+                    onProgress?.Invoke(length, length);
+                    if (md5 != storage.CacheFileMD5(md5))
+                    {
+                        storage.CacheRemove(md5);
+                        return string.Empty;
+                    }
+                    storage.CacheMove(md5, location);
+
+                    return fileName;
+                }
+                else if (type == SocketMessageType.FileMerge)
+                {
+                    fileName = ReceiveText();
+                    location = Path.Combine(folder, fileName);
+                    md5 = ReceiveText();
+                    var partItems = ReceiveText().Split(',');
+                    var partLength = storage.CacheMergeFile(md5, partItems);
+                    if (partLength <= 0
+                        || md5 != storage.CacheFileMD5(md5))
+                    {
+                        storage.CacheRemove(partItems);
+                        storage.CacheRemove(md5);
+                        return string.Empty;
+                    }
+                    storage.CacheRemove(partItems);
+                    storage.CacheMove(md5, location);
+                    onProgress?.Invoke(length, length);
+                    return fileName;
+                }
+                else if (type == SocketMessageType.FilePart)
+                {
+                    var partName = ReceiveText();
+                    var partLength = ReceiveContentLength();
+                    using (var fs = storage.CacheWriter(partName))
+                    {
+                        ReceiveStream(fs, partLength);
+                    }
+                    length += partLength;
+                    onProgress?.Invoke(length, 0L);
+                }
+                else
+                {
+                    App.Repository.Logger.Warning($"File Receive Unknown Type:{type}");
+                    return string.Empty;
+                }
+            }
+        }
+
+        /// <summary>
+        /// 跳过
+        /// </summary>
+        public void Jump()
+        {
+            Jump(ReceiveContentLength());
+        }
+
+        /// <summary>
+        /// 跳过指定字节
+        /// </summary>
+        /// <param name="length"></param>
+        public void Jump(long length)
+        {
+            var rate = length;
+            while (rate > 0)
+            {
+                var buffer = new byte[Math.Min(rate, ChunkSize)];
+                ClientSocket.Receive(buffer);
+                rate -= buffer.Length;
+            }
+        }
         #endregion
 
         #region 发送消息
@@ -236,7 +335,6 @@ namespace ZoDream.FileTransfer.Network
 
         public void SendStream(Stream reader, long length)
         {
-            var chunkSize = 400;
             var rate = length;
             while (rate > 0)
             {
@@ -244,7 +342,7 @@ namespace ZoDream.FileTransfer.Network
                 {
                     return;
                 }
-                var buffer = new byte[Math.Min(rate, chunkSize)];
+                var buffer = new byte[Math.Min(rate, ChunkSize)];
                 reader.Read(buffer, 0, buffer.Length);
                 ClientSocket.Send(buffer);
                 rate -= buffer.Length;
@@ -254,10 +352,10 @@ namespace ZoDream.FileTransfer.Network
         public bool SendFile(string name, 
             string md5, 
             string fileName, 
-            Action<long, long> onProgress = null,
+            Action<long, long>? onProgress = null,
             CancellationToken token = default)
         {
-            var chunkSize = 2000000;
+            var chunkSize = FileChunkSize;
             using var reader = File.OpenRead(fileName);
             var length = reader.Length;
             if (length <= chunkSize)
@@ -298,77 +396,6 @@ namespace ZoDream.FileTransfer.Network
         }
 
 
-        public string ReceiveFile(string folder, 
-            Action<long, long> onProgress, 
-            CancellationToken token = default)
-        {
-            var fileName = string.Empty;
-            var md5 = string.Empty;
-            var length = 0L;
-            var location = string.Empty;
-            var storage = App.Repository.Storage;
-            while (true)
-            {
-                if (!ClientSocket.Connected || token.IsCancellationRequested 
-                    || SendToken.IsCancellationRequested)
-                {
-                    return string.Empty;
-                }
-                var type = ReceiveMessageType();
-                if (type == SocketMessageType.File)
-                {
-                    fileName = ReceiveText();
-                    md5 = ReceiveText();
-                    length = ReceiveContentLength();
-                    location = Path.Combine(folder, fileName);
-                    using (var fs = storage.CacheWriter(md5))
-                    {
-                        ReceiveStream(fs, length);
-                    }
-                    onProgress?.Invoke(length, length);
-                    if (md5 != storage.CacheFileMD5(md5))
-                    {
-                        storage.CacheRemove(md5);
-                        return string.Empty;
-                    }
-                    storage.CacheMove(md5, location);
-                    
-                    return fileName;
-                } else if (type == SocketMessageType.FileMerge)
-                {
-                    fileName = ReceiveText();
-                    location = Path.Combine(folder, fileName);
-                    md5 = ReceiveText();
-                    var partItems = ReceiveText().Split(',');
-                    var partLength = storage.CacheMergeFile(md5, partItems);
-                    if (partLength <= 0
-                        || md5 != storage.CacheFileMD5(md5))
-                    {
-                        storage.CacheRemove(partItems);
-                        storage.CacheRemove(md5);
-                        return string.Empty;
-                    }
-                    storage.CacheRemove(partItems);
-                    storage.CacheMove(md5, location);
-                    onProgress?.Invoke(length, length);
-                    return fileName;
-                } else if (type == SocketMessageType.FilePart)
-                {
-                    var partName = ReceiveText();
-                    var partLength = ReceiveContentLength();
-                    using (var fs = storage.CacheWriter(partName))
-                    {
-                        ReceiveStream(fs, partLength);
-                    }
-                    length += partLength;
-                    onProgress?.Invoke(length, 0L);
-                } else
-                {
-                    App.Repository.Logger.Warning($"File Receive Unknown Type:{type}");
-                    return string.Empty;
-                }
-            }
-        }
         #endregion
 
         public void Dispose()

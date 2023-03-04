@@ -9,22 +9,22 @@ namespace ZoDream.FileTransfer.ViewModels
 {
     public class RelayCommand : ICommand
     {
-        public RelayCommand(Predicate<object> canExecute, Action<object> execute): this(execute)
+        public RelayCommand(Predicate<object?> canExecute, Action<object?> execute): this(execute)
         {
             CanExecuteFun = canExecute;
         }
 
-        public RelayCommand(Action<object> execute)
+        public RelayCommand(Action<object?> execute)
         {
             ExecuteFun = execute;
         }
 
-        private readonly Predicate<object>? CanExecuteFun;
-        private readonly Action<object> ExecuteFun;
+        private readonly Predicate<object?>? CanExecuteFun;
+        private readonly Action<object?> ExecuteFun;
 
         public event EventHandler? CanExecuteChanged;
 
-        public bool CanExecute(object parameter)
+        public bool CanExecute(object? parameter)
         {
             if (CanExecuteFun is null)
             {
@@ -33,7 +33,7 @@ namespace ZoDream.FileTransfer.ViewModels
             return CanExecute(parameter);
         }
 
-        public void Execute(object parameter)
+        public void Execute(object? parameter)
         {
             ExecuteFun(parameter);
         }

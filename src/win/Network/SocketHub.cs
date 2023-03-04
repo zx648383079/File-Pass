@@ -154,7 +154,7 @@ namespace ZoDream.FileTransfer.Network
 
         public FileMessageSocket GetFilePack(string ip, int port)
         {
-            if (FileItems.TryGetValue(ip, out FileMessageSocket file))
+            if (FileItems.TryGetValue(ip, out FileMessageSocket? file))
             {
                 file.Port = port;
                 return file;
@@ -249,7 +249,12 @@ namespace ZoDream.FileTransfer.Network
             {
                 item.Value.Dispose();
             }
+            foreach (var item in SendItems)
+            {
+                item.Dispose();
+            }
             FileItems.Clear();
+            SendItems.Clear();
             SendToken = new CancellationTokenSource();
             IsSending = false;
         }

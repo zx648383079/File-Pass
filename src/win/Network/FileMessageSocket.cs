@@ -70,6 +70,7 @@ namespace ZoDream.FileTransfer.Network
                         var md5 = Disk.GetMD5(file.File);
                         client.SendFile(file.RelativeFile, md5, file.File, token);
                         client.Send(SocketMessageType.PreClose);
+                        Hub.Logger.Debug($"Send Complete: {file.RelativeFile}");
                     }, token);
                 }
             }

@@ -169,7 +169,7 @@ namespace ZoDream.FileTransfer.ViewModels
         }
 
 
-        private void TapListen(object _)
+        private void TapListen(object? _)
         {
             if (string.IsNullOrWhiteSpace(ClientIp) || ClientPort < 1000)
             {
@@ -195,7 +195,7 @@ namespace ZoDream.FileTransfer.ViewModels
         }
 
 
-        private void TapSaveFolder(object _)
+        private void TapSaveFolder(object? _)
         {
             var openFolderDialog = new System.Windows.Forms.FolderBrowserDialog
             {
@@ -211,7 +211,7 @@ namespace ZoDream.FileTransfer.ViewModels
             Hub.WorkFolder  = SaveFolder;
         }
 
-        private void TapDragFile(object _)
+        private void TapDragFile(object? _)
         {
             var openFileDialog = new OpenFileDialog()
             {
@@ -224,7 +224,7 @@ namespace ZoDream.FileTransfer.ViewModels
             DragFile(openFileDialog.FileNames);
         }
 
-        private void TapDragFolder(object _)
+        private void TapDragFolder(object? _)
         {
             if (!IsVerifySendAddress)
             {
@@ -248,7 +248,7 @@ namespace ZoDream.FileTransfer.ViewModels
             });
         }
 
-        private void TapClearFile(object _)
+        private void TapClearFile(object? _)
         {
             ClearFile();
             Hub.StopSend();
