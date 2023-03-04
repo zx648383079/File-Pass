@@ -37,6 +37,7 @@ namespace ZoDream.FileTransfer.ViewModels
             });
         }
 
+        const int DefaultPort = 63350;
         private readonly SocketHub Hub;
         public ILogger Logger { get; private set; } = new EventLogger();
 
@@ -61,7 +62,7 @@ namespace ZoDream.FileTransfer.ViewModels
             set => Set(ref clientIp, value);
         }
 
-        private int clientPort;
+        private int clientPort = DefaultPort;
 
         public int ClientPort {
             get => clientPort;
@@ -75,7 +76,7 @@ namespace ZoDream.FileTransfer.ViewModels
             set => Set(ref sendIp, value);
         }
 
-        private int sendPort;
+        private int sendPort = DefaultPort;
 
         public int SendPort {
             get => sendPort;
@@ -176,21 +177,24 @@ namespace ZoDream.FileTransfer.ViewModels
                 MessageBox.Show("本机ip或端口错误");
                 return;
             }
-            var openFolderDialog = new System.Windows.Forms.FolderBrowserDialog
+            if (string.IsNullOrWhiteSpace(SaveFolder))
             {
-                SelectedPath = AppDomain.CurrentDomain.BaseDirectory,
-                ShowNewFolderButton = true
-            };
-            if (openFolderDialog.ShowDialog() != System.Windows.Forms.DialogResult.OK)
-            {
-                MessageBox.Show("请选择保存文件夹");
-                IsNotListen = true;
-                return;
+                var openFolderDialog = new System.Windows.Forms.FolderBrowserDialog
+                {
+                    SelectedPath = AppDomain.CurrentDomain.BaseDirectory,
+                    ShowNewFolderButton = true
+                };
+                if (openFolderDialog.ShowDialog() != System.Windows.Forms.DialogResult.OK)
+                {
+                    MessageBox.Show("请选择保存文件夹");
+                    IsNotListen = true;
+                    return;
+                }
+                SaveFolder = openFolderDialog.SelectedPath;
             }
             ServerMessage = "接收中...";
-            var saveFolder = SaveFolder = openFolderDialog.SelectedPath;
             IsNotListen = false;
-            Hub.WorkFolder = saveFolder;
+            Hub.WorkFolder = SaveFolder;
             Hub.Listen(ClientIp, ClientPort);
         }
 

@@ -80,6 +80,7 @@
                 <GridView>
                     <GridViewColumn Header="文件名" DisplayMemberBinding="{Binding Name}" Width="100"/>
                     <GridViewColumn Header="状态" DisplayMemberBinding="{Binding Status,Converter={StaticResource StatusConverter}}" Width="60"/>
+                    <GridViewColumn Header="传输速度" DisplayMemberBinding="{Binding Speed, Converter={StaticResource SizeConverter},StringFormat='{}{0}/s'}" Width="60"/>
                     <GridViewColumn Header="进度" DisplayMemberBinding="{Binding Progress, Converter={StaticResource SizeConverter}}" Width="60"/>
                     <GridViewColumn Header="总长度" DisplayMemberBinding="{Binding Length, Converter={StaticResource SizeConverter}}" Width="60"/>
                     <GridViewColumn Header="文件路径" DisplayMemberBinding="{Binding FileName}"/>

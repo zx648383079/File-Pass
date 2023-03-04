@@ -186,6 +186,8 @@ namespace ZoDream.FileTransfer.Network
                 if (!shouldSend)
                 {
                     Hub?.Logger.Debug($"Quicky Send :{name}");
+                    var fileInfo = new FileInfo(fileName);
+                    Hub?.EmitSend(name, fileName, fileName.Length, fileInfo.Length);
                     // 秒传
                     return true;
                     // SendFile(fileName, token);
@@ -263,11 +265,17 @@ namespace ZoDream.FileTransfer.Network
                 {
                     var fileName = ReceiveText();
                     var md5 = ReceiveText();
-                    var res = CheckFile(folder, fileName, md5);
+                    var shouldSend = CheckFile(folder, fileName, md5);
                     Send(SocketMessageType.FileCheckResponse);
                     SendText(fileName);
-                    Send(res);
-                    Hub?.Logger.Debug($"Receive Check: {fileName}->{res}");
+                    Send(shouldSend);
+                    Hub?.Logger.Debug($"Receive Check: {fileName}->{shouldSend}");
+                    if (!shouldSend)
+                    {
+                        var location = Path.Combine(folder, fileName);
+                        var fileInfo = new FileInfo(location);
+                        Hub?.EmitReceive(fileName, location, fileInfo.Length, fileInfo.Length);
+                    }
                     continue;
                 }
                 else if (type == SocketMessageType.FileCheckResponse)
@@ -356,6 +364,13 @@ namespace ZoDream.FileTransfer.Network
             }
         }
 
+        /// <summary>
+        /// 验证是否需要传输
+        /// </summary>
+        /// <param name="folder"></param>
+        /// <param name="fileName"></param>
+        /// <param name="md5"></param>
+        /// <returns></returns>
         private bool CheckFile(string folder, string fileName, string md5)
         {
             var path = Path.Combine(folder, fileName);
