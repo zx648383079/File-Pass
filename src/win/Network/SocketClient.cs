@@ -58,11 +58,17 @@ namespace ZoDream.FileTransfer.Network
             var buffer = new byte[length];
             try
             {
-                var size = ClientSocket.Receive(buffer);
-                if (size != length)
+                var index = 0;
+                while (index < length)
                 {
-                    Hub?.Logger.Error($"Receive Failure: {length}->{size}");
+                    var size = ClientSocket.Receive(buffer, index,
+                        length - index, SocketFlags.None);
+                    index += size;
                 }
+                //if (size != length)
+                //{
+                //    Hub?.Logger.Error($"Receive Failure: {length}->{size}");
+                //}
             }
             catch (Exception ex)
             {
