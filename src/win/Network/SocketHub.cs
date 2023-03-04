@@ -242,6 +242,14 @@ namespace ZoDream.FileTransfer.Network
             return Task.FromResult(true);
         }
 
+        public Task<bool> SendFileAsync(string ip, int port,
+            FileInfoItem item)
+        {
+            GetFilePack(ip, port).Add(item);
+            SendFile();
+            return Task.FromResult(true);
+        }
+
         public void StopSend()
         {
             SendToken.Cancel();
@@ -271,6 +279,11 @@ namespace ZoDream.FileTransfer.Network
 
         public void Emit(string name, string fileName, long progress, long total, bool isSend)
         {
+            if (string.IsNullOrWhiteSpace(name) 
+                || string.IsNullOrWhiteSpace(fileName))
+            {
+                return;
+            }
             OnProgress?.Invoke(name, fileName, progress, total, isSend);
             if (total == 0)
             {

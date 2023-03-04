@@ -68,7 +68,7 @@ namespace ZoDream.FileTransfer.Models
                 Speed = 0;
                 return;
             }
-            Speed = (long)Math.Ceiling((newProgress - oldProgress) / diff);
+            Speed = (long)Math.Ceiling(Math.Max(newProgress - oldProgress, 0) / diff);
         }
 
 

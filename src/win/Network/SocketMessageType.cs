@@ -10,6 +10,7 @@ namespace ZoDream.FileTransfer.Network
     {
         None,
         PreClose,
+        FileReceived, // 文件已收到
         // 发送部分分块文件
         FilePart,
         // 发送合并分块文件请求

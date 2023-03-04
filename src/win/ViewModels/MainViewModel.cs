@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -26,6 +27,7 @@ namespace ZoDream.FileTransfer.ViewModels
             Hub = new SocketHub(Logger);
             Hub.OnProgress += Hub_OnProgress;
             Hub.OnCompleted += Hub_OnCompleted;
+            Logger.OnLog += Logger_OnLog;
             Task.Factory.StartNew(() => {
                 ClientIp = Ip.Get();
                 if (string.IsNullOrWhiteSpace(ClientIp))
@@ -39,7 +41,7 @@ namespace ZoDream.FileTransfer.ViewModels
 
         const int DefaultPort = 63350;
         private readonly SocketHub Hub;
-        public ILogger Logger { get; private set; } = new EventLogger();
+        public EventLogger Logger { get; private set; } = new EventLogger();
 
         public ICommand ListenCommand { get; set; }
         public ICommand SaveCommand { get; set; }
@@ -136,6 +138,14 @@ namespace ZoDream.FileTransfer.ViewModels
         }
 
         public bool IsVerifySendAddress => Regex.IsMatch(SendIp, @"\d+\.\d+\.\d+\.\d") && SendPort >= 1000;
+
+        private void Logger_OnLog(string message, LogLevel level)
+        {
+            if (level > LogLevel.Debug)
+            {
+                ShowMessage(message);
+            }
+        }
 
         private void Hub_OnCompleted(string name, string fileName, bool isSuccess, bool isSend)
         {
@@ -252,7 +262,7 @@ namespace ZoDream.FileTransfer.ViewModels
             var folder = openFolderDialog.SelectedPath;
             Task.Factory.StartNew(() => {
                 var items = Disk.GetAllFile(folder);
-                Hub.SendFileAsync(SendIp, SendPort, items);
+                DragFile(items);
             });
         }
 
@@ -431,18 +441,50 @@ namespace ZoDream.FileTransfer.ViewModels
 
         public void DragFile(IEnumerable<string> items)
         {
+            foreach (var item in items)
+            {
+                DragFile(item);
+            }
+        }
+
+        public void DragFile(string fileName)
+        {
+            var fileInfo = new FileInfo(fileName);
+            if (!fileInfo.Exists)
+            {
+                return;
+            }
+            DragFile(new FileInfoItem(fileInfo.Name, fileName, fileInfo.Name, fileInfo.Length));
+        }
+
+        public void DragFile(FileInfoItem item)
+        {
             if (!IsVerifySendAddress)
             {
                 MessageBox.Show(LocalizedLangExtension.GetString("remoteIpError"));
                 return;
             }
-            foreach (var item in items)
-            {
+            App.Current.Dispatcher.Invoke(() => {
+                var fileItem = GetOrAdd(item.RelativeFile, item.File, true);
+                if (fileItem == null)
+                {
+                    return;
+                }
+                fileItem.Status = FileStatus.ReadySend;
+                fileItem.Length = item.Length;
+            });
+            Task.Factory.StartNew(() => {
                 Hub.SendFileAsync(SendIp, SendPort, item);
-            }
+            });
         }
 
-        
+        public void DragFile(IEnumerable<FileInfoItem> items)
+        {
+            foreach (var item in items)
+            {
+                DragFile(item);
+            }
+        }
 
         public async void Load(string baseIp, string existIp)
         {

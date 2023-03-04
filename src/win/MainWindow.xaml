@@ -86,7 +86,7 @@
             <ListView.View>
                 <GridView>
                     <GridViewColumn Header="{ll:LocalizedLang name}" DisplayMemberBinding="{Binding Name}" Width="100"/>
-                    <GridViewColumn Header="{ll:LocalizedLang status}" DisplayMemberBinding="{Binding Status,Converter={StaticResource StatusConverter}}" Width="60"/>
+                    <GridViewColumn Header="{ll:LocalizedLang status}" DisplayMemberBinding="{Binding Status,Converter={StaticResource StatusConverter}}" Width="120"/>
                     <GridViewColumn Header="{ll:LocalizedLang speed}" DisplayMemberBinding="{Binding Speed, Converter={StaticResource SizeConverter},StringFormat='{}{0}/s'}" Width="60"/>
                     <GridViewColumn Header="{ll:LocalizedLang progress}" DisplayMemberBinding="{Binding Progress, Converter={StaticResource SizeConverter}}" Width="60"/>
                     <GridViewColumn Header="{ll:LocalizedLang size}" DisplayMemberBinding="{Binding Length, Converter={StaticResource SizeConverter}}" Width="60"/>
