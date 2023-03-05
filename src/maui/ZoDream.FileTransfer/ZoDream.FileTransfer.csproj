@@ -155,6 +155,9 @@
 	  <MauiXaml Update="Controls\NotifyDialog.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
+	  <MauiXaml Update="Controls\PermissionDialog.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
 	  <MauiXaml Update="Controls\StoragePicker.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>

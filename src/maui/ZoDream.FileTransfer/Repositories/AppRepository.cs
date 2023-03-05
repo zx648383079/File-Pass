@@ -121,12 +121,7 @@ namespace ZoDream.FileTransfer.Repositories
             Option = await LoadOptionAsync();
             Logger.Debug(UserInfoItem.ToStr(Option));
             NetHub = new SocketHub(Logger);
-            var pro = await CheckAndRequestNetworkPermission();
-            Logger.Debug($"PermissionStatus: {pro}");
-            if (pro == PermissionStatus.Granted)
-            {
-                await ChatHub.InitializeAsync();
-            }
+            await ChatHub.InitializeAsync();
             Booted = true;
             Logger.Info("System Booted");
         }

@@ -25,5 +25,6 @@
             </CollectionView.ItemTemplate>
         </CollectionView>
         <ctl:NotifyDialog/>
+        <ctl:PermissionDialog/>
     </Grid>
 </ContentPage>

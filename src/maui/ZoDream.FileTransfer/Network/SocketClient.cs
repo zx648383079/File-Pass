@@ -186,10 +186,12 @@ namespace ZoDream.FileTransfer.Network
         /// 只接收一个文件
         /// </summary>
         /// <param name="folder"></param>
+        /// <param name="overwrite"></param>
         /// <param name="onProgress"></param>
         /// <param name="onCompleted"></param>
         /// <param name="token"></param>
         public void ReceiveFile(string folder,
+            bool overwrite = true,
             FileProgressEventHandler? onProgress = null,
             FileCompletedEventHandler? onCompleted = null,
             CancellationToken token = default)
@@ -219,14 +221,15 @@ namespace ZoDream.FileTransfer.Network
                     var md5 = ReceiveText();
                     var length = ReceiveContentLength();
                     location = Path.Combine(folder, fileName);
-                    var shouldSend = storage.CheckFile(location, md5);
+                    var shouldSend = storage.CheckFile(location, md5, overwrite);
                     Send(SocketMessageType.FileCheckResponse);
                     SendText(fileName);
                     Send(shouldSend);
                     Hub?.Logger.Debug($"Receive Check: {fileName}->{shouldSend}");
                     if (!shouldSend)
                     {
-                        onCompleted?.Invoke(fileName, location, null);
+                        onCompleted?.Invoke(fileName, location, 
+                            File.Exists(location) && !overwrite ? false : null);
                         return;
                     }
                     continue;

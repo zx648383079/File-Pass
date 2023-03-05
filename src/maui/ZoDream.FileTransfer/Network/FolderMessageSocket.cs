@@ -72,7 +72,7 @@ namespace ZoDream.FileTransfer.Network
             return Task.Factory.StartNew(() => {
                 while (Link.Connected)
                 {
-                    Link.ReceiveFile(Folder, (name, _, p, t) => {
+                    Link.ReceiveFile(Folder, true, (name, _, p, t) => {
                         OnProgress?.Invoke(MessageId, name, p, t);
                     }, (name, _, isSuccess) => {
                         OnCompleted?.Invoke(MessageId, name, isSuccess != false);

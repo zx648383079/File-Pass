@@ -66,8 +66,12 @@ public partial class NotifyDialog : ContentView
     }
 
 
-    private async Task TapAgree(UserInfoOption item)
+    private async Task TapAgree(UserInfoOption? item)
     {
+        if (item == null)
+        {
+            return;
+        }
         if (item.Status == 1)
         {
             var success = await App.Repository.ChatHub.AgreeAddUserAsync(item, true);
@@ -81,8 +85,12 @@ public partial class NotifyDialog : ContentView
         }
     }
 
-    private async Task TapDisagree(UserInfoOption item)
+    private async Task TapDisagree(UserInfoOption? item)
     {
+        if (item == null)
+        {
+            return;
+        }
         item.Status = 4;
         await App.Repository.ChatHub.AgreeAddUserAsync(item, false);
     }
@@ -117,7 +125,7 @@ public partial class NotifyDialog : ContentView
         });
     }
 
-    private void CloseBtn_Clicked(object sender, EventArgs e)
+    private void CloseBtn_Clicked(object? sender, EventArgs e)
     {
         IsOpen = false;
     }

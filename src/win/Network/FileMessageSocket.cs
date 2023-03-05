@@ -1,11 +1,6 @@
-﻿using NetFwTypeLib;
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Net.Sockets;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using ZoDream.FileTransfer.Models;
@@ -75,6 +70,7 @@ namespace ZoDream.FileTransfer.Network
                             file.Md5, 
                             file.FileName, file.Length, token);
                         client.Send(SocketMessageType.PreClose);
+                        Hub.Close(client);
                         Hub.Logger.Debug($"Send Complete: {file.RelativeFile}");
                     }, token);
                 }

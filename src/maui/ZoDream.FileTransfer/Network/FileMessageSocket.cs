@@ -52,7 +52,7 @@ namespace ZoDream.FileTransfer.Network
         {
             var token = TokenSource.Token;
             return Task.Factory.StartNew(() => {
-                Link.ReceiveFile(FileName, (name, _, p, t) => {
+                Link.ReceiveFile(FileName, true, (name, _, p, t) => {
                     OnProgress?.Invoke(MessageId, name, p, t);
                 }, (name, _, isSuccess) => {
                     OnCompleted?.Invoke(MessageId, name, isSuccess != false);

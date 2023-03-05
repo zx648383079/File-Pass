@@ -145,11 +145,15 @@ namespace ZoDream.FileTransfer.Repositories
             });
         }
 
-        public bool CheckFile(string fileName, string md5)
+        public bool CheckFile(string fileName, string md5, bool overwrite = true)
         {
             if (!File.Exists(fileName))
             {
                 return true;
+            }
+            if (!overwrite)
+            {
+                return false;
             }
             return Disk.GetMD5(fileName) != md5;
         }

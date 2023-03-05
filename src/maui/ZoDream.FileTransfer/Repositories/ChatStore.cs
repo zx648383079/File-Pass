@@ -187,11 +187,16 @@ namespace ZoDream.FileTransfer.Repositories
             switch (message.EventType)
             {
                 case SocketMessageType.Ping:
+                    var remote = (message.Data as UserMessage)!.Data;
+                    if (remote.Id == App.Option.Id)
+                    {
+                        break;
+                    }
                     if (message.IsRequest && !App.Option.IsHideClient)
                     {
                         net.ResponsePing(ip, port, App.Option);
                     }
-                    NewUser?.Invoke((message.Data as UserMessage)!.Data, false);
+                    NewUser?.Invoke(remote, false);
                     break;
                 case SocketMessageType.UserAddRequest:
                     var requestUser = (message.Data as UserMessage)!.Data;
