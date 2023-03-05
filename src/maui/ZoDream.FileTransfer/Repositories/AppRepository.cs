@@ -121,7 +121,12 @@ namespace ZoDream.FileTransfer.Repositories
             Option = await LoadOptionAsync();
             Logger.Debug(UserInfoItem.ToStr(Option));
             NetHub = new SocketHub(Logger);
-            await ChatHub.InitializeAsync();
+            var pro = await CheckAndRequestNetworkPermission();
+            Logger.Debug($"PermissionStatus: {pro}");
+            if (pro == PermissionStatus.Granted)
+            {
+                await ChatHub.InitializeAsync();
+            }
             Booted = true;
             Logger.Info("System Booted");
         }
@@ -140,7 +145,9 @@ namespace ZoDream.FileTransfer.Repositories
             var status = await Permissions.CheckStatusAsync<Permissions.NetworkState>();
 
             if (status == PermissionStatus.Granted)
+            {
                 return status;
+            }
 
             if (status == PermissionStatus.Denied && DeviceInfo.Platform == DevicePlatform.iOS)
             {

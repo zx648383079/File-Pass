@@ -38,8 +38,9 @@ namespace ZoDream.FileTransfer.Network
             {
                 udpSocket.Bind(serverIp);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Hub?.Logger.Error($"{ip}:{port}->{ex.Message}");
                 return;
             }
             ListenToken?.Cancel();
@@ -110,7 +111,14 @@ namespace ZoDream.FileTransfer.Network
         public void Send(string ip, int port, byte[] buffer)
         {
             var remote = new IPEndPoint(IPAddress.Parse(ip), port);
-            ListenSocket?.SendTo(buffer, remote);
+            try
+            {
+                ListenSocket?.SendTo(buffer, 0, buffer.Length, SocketFlags.None, remote);
+            }
+            catch (Exception ex)
+            {
+                Hub?.Logger.Error(ex.Message);
+            }
         }
 
         public void Dispose()

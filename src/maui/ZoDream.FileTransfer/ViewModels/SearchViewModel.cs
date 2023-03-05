@@ -52,7 +52,7 @@ namespace ZoDream.FileTransfer.ViewModels
         }
 
 
-        private string ip;
+        private string ip = string.Empty;
 
         public string Ip
         {
@@ -93,8 +93,12 @@ namespace ZoDream.FileTransfer.ViewModels
         public ICommand AgreeCommand { get; private set; }
         public ICommand DisagreeCommand { get; private set; }
 
-        private async Task TapAgree(UserInfoOption item)
+        private async Task TapAgree(UserInfoOption? item)
         {
+            if (item == null)
+            {
+                return;
+            }
             if (item.Status == 1)
             {
                 var success = await App.Repository.ChatHub.AgreeAddUserAsync(item, true);
@@ -106,8 +110,12 @@ namespace ZoDream.FileTransfer.ViewModels
             }
         }
 
-        private Task TapDisagree(UserInfoOption item)
+        private Task TapDisagree(UserInfoOption? item)
         {
+            if (item == null)
+            {
+                return Task.CompletedTask;
+            }
             item.Status = 4;
             return Task.CompletedTask;
             //for (int i = UserItems.Count - 1; i >= 0; i--)

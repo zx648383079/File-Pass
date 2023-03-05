@@ -11,7 +11,7 @@
     </ContentPage.BindingContext>
     <Grid RowDefinitions="auto,*">
         <Grid ColumnDefinitions="*,auto" RowDefinitions="*,*">
-            <Entry Text="{Binding Ip}" Keyboard="Numeric"
+            <Entry Text="{Binding Ip}" Keyboard="Url"
                    Placeholder="输入IP，为空时搜索局域网其他IP" Grid.ColumnSpan="2"/>
             <Entry Text="{Binding Port}" Keyboard="Numeric" Placeholder="Port" Grid.Row="1"/>
             <Button Text="&#xe70a;" 
