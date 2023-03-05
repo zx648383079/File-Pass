@@ -20,7 +20,7 @@
                     <Grid ColumnDefinitions="*,*" 
                       RowDefinitions="*,*,*" Style="{StaticResource InputMoreBox}">
                         <Label Text="IP" Style="{StaticResource InputLabel}"/>
-                        <Entry Text="{Binding Ip}" Keyboard="Numeric" Grid.Column="1"/>
+                        <Entry Text="{Binding Ip}" Keyboard="Url" Grid.Column="1"/>
                         <Label Text="Port" Grid.Row="1" Style="{StaticResource InputLabel}"/>
                         <Entry Text="{Binding Port}" Keyboard="Numeric" Grid.Column="1"  Grid.Row="1"/>
                         <Label Text="昵称" Grid.Row="2" Style="{StaticResource InputLabel}"/>

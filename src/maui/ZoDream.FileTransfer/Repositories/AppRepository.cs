@@ -86,7 +86,11 @@ namespace ZoDream.FileTransfer.Repositories
             };
             if (string.IsNullOrWhiteSpace(data.Ip) || data.Ip.StartsWith("192.168"))
             {
-                data.Ip = Ip.Get();
+                var ip = Ip.Get();
+                if (!string.IsNullOrEmpty(ip) && ip != "127.0.0.1")
+                {
+                    data.Ip = ip;
+                }
             }
             return data;
         }

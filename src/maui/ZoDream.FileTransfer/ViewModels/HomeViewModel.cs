@@ -35,9 +35,9 @@ namespace ZoDream.FileTransfer.ViewModels
         public ICommand SearchCommand { get; private set; }
         public ICommand SettingCommand { get; private set; }
 
-        private async Task GoToChat(UserItem user)
+        private async Task GoToChat(UserItem? user)
         {
-            await Shell.Current.GoToAsync($"Chat?user={user.Id}");
+            await Shell.Current.GoToAsync($"Chat?user={user!.Id}");
         }
 
         private async Task GoToSearch()

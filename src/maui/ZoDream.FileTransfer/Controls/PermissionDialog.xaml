@@ -4,7 +4,7 @@
              x:Class="ZoDream.FileTransfer.Controls.PermissionDialog">
     <ContentView.ControlTemplate>
         <ControlTemplate>
-            <Grid x:Name="PART_InnerPanel" HeightRequest="300" TranslationY="500" VerticalOptions="End" HorizontalOptions="Fill">
+            <Grid x:Name="PART_InnerPanel" HeightRequest="320" TranslationY="500" VerticalOptions="End" HorizontalOptions="Fill">
                 <BoxView Color="{StaticResource Gray100}" CornerRadius="40,40,0,0">
                     <BoxView.Shadow>
                         <Shadow Brush="Black"
@@ -21,18 +21,26 @@
                     <CollectionView ItemsSource="{TemplateBinding Items}" Grid.Row="1">
                         <CollectionView.ItemTemplate>
                             <DataTemplate>
-                                <Grid ColumnDefinitions="80,*" RowDefinitions="*,*" >
-                                    <Grid Grid.RowSpan="2" Grid.Column="1">
-                                        <Ellipse Fill="{StaticResource Gray100}"/>
-                                        <Label Text="{Binding Icon}" Style="{StaticResource IconTb}"/>
-                                    </Grid>
+                                <Grid Padding="0,2" ColumnDefinitions="60,*" RowDefinitions="*,*" >
+                                    <Frame Grid.RowSpan="2" BorderColor="White" 
+                                           CornerRadius="25" WidthRequest="50" 
+                                           HeightRequest="50" 
+                                           Padding="0"
+                                           HorizontalOptions="Center" 
+                                           VerticalOptions="Center">
+                                        <Label Text="{Binding Icon}"
+                                               Style="{StaticResource BodyIconBtn}"
+                                               HorizontalOptions="Center" 
+                                                VerticalOptions="Center"/>
+                                    </Frame>
                                     <Label Text="{Binding Name}"
-                                           Grid.Column="2"
+                                           Grid.Column="1"
                                             Style="{StaticResource InputLabel}"/>
-                                    <Label Grid.Column="2" Grid.Row="1"    
-                                        Text="{Binding Description}"
+                                    <Label Grid.Column="1" Grid.Row="1"    
+                                            Text="{Binding Description}"
                                            Style="{StaticResource InputMetaLabel}"
-                                        VerticalOptions="Center"/>
+                                           TextColor="{StaticResource Gray500}"
+                                           />
                                 </Grid>
                             </DataTemplate>
                         </CollectionView.ItemTemplate>
