@@ -21,6 +21,7 @@ namespace ZoDream.FileTransfer.Network
             Link = link;
             Folder = folder;
             MessageId = messageId;
+            Link.StopLoopReceive();
         }
 
         private readonly SocketClient Link;
@@ -47,7 +48,7 @@ namespace ZoDream.FileTransfer.Network
                     {
                         return;
                     }
-                    item.Md5 = Disk.GetMD5(item.File);
+                    item.Md5 = Disk.GetMD5(item.FileName);
                     SendFile(item, token);
                 }
                 Link.Send(SocketMessageType.PreClose);
@@ -57,92 +58,25 @@ namespace ZoDream.FileTransfer.Network
 
         protected void SendFile(FileInfoItem file, CancellationToken token)
         {
-            Link.SendFile(file.RelativeFile, file.Md5, file.File, (p, t) => {
-                OnProgress?.Invoke(MessageId, file.Name, p, t);
-            }, token);
-            App.Repository.Logger.Debug($"Send File:{file.File}");
+            Link.SendFile(file.RelativeFile, file.Md5, file.FileName, file.Length,
+                (name, _, p, t) => {
+                    OnProgress?.Invoke(MessageId, name, p, t);
+                }, (name, _, isSuccess) => {
+                    OnCompleted?.Invoke(MessageId, name, isSuccess != false);
+                }, token);
         }
 
         public Task ReceiveAsync()
         {
             var token = TokenSource.Token;
-            var storage = App.Repository.Storage;
             return Task.Factory.StartNew(() => {
-                var fileName = string.Empty;
-                var md5 = string.Empty;
-                var length = 0L;
-                var location = string.Empty;
-                while (true)
+                while (Link.Connected)
                 {
-                    if (token.IsCancellationRequested)
-                    {
-                        App.Repository.NetHub.Close(Link);
-                        OnCompleted?.Invoke(MessageId, Folder, false);
-                        return;
-                    }
-                    var type = Link.ReceiveMessageType();
-                    if (type == SocketMessageType.PreClose)
-                    {
-                        App.Repository.NetHub.Close(Link);
-                        OnCompleted?.Invoke(MessageId, Folder, true);
-                        return;
-                    } else if (type == SocketMessageType.File)
-                    {
-                        fileName = Link.ReceiveText();
-                        md5 = Link.ReceiveText();
-                        length = Link.ReceiveContentLength();
-                        location = Path.Combine(Folder, fileName);
-                        App.Repository.Logger.Debug($"Receive File:{location}");
-                        using (var fs = storage.CacheWriter(md5))
-                        {
-                            Link.ReceiveStream(fs, length);
-                        }
-                        OnProgress?.Invoke(MessageId, fileName, length, length);
-                        if (md5 != storage.CacheFileMD5(md5))
-                        {
-                            storage.CacheRemove(md5);
-                            continue;
-                        }
-                        storage.CacheMove(md5, location);
-                        continue;
-                    }
-                    else if (type == SocketMessageType.FileMerge)
-                    {
-                        fileName = Link.ReceiveText();
-                        location = Path.Combine(Folder, fileName);
-                        App.Repository.Logger.Debug($"Receive File:{location}");
-                        md5 = Link.ReceiveText();
-                        var partItems = Link.ReceiveText().Split(',');
-                        length = storage.CacheMergeFile(md5, partItems);
-                        if (length <= 0 || md5 != storage.CacheFileMD5(md5))
-                        {
-                            storage.CacheRemove(partItems);
-                            storage.CacheRemove(md5);
-                            continue;
-                        }
-                        storage.CacheRemove(partItems);
-                        storage.CacheMove(md5, location);
-                        OnProgress?.Invoke(MessageId, fileName, length, length);
-                        continue;
-                    }
-                    else if (type == SocketMessageType.FilePart)
-                    {
-                        var partName = Link.ReceiveText();
-                        var partLength = Link.ReceiveContentLength();
-                        using (var fs = storage.CacheWriter(partName))
-                        {
-                            Link.ReceiveStream(fs, partLength);
-                        }
-                        length += partLength;
-                        OnProgress?.Invoke(MessageId, "part", length, 0L);
-                    }
-                    else
-                    {
-                        App.Repository.Logger.Warning($"File Receive Unknown Type:{type}");
-                        App.Repository.NetHub.Close(Link);
-                        OnCompleted?.Invoke(MessageId, Folder, false);
-                        return;
-                    }
+                    Link.ReceiveFile(Folder, (name, _, p, t) => {
+                        OnProgress?.Invoke(MessageId, name, p, t);
+                    }, (name, _, isSuccess) => {
+                        OnCompleted?.Invoke(MessageId, name, isSuccess != false);
+                    }, token);
                 }
             }, token);
         }

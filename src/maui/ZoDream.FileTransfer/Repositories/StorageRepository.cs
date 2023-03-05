@@ -68,9 +68,13 @@ namespace ZoDream.FileTransfer.Repositories
             return File.OpenRead(file);
         }
 
-        public Stream CacheWriter(string fileName)
+        public Stream CacheWriter(string fileName, bool append = false)
         {
             var file = Combine(Constants.FILE_CACHE_FOLDER, fileName);
+            if (append)
+            {
+                return File.OpenWrite(file);
+            }
             return File.Create(file);
         }
 
@@ -141,6 +145,13 @@ namespace ZoDream.FileTransfer.Repositories
             });
         }
 
-        
+        public bool CheckFile(string fileName, string md5)
+        {
+            if (!File.Exists(fileName))
+            {
+                return true;
+            }
+            return Disk.GetMD5(fileName) != md5;
+        }
     }
 }

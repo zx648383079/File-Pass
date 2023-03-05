@@ -17,6 +17,8 @@ namespace ZoDream.FileTransfer.Network
         Ping,
         PreClose, // 表明我已经准备结束了，由你结束
         Close,
+        Received, // 已收到回复
+        ReceivedError, // 已收到错误回复
         // 获取客户端基本信息
         CallInfo,
         // 发送本机基本信息

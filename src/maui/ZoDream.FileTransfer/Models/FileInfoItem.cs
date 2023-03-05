@@ -10,13 +10,13 @@ namespace ZoDream.FileTransfer.Models
     {
         public string Name { get; set; }
 
-        public string File { get; set; }
+        public string FileName { get; set; }
 
         public string RelativeFile { get; set; }
 
         public long Length { get; set; }
 
-        public string Md5 { get; set; }
+        public string Md5 { get; set; } = string.Empty;
 
         public DateTime ModifyTime { get; set; } = DateTime.MinValue;
 
@@ -25,7 +25,7 @@ namespace ZoDream.FileTransfer.Models
             long size = 0)
         {
             Name = name;
-            File = fileName;
+            FileName = fileName;
             RelativeFile = relativeFile;
             Length = size;
         }

@@ -256,7 +256,7 @@ namespace ZoDream.FileTransfer.Network
                 if (!shouldSend)
                 {
                     Hub?.Logger.Debug($"Quicky Send :{name}");
-                    Hub?.EmitSend(name, fileName, fileName.Length, length);
+                    Hub?.EmitSend(name, fileName, length, length);
                     // 秒传
                     return true;
                     // SendFile(fileName, token);
@@ -359,18 +359,7 @@ namespace ZoDream.FileTransfer.Network
                         Hub?.EmitReceive(fileName, location, length, length);
                     }
                     continue;
-                }
-                else if (type == SocketMessageType.FileCheckResponse)
-                {
-                    fileName = ReceiveText();
-                    var shouldSend = ReceiveBool();
-                    if (shouldSend)
-                    {
-                        // SendFile(fileName, token);
-                    }
-                    continue;
-                }
-                else if (type == SocketMessageType.File)
+                }else if (type == SocketMessageType.File)
                 {
                     fileName = ReceiveText();
                     location = Path.Combine(folder, fileName);
@@ -443,6 +432,7 @@ namespace ZoDream.FileTransfer.Network
                     Hub?.Logger.Debug($"Receive File Part: {fileName}[{startPos}-{endPos}]");
                     Hub?.EmitReceive(fileName, location, endPos, length);
                     Send(SocketMessageType.FileReceived);
+                    continue;
                 }
                 else
                 {
@@ -495,6 +485,7 @@ namespace ZoDream.FileTransfer.Network
 
         public void Dispose()
         {
+            connected = false;
             CancellationToken.Cancel();
             ClientSocket?.Close();
         }

@@ -12,6 +12,7 @@ namespace ZoDream.FileTransfer.Network
             Name = name;
             FileName = fileName;
             MessageId = messageId;
+            Link.StopLoopReceive();
         }
 
         private readonly SocketClient Link;
@@ -31,12 +32,19 @@ namespace ZoDream.FileTransfer.Network
         {
             var token = TokenSource.Token;
             return Task.Factory.StartNew(() => {
-                var md5 = Disk.GetMD5(FileName);
-                var res = Link.SendFile(Name, md5, FileName, (p, t) => {
-                    OnProgress?.Invoke(MessageId, Name, p, t);
+                var length = 0L;
+                var md5 = string.Empty;
+                using (var fs = File.OpenRead(FileName))
+                {
+                    length = fs.Length;
+                    md5 = Disk.GetMD5(fs);
+                }
+                Link.SendFile(Name, md5, FileName, length, 
+                    (name, _, p, t) => {
+                    OnProgress?.Invoke(MessageId, name, p, t);
+                }, (name, _, isSuccess) => {
+                    OnCompleted?.Invoke(MessageId, name, isSuccess != false);
                 }, token);
-                App.Repository.Logger.Debug($"Send File:{FileName}");
-                OnCompleted?.Invoke(MessageId, Name, res);
             }, token);
         }
 
@@ -44,11 +52,11 @@ namespace ZoDream.FileTransfer.Network
         {
             var token = TokenSource.Token;
             return Task.Factory.StartNew(() => {
-                Name = Link.ReceiveFile(FileName, (p, t) => {
-                    OnProgress?.Invoke(MessageId, Name, p, t);
+                Link.ReceiveFile(FileName, (name, _, p, t) => {
+                    OnProgress?.Invoke(MessageId, name, p, t);
+                }, (name, _, isSuccess) => {
+                    OnCompleted?.Invoke(MessageId, name, isSuccess != false);
                 }, token);
-                OnCompleted?.Invoke(MessageId, Name, !string.IsNullOrEmpty(Name));
-                App.Repository.Logger.Debug($"Receive File:{Name}");
                 // 线程由接收方结束
                 App.Repository.NetHub.Close(Link);
             }, token);
