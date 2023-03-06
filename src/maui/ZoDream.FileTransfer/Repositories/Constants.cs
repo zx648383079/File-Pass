@@ -11,6 +11,7 @@ namespace ZoDream.FileTransfer.Repositories
         public const string AES_IV = "zre.file";
         public const string SECURE_KEY = "zre.secure_key";
 
+        public const string LOCALHOST = "127.0.0.1";
         public const int DEFAULT_PORT = 65530;
         public const int UDP_BUFFER_SIZE = 65536;
         public const string OPTION_FILE = "option.db";

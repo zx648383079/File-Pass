@@ -2,7 +2,7 @@
 <ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:ctl="clr-namespace:ZoDream.FileTransfer.Controls"
-             x:Class="ZoDream.FileTransfer.Controls.NotifyDialog">
+             x:Class="ZoDream.FileTransfer.Controls.UserNotifyDialog">
     <ContentView.ControlTemplate>
         <ControlTemplate>
             <Grid x:Name="PART_InnerPanel" HeightRequest="300" TranslationY="500" VerticalOptions="End" HorizontalOptions="Fill">

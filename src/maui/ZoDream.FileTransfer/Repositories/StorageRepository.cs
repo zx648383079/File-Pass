@@ -62,6 +62,22 @@ namespace ZoDream.FileTransfer.Repositories
             });
         }
 
+        /// <summary>
+        /// 删除文件夹下的文件
+        /// </summary>
+        /// <param name="fileName"></param>
+        /// <returns></returns>
+        public async Task DeleteFolderAsync(string fileName)
+        {
+            var file = Path.Combine(BaseFolder, fileName);
+            await Task.Factory.StartNew(() => {
+                foreach (var item in Directory.GetFileSystemEntries(file))
+                {
+                    File.Delete(item);
+                }
+            });
+        }
+
         public Stream CacheReader(string fileName)
         {
             var file = Combine(Constants.FILE_CACHE_FOLDER, fileName);

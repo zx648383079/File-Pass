@@ -1,9 +1,11 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Input;
 using ZoDream.FileTransfer.Models;
 using ZoDream.FileTransfer.Repositories;
 
@@ -14,7 +16,9 @@ namespace ZoDream.FileTransfer.ViewModels
 
         public SettingViewModel()
         {
-			Option = App.Repository.Option;
+			ResetCommand = new AsyncRelayCommand(TapResetAsync);
+            ClearCommand = new AsyncRelayCommand(TapClearAsync);
+            Option = App.Repository.Option;
 			PropertyChanged += (s, e) => 
 			{
 				if (e.PropertyName == nameof(IpTitle))
@@ -25,7 +29,10 @@ namespace ZoDream.FileTransfer.ViewModels
 			};
         }
 
-		public string IpTitle
+		public ICommand ResetCommand { get; set; }
+		public ICommand ClearCommand { get; set; }
+
+        public string IpTitle
 		{
 			get
 			{
@@ -125,5 +132,15 @@ namespace ZoDream.FileTransfer.ViewModels
             }
 		}
 
-	}
+		private async Task TapResetAsync()
+		{
+			await App.Repository.ResetAsync();
+		}
+
+        private async Task TapClearAsync()
+        {
+			await App.Repository.ClearMessageAsync();
+        }
+
+    }
 }

@@ -6,7 +6,7 @@ namespace ZoDream.FileTransfer.Repositories
     {
         public Task InitializeAsync();
 
-        public Task<AppOption> GetOptionAsync();
+        public Task<AppOption?> GetOptionAsync();
 
         public Task SaveOptionAsync(AppOption option);
 
@@ -23,6 +23,10 @@ namespace ZoDream.FileTransfer.Repositories
         public Task UpdateUserAsync(UserItem user);
 
         public Task AddMessageAsync(IUser user, MessageItem message);
+
+        public Task ClearMessageAsync();
+
+        public Task ResetAsync();
 
     }
 }

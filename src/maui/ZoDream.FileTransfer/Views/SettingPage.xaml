@@ -41,7 +41,7 @@
                         <Label Text="密码" Style="{StaticResource InputLabel}"/>
                         <Entry Grid.Column="1"/>
                         <Label Text="加密证书" Grid.Row="1" Style="{StaticResource InputLabel}"/>
-                        <Entry Keyboard="Numeric" Grid.Column="1"  Grid.Row="1"/>
+                        <Entry Grid.Column="1"  Grid.Row="1"/>
                     </Grid>
                 </VerticalStackLayout>
             </Frame>
@@ -72,8 +72,8 @@
                     <Switch IsToggled="{Binding IsSaveFile}" Grid.Column="1"  Grid.RowSpan="2"/>
                 </Grid>
             </Frame>
-            <Button Text="清除消息记录"/>
-            <Button Text="重置"/>
+            <Button Text="清除消息记录" Command="{Binding ClearCommand}"/>
+            <Button Text="重置" Command="{Binding ResetCommand}"/>
         </VerticalStackLayout>
     </ScrollView>
 </ContentPage>

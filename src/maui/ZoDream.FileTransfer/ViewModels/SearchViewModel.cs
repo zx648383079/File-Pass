@@ -26,7 +26,7 @@ namespace ZoDream.FileTransfer.ViewModels
                 {
                     if (isAddRequest)
                     {
-                        item.Status = 1;
+                        item.Status = item.Status == 2 ? 3 : 1;
                     }
                     return;
                 }

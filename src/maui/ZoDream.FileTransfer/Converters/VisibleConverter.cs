@@ -11,29 +11,40 @@ namespace ZoDream.FileTransfer.Converters
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            if (value == null)
+            return IsVisible(value, parameter);
+        }
+
+        private bool IsVisible(object value, object parameter)
+        {
+            if (value is null)
             {
                 return false;
             }
-            if (parameter is not null)
+            if (parameter is null)
             {
-                var pStr = parameter.ToString();
-                var vStr = value.ToString();
-                if (pStr == vStr)
+                if (value is int i)
                 {
-                    return true;
+                    return i > 0;
                 }
-                if (vStr is null || pStr is null || !pStr.Contains(','))
-                {
-                    return false;
-                }
-                return pStr.Split(',').Contains(vStr);
+                return string.IsNullOrWhiteSpace(value.ToString());
             }
-            if (value is int i)
+            var pStr = parameter.ToString();
+            var vStr = value.ToString();
+            if (pStr == vStr)
             {
-                return i > 0;
+                return true;
             }
-            return string.IsNullOrWhiteSpace(value.ToString());
+            if (vStr is null || pStr is null)
+            {
+                return false;
+            }
+            var isRevert = false;
+            if (pStr.StartsWith('^'))
+            {
+                isRevert = true;
+                pStr = pStr[1..];
+            }
+            return pStr.Split(',').Contains(vStr) == !isRevert;
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)

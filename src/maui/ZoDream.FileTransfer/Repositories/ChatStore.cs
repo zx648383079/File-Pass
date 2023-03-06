@@ -35,8 +35,14 @@ namespace ZoDream.FileTransfer.Repositories
         public async Task InitializeAsync()
         {
             UserItems = await App.DataHub.GetUsersAsync();
+            UsersUpdated?.Invoke();
             var net = App.NetHub;
             net.MessageReceived += NetHub_MessageReceived;
+            if (App.Option.Ip == Constants.LOCALHOST)
+            {
+                App.Logger.Error($"Client IP Error: {App.Option.Ip}");
+                return;
+            }
             net.Udp.Listen(App.Option.Ip, Constants.DEFAULT_PORT);
             if (!App.Option.IsHideClient)
             {
@@ -45,8 +51,8 @@ namespace ZoDream.FileTransfer.Repositories
             } else
             {
                 net.Ping(UserItems, App.Option);
+                App.Logger.Info("Please close Hide Mode to use TCP");
             }
-            UsersUpdated?.Invoke();
         }
 
         #region 联系人相关
@@ -74,6 +80,7 @@ namespace ZoDream.FileTransfer.Repositories
             }
             App.DataHub.AddUserAsync(item);
             UserItems.Add(new UserItem(item));
+            UsersUpdated?.Invoke();
         }
 
         public void Remove(IUser item)
@@ -196,6 +203,10 @@ namespace ZoDream.FileTransfer.Repositories
                     {
                         net.ResponsePing(ip, port, App.Option);
                     }
+                    if (IndexOf(remote.Id) >= 0)
+                    {
+                        break;
+                    }
                     NewUser?.Invoke(remote, false);
                     break;
                 case SocketMessageType.UserAddRequest:
@@ -227,6 +238,7 @@ namespace ZoDream.FileTransfer.Repositories
                                 Add(item);
                             }
                             ApplyItems.Remove(item);
+                            NewUser?.Invoke(item, true);
                             return;
                         }
                     }

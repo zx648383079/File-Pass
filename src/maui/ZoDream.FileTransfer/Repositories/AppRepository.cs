@@ -87,7 +87,7 @@ namespace ZoDream.FileTransfer.Repositories
             if (string.IsNullOrWhiteSpace(data.Ip) || data.Ip.StartsWith("192.168"))
             {
                 var ip = Ip.Get();
-                if (!string.IsNullOrEmpty(ip) && ip != "127.0.0.1")
+                if (!string.IsNullOrEmpty(ip) && ip != Constants.LOCALHOST)
                 {
                     data.Ip = ip;
                 }
@@ -133,7 +133,17 @@ namespace ZoDream.FileTransfer.Repositories
         #endregion
 
 
+        public async Task ResetAsync()
+        {
+            SecureStorage.Default.Remove(Constants.SECURE_KEY);
+            await DataHub.ResetAsync();
+            await InitializeAsync(false);
+        }
 
+        public async Task ClearMessageAsync()
+        {
+            await DataHub.ClearMessageAsync();
+        }
 
         /// <summary>
         /// 请求权限

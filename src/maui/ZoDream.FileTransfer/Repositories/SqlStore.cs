@@ -16,9 +16,9 @@ namespace ZoDream.FileTransfer.Repositories
 
         public string Password { get; private set; }
 
-        private string DbFile;
-        private string ConnectString;
-        private SqliteConnection connect;
+        private readonly string DbFile;
+        private readonly string ConnectString;
+        private SqliteConnection? connect;
         public SqliteConnection Connect 
         {
             get {
@@ -44,23 +44,19 @@ namespace ZoDream.FileTransfer.Repositories
         }
 
 
-        public Task<AppOption> GetOptionAsync() {
+        public Task<AppOption?> GetOptionAsync() {
             var query = Connect.CreateCommand();
             query.CommandText = @"SELECT 
                     Content
                     FROM Options WHERE Name=:name LIMIT 1";
             query.Parameters.AddWithValue(":name", "option");
-            var str = query.ExecuteScalar().ToString();
+            var str = query.ExecuteScalar()?.ToString();
             if (string.IsNullOrWhiteSpace(str))
             {
-                return null;
+                return Task.FromResult((AppOption?)null);
             }
             var res = JsonSerializer.Deserialize(str, typeof(AppOption));
-            if (res == null)
-            {
-                return null;
-            }
-            return Task.FromResult((AppOption)res);
+            return Task.FromResult((AppOption?)res);
         }
 
         public Task SaveOptionAsync(AppOption option) {
@@ -292,6 +288,28 @@ namespace ZoDream.FileTransfer.Repositories
             }
             command.ExecuteNonQuery();
             return Task.CompletedTask;
+        }
+
+        public Task ClearMessageAsync()
+        {
+            var command = Connect.CreateCommand();
+            command.CommandText =
+                                @"DELETE FROM Messages WHERE 1";
+            command.ExecuteNonQuery();
+            return Task.CompletedTask;
+        }
+
+        public async Task ResetAsync()
+        {
+            await ClearMessageAsync();
+            var command = Connect.CreateCommand();
+            command.CommandText =
+                                @"DELETE FROM Users WHERE 1";
+            command.ExecuteNonQuery();
+            command = Connect.CreateCommand();
+            command.CommandText =
+                                @"DELETE FROM Options WHERE 1";
+            command.ExecuteNonQuery();
         }
 
         public Task InitializeAsync() 

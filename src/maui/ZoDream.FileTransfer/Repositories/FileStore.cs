@@ -50,7 +50,7 @@ namespace ZoDream.FileTransfer.Repositories
         }
 
 
-        public Task<AppOption> GetOptionAsync() {
+        public Task<AppOption?> GetOptionAsync() {
             return ReadAsync<AppOption>(Constants.OPTION_FILE);
         }
 
@@ -69,9 +69,10 @@ namespace ZoDream.FileTransfer.Repositories
 
         public async Task<IList<MessageItem>> GetMessagesAsync(string userId)
         {
-            return await ReadAsync<IList<MessageItem>>(
+            var items = await ReadAsync<IList<MessageItem>>(
                 $"{Constants.MESSAGE_FOLDER}/{userId}.db"
                 );
+            return items ?? new List<MessageItem>();
         }
 
         public async Task RemoveMessageAsync(MessageItem message)
@@ -124,7 +125,7 @@ namespace ZoDream.FileTransfer.Repositories
                     return;
                 }
             }
-            items.Add(user is UserItem ? (user as UserItem) : new UserItem(user));
+            items.Add(user is UserItem ? (user as UserItem)! : new UserItem(user));
             await WriteAsync(Constants.USERS_FILE, items);
 
         }
@@ -213,6 +214,17 @@ namespace ZoDream.FileTransfer.Repositories
             await swEncrypt.WriteAsync(content);
         }
 
+        public async Task ClearMessageAsync()
+        {
+            await Storage.DeleteFolderAsync(Constants.MESSAGE_FOLDER);
+        }
+
+        public async Task ResetAsync()
+        {
+            await ClearMessageAsync();
+            await Storage.DeleteAsync(Constants.OPTION_FILE);
+            await Storage.DeleteAsync(Constants.USERS_FILE);
+        }
         public void Dispose() 
         {
             Cipher?.Dispose();

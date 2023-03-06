@@ -155,26 +155,46 @@ namespace ZoDream.FileTransfer.Network
                 (byte)SocketMessageType.Ping, Convert.ToByte(true));
             Udp.Ping(ip, port, buffer);
         }
-
+        /// <summary>
+        /// 发送消息，自动转udp
+        /// </summary>
+        /// <param name="user"></param>
+        /// <param name="type"></param>
+        /// <param name="message"></param>
+        /// <returns>是否发送成功，udp无法判断默认返回true</returns>
         public async Task<bool> SendAsync(IUser user, SocketMessageType type,
             IMessagePack message)
         {
             return await SendAsync(user.Ip, user.Port, type, true, message);
         }
-
+        /// <summary>
+        /// 响应消息，自动转udp
+        /// </summary>
+        /// <param name="user"></param>
+        /// <param name="type"></param>
+        /// <param name="message"></param>
+        /// <returns>是否发送成功，udp无法判断默认返回true</returns>
         public async Task<bool> ResponseAsync(IUser user, SocketMessageType type,
             IMessagePack message)
         {
             return await SendAsync(user.Ip, user.Port, type, false, message);
         }
 
+        /// <summary>
+        /// 发送消息，自动转udp
+        /// </summary>
+        /// <param name="ip"></param>
+        /// <param name="port"></param>
+        /// <param name="type"></param>
+        /// <param name="isRequest"></param>
+        /// <param name="pack"></param>
+        /// <returns>是否发送成功，udp无法判断默认返回true</returns>
         public async Task<bool> SendAsync(string ip, int port, SocketMessageType type, bool isRequest, IMessagePack? pack)
         {
             var client = await GetAsync(ip, port);
             if (client == null)
             {
-                await UdpSendAsync(ip, port, type, isRequest, pack);
-                return false;
+                return await UdpSendAsync(ip, port, type, isRequest, pack);
             }
             client.Send(type);
             client.Send(isRequest);

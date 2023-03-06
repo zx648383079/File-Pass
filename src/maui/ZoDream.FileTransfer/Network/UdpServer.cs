@@ -23,6 +23,10 @@ namespace ZoDream.FileTransfer.Network
         private Socket? ListenSocket;
         public string ListenIp { get; private set; } = string.Empty;
         public int ListenPort { get; private set; } = 0;
+        /// <summary>
+        /// 重试次数
+        /// </summary>
+        public int Retry = 5;
         private CancellationTokenSource ListenToken = new();
 
         public bool IsListening => ListenSocket is not null && !ListenToken.IsCancellationRequested;
@@ -94,31 +98,42 @@ namespace ZoDream.FileTransfer.Network
                 App.Repository.Logger.Error($"UDP Send Max Size: {Constants.UDP_BUFFER_SIZE}");
                 return Task.FromResult(false);
             }
-            Send(ip, port, buffer);
-            return Task.FromResult(true);
+            return Task.FromResult(Send(ip, port, buffer));
         }
 
-        public void Ping(string ip, byte[] buffer)
+        public bool Ping(string ip, byte[] buffer)
         {
-            Ping(ip, ListenPort, buffer);
+            return Ping(ip, ListenPort, buffer);
         }
 
-        public void Ping(string ip, int port, byte[] buffer)
+        public bool Ping(string ip, int port, byte[] buffer)
         {
-            Send(ip, port, buffer);
+            return Send(ip, port, buffer);
         }
 
-        public void Send(string ip, int port, byte[] buffer)
+        public bool Send(string ip, int port, byte[] buffer)
         {
             var remote = new IPEndPoint(IPAddress.Parse(ip), port);
             try
             {
-                ListenSocket?.SendTo(buffer, 0, buffer.Length, SocketFlags.None, remote);
+                var i = 0;
+                while (i < Retry)
+                {
+                    var sent = ListenSocket?.SendTo(buffer, 0, buffer.Length, SocketFlags.None, remote);
+                    if (sent >= buffer.Length)
+                    {
+                        return true;
+                    }
+                    i++;
+                }
+                
             }
             catch (Exception ex)
             {
                 Hub?.Logger.Error(ex.Message);
+                return false;
             }
+            return false;
         }
 
         public void Dispose()

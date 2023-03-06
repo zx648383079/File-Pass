@@ -4,9 +4,9 @@ using ZoDream.FileTransfer.Models;
 
 namespace ZoDream.FileTransfer.Controls;
 
-public partial class NotifyDialog : ContentView
+public partial class UserNotifyDialog : ContentView
 {
-	public NotifyDialog()
+	public UserNotifyDialog()
 	{
 		InitializeComponent();
         AgreeCommand = new AsyncRelayCommand<UserInfoOption>(TapAgree);
@@ -15,15 +15,16 @@ public partial class NotifyDialog : ContentView
     }
 
 
+
     public bool IsOpen {
         get { return (bool)GetValue(IsOpenProperty); }
         set { SetValue(IsOpenProperty, value); }
     }
 
     public static readonly BindableProperty IsOpenProperty =
-        BindableProperty.Create(nameof(IsOpen), typeof(bool), typeof(NotifyDialog),
+        BindableProperty.Create(nameof(IsOpen), typeof(bool), typeof(UserNotifyDialog),
             false, propertyChanged: (b, oldVal, newVal) => {
-                (b as NotifyDialog)?.ToggleOpen((bool)oldVal, (bool)newVal);
+                (b as UserNotifyDialog)?.ToggleOpen((bool)oldVal, (bool)newVal);
             });
 
 
@@ -35,7 +36,7 @@ public partial class NotifyDialog : ContentView
     // Using a DependencyProperty as the backing store for Items.  This enables animation, styling, binding, etc...
     public static readonly BindableProperty ItemsProperty =
         BindableProperty.Create(nameof(Items), typeof(IList<UserInfoOption>),
-            typeof(NotifyDialog),
+            typeof(UserNotifyDialog),
             new List<UserInfoOption>());
 
     private Grid? InnerPanel;
@@ -104,7 +105,7 @@ public partial class NotifyDialog : ContentView
                 MainThread.BeginInvokeOnMainThread(() => {
                     if (isAddRequest)
                     {
-                        item.Status = 1;
+                        item.Status = item.Status == 2 ? 3 : 1;
                         IsOpen = true;
                     }
                 });
