@@ -83,6 +83,17 @@ namespace ZoDream.FileTransfer.Models
 
         public Color? AvatarBackground { get; set; }
 
+        public MessageItem Message {
+            set {
+                var msg = value.ToShortMessage();
+                if (string.IsNullOrWhiteSpace(msg))
+                {
+                    return;
+                }
+                LastMessage = msg;
+                LastAt = value.CreatedAt;
+            }
+        }
 
         public UserItem()
         {

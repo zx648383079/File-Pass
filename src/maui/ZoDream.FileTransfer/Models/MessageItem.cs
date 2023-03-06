@@ -11,11 +11,11 @@ namespace ZoDream.FileTransfer.Models
     {
         public bool IsSender { get; set; } = false;
 
-        public string UserId { get; set; }
+        public string UserId { get; set; } = string.Empty;
 
-        public string ReceiveId { get; set; }
+        public string ReceiveId { get; set; } = string.Empty;
 
-        public string Id { get; set; }
+        public string Id { get; set; } = string.Empty;
 
         public DateTime CreatedAt { get; set; }
 
@@ -30,7 +30,10 @@ namespace ZoDream.FileTransfer.Models
             }
         }
 
-
+        public virtual string ToShortMessage()
+        {
+            return string.Empty;
+        }
     }
 
     public class ActionMessageItem : MessageItem
@@ -51,16 +54,26 @@ namespace ZoDream.FileTransfer.Models
                 _ => ""
             };
         }
+
+        public override string ToShortMessage()
+        {
+            return Content;
+        }
     }
 
     public class TextMessageItem : MessageItem
     {
         public string Content { get; set; } = string.Empty;
+
+        public override string ToShortMessage()
+        {
+            return Content;
+        }
     }
 
     public class FileMessageItem : MessageItem
     {
-        public string FileName { get; set; }
+        public string FileName { get; set; } = string.Empty;
 
 
         private long size;
@@ -97,9 +110,9 @@ namespace ZoDream.FileTransfer.Models
             }
         }
 
-        public string Location { get; set; }
+        public string Location { get; set; } = string.Empty;
 
-        public string LocationFolder { get; set; }
+        public string LocationFolder { get; set; } = string.Empty;
 
         private long speed = 0;
 
@@ -139,11 +152,19 @@ namespace ZoDream.FileTransfer.Models
             
         }
 
+        public override string ToShortMessage()
+        {
+            return "[文件]";
+        }
     }
 
     public class FolderMessageItem : FileMessageItem
     {
-        public string FolderName { get; set; }
+        public string FolderName { get; set; } = string.Empty;
+        public override string ToShortMessage()
+        {
+            return "[文件夹]";
+        }
     }
 
     public class SyncMessageItem : FolderMessageItem
@@ -153,6 +174,11 @@ namespace ZoDream.FileTransfer.Models
     public class UserMessageItem: MessageItem
     {
         public IUser Data { get; set; }
+
+        public override string ToShortMessage()
+        {
+            return $"[推荐用户]";
+        }
     }
 
     public enum FileMessageStatus

@@ -51,7 +51,6 @@ namespace ZoDream.FileTransfer.Repositories
             } else
             {
                 net.Ping(UserItems, App.Option);
-                App.Logger.Info("Please close Hide Mode to use TCP");
             }
         }
 
@@ -78,8 +77,8 @@ namespace ZoDream.FileTransfer.Repositories
             {
                 return;
             }
-            App.DataHub.AddUserAsync(item);
             UserItems.Add(new UserItem(item));
+            App.DataHub.AddUserAsync(item);
             UsersUpdated?.Invoke();
         }
 
@@ -199,11 +198,12 @@ namespace ZoDream.FileTransfer.Repositories
                     {
                         break;
                     }
-                    if (message.IsRequest && !App.Option.IsHideClient)
+                    var hasUser = IndexOf(remote.Id) >= 0;
+                    if (message.IsRequest && (!App.Option.IsHideClient || hasUser))
                     {
                         net.ResponsePing(ip, port, App.Option);
                     }
-                    if (IndexOf(remote.Id) >= 0)
+                    if (hasUser)
                     {
                         break;
                     }
@@ -254,6 +254,7 @@ namespace ZoDream.FileTransfer.Repositories
                         IsSuccess = true,
                     };
                     App.DataHub.AddMessageAsync(user, msg);
+                    user.Message = msg;
                     NewMessage?.Invoke(user.Id, msg);
                     break;
                 case SocketMessageType.Close:
@@ -286,6 +287,7 @@ namespace ZoDream.FileTransfer.Repositories
                         IsSuccess = true,
                     };
                     App.DataHub.AddMessageAsync(user, msg);
+                    user.Message = msg;
                     NewMessage?.Invoke(user.Id, msg);
                     break;
                 case SocketMessageType.MessageFolder:
@@ -301,6 +303,7 @@ namespace ZoDream.FileTransfer.Repositories
                         IsSuccess = true,
                     };
                     App.DataHub.AddMessageAsync(user, msg);
+                    user.Message = msg;
                     NewMessage?.Invoke(user.Id, msg);
                     break;
                 case SocketMessageType.MessageSync:
@@ -316,6 +319,7 @@ namespace ZoDream.FileTransfer.Repositories
                         IsSuccess = true,
                     };
                     App.DataHub.AddMessageAsync(user, msg);
+                    user.Message = msg;
                     NewMessage?.Invoke(user.Id, msg);
                     break;
                 case SocketMessageType.MessageUser:
@@ -330,6 +334,7 @@ namespace ZoDream.FileTransfer.Repositories
                         IsSuccess = true,
                     };
                     App.DataHub.AddMessageAsync(user, msg);
+                    user.Message = msg;
                     NewMessage?.Invoke(user.Id, msg);
                     break;
                 case SocketMessageType.MessageAction:

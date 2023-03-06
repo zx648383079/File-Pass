@@ -72,7 +72,7 @@ namespace ZoDream.FileTransfer.Network
                         Buffer.BlockCopy(CacheBuffer, 0, buffer, 0, length);
                         if (sendIp is IPEndPoint o)
                         {
-                            Hub.Emit(o.Address.ToString(), o.Port, buffer);
+                            Hub?.Emit(o.Address.ToString(), o.Port, buffer);
                         }
                     }
                     catch (Exception ex)

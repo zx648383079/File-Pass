@@ -28,9 +28,12 @@ namespace ZoDream.FileTransfer.ViewModels
 			MoreItems.Add(new MessageMoreItem("folder", "发送文件夹", "\ue696"));
 			MoreItems.Add(new MessageMoreItem("sync", "同步文件夹", "\ue67b"));
 			MoreItems.Add(new MessageMoreItem("user", "推荐好友", "\ue751"));
+#if ANDROID || IOS
+			MoreIconVisible = true;
+#endif
         }
 
-        private void ChatHub_MessageUpdated(string messageId, MessageTapEvent eventType, object data)
+        private void ChatHub_MessageUpdated(string messageId, MessageTapEvent eventType, object? data)
         {
 			if (string.IsNullOrWhiteSpace(messageId) || eventType != MessageTapEvent.Withdraw)
 			{
@@ -135,12 +138,16 @@ namespace ZoDream.FileTransfer.ViewModels
 
 		public ICommand MessageCommand { get; private set; }
 
-        private async Task TapMessageAsync(MessageTapEventArg arg)
+        private async Task TapMessageAsync(MessageTapEventArg? arg)
 		{
+			if (arg  == null)
+			{
+				return;
+			}
 			var hub = App.Repository.ChatHub;
             switch (arg.EventType) {
 				case MessageTapEvent.Cancel:
-					await hub.CancelMessageAsync(User, arg.Data);
+					await hub.CancelMessageAsync(User, arg.Data!);
 					break;
 				case MessageTapEvent.Confirm:
 					if (arg.Data is UserMessageItem u)
@@ -156,7 +163,7 @@ namespace ZoDream.FileTransfer.ViewModels
 							return;
                         }
                         var folder = StoragePicker.SelectedItem;
-						if (folder != null)
+						if (folder == null)
 						{
 							return;
 						}
@@ -171,7 +178,7 @@ namespace ZoDream.FileTransfer.ViewModels
                     }
                     break;
 				case MessageTapEvent.Withdraw:
-					if (!arg.Data.IsSender)
+					if (!arg.Data!.IsSender)
 					{
 						break;
 					}
@@ -187,9 +194,9 @@ namespace ZoDream.FileTransfer.ViewModels
 			MoreVisible = !MoreVisible;
 		}
 
-        private async Task TapMoreButtonAsync(MessageMoreItem button)
+        private async Task TapMoreButtonAsync(MessageMoreItem? button)
 		{
-			switch (button.Name)
+			switch (button?.Name)
 			{
 				case "image":
 				case "file":
@@ -213,13 +220,6 @@ namespace ZoDream.FileTransfer.ViewModels
 			{
 				return;
 			}
-			MessageItems.Add(new TextMessageItem()
-			{
-				IsSender = true,
-				Content = content,
-				CreatedAt = DateTime.Now,
-				IsSuccess = false
-			});
 			var message = await App.Repository.ChatHub.SendTextAsync(User, Content);
 			MessageItems.Add(message);
 			Content = string.Empty;
@@ -300,11 +300,21 @@ namespace ZoDream.FileTransfer.ViewModels
 
         public void ApplyQueryAttributes(IDictionary<string, object> query)
         {
-            if (query.ContainsKey("user"))
+            if (query.TryGetValue("user", out object? value))
 			{
-				User = App.Repository.ChatHub.Get((string)query["user"]);
-				Title = $"与 {User.Name} 聊天中";
-				_ = LoadMessageAsync();
+				if (value is string uid)
+				{
+                    var user = App.Repository.ChatHub.Get(uid);
+					if (user == null)
+					{
+						Shell.Current.GoToAsync("Home");
+						return;
+					}
+					User = user;
+                    Title = $"与 {User.Name} 聊天中";
+                    _ = LoadMessageAsync();
+                }
+				
 			}
         }
 

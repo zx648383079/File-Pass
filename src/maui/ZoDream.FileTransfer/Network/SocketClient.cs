@@ -57,7 +57,7 @@ namespace ZoDream.FileTransfer.Network
                         IsLoopReceive = false;
                         return;
                     }
-                    if (!ClientSocket.Connected)
+                    if (!Connected)
                     {
                         IsLoopReceive = false;
                         Hub?.Close(this);

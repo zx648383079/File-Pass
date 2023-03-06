@@ -123,7 +123,7 @@ namespace ZoDream.FileTransfer.Repositories
                 await DataHub.InitializeAsync();
             }
             Option = await LoadOptionAsync();
-            Logger.Debug(UserInfoItem.ToStr(Option));
+            // Logger.Debug(UserInfoItem.ToStr(Option));
             NetHub = new SocketHub(Logger);
             await ChatHub.InitializeAsync();
             Booted = true;

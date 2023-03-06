@@ -18,6 +18,9 @@
         </Grid>
     </Shell.TitleView>
     <Grid RowDefinitions="*,Auto,Auto,Auto">
+        <Grid.Padding>
+            <OnIdiom x:TypeArguments="Thickness" Default="0" Phone="0,0,0,10"/>
+        </Grid.Padding>
         <ctl:MessageListView ItemsSource="{Binding MessageItems}" TapCommand="{Binding MessageCommand}"/>
         <FlexLayout BindableLayout.ItemsSource="{Binding MoreItems}" 
                     Grid.Row="1" HeightRequest="48" Direction="Row" 
@@ -33,15 +36,17 @@
             </BindableLayout.ItemTemplate>
         </FlexLayout>
         <Grid Grid.Row="2" ColumnDefinitions="*,auto,auto">
-            <Entry Text="{Binding Content,Mode=TwoWay}"/>
+            <Entry Text="{Binding Content,Mode=TwoWay}" ReturnCommand="{Binding SendCommand}"/>
             <Button Text="&#xe6ea;" Command="{Binding SendCommand}" SemanticProperties.Hint="发送新消息" 
                     Style="{StaticResource BodyIconBtn}" Grid.Column="1"/>
-            <Button Text="&#xe674;" SemanticProperties.Hint="更多操作" IsVisible="{Binding MoreIconVisible}"
+            <Button Text="&#xe674;" SemanticProperties.Hint="更多操作" 
+                    IsVisible="{Binding MoreIconVisible}"
                     Style="{StaticResource BodyIconBtn}"
+                    Command="{Binding MoreCommand}"
                     Grid.Column="2"/>
         </Grid>
         <FlexLayout BindableLayout.ItemsSource="{Binding MoreItems}" 
-                    Grid.Row="3" HeightRequest="80" Direction="Row"
+                    Grid.Row="3" HeightRequest="160" Direction="Row"
                     Wrap="Wrap"
                     IsVisible="{Binding MoreVisible}">
             <BindableLayout.ItemTemplate>
@@ -49,6 +54,9 @@
                     <Button Text="{Binding Icon}" 
                             SemanticProperties.Hint="{Binding Label}" 
                             Style="{StaticResource BodyIconBtn}" 
+                            HeightRequest="80"
+                            WidthRequest="80"
+                            FontSize="40"
                             Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ChatViewModel}}, Path=MoreButtonCommand}"      
                             CommandParameter="{Binding}"/>
                 </DataTemplate>

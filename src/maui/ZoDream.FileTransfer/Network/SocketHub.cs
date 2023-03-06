@@ -41,6 +41,7 @@ namespace ZoDream.FileTransfer.Network
                 return;
             }
             ClientItems.Add(client);
+            client.Hub = this;
             client.LoopReceive();
         }
 
@@ -284,7 +285,8 @@ namespace ZoDream.FileTransfer.Network
         public static MessageEventArg RenderReceivePack(SocketClient client, SocketMessageType? type)
         {
             type ??= client.ReceiveMessageType();
-            var isRequest = client.ReceiveBool();
+            // 请注意有些事件是没有isRequest 这个参数的，
+            var isRequest = type != SocketMessageType.Ip && client.ReceiveBool();
             var pack = RenderUnpack(type);
             if (pack is IMessageUnpackStream o)
             {

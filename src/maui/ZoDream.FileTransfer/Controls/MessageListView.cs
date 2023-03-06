@@ -70,7 +70,9 @@ public class MessageListView : ContentView
             return;
         }
         BindListener();
-        RefreshView();
+        MainThread.BeginInvokeOnMainThread(() => {
+            RefreshView();
+        });
 	}
 
     private void RefreshView()
