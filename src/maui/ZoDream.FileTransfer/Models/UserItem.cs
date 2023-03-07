@@ -90,6 +90,7 @@ namespace ZoDream.FileTransfer.Models
                 {
                     return;
                 }
+                UnreadCount++;
                 LastMessage = msg;
                 LastAt = value.CreatedAt;
             }

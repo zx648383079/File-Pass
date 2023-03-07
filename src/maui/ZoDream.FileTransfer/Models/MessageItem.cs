@@ -1,9 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using ZoDream.FileTransfer.Network;
+﻿using ZoDream.FileTransfer.Network;
+using ZoDream.FileTransfer.Network.Messages;
 
 namespace ZoDream.FileTransfer.Models
 {
@@ -33,6 +29,16 @@ namespace ZoDream.FileTransfer.Models
         public virtual string ToShortMessage()
         {
             return string.Empty;
+        }
+
+        public virtual void ReadFrom(IMessageUnpack data) 
+        {
+
+        }
+
+        public virtual IMessagePack? WriteTo()
+        {
+            return null;
         }
     }
 
@@ -68,6 +74,22 @@ namespace ZoDream.FileTransfer.Models
         public override string ToShortMessage()
         {
             return Content;
+        }
+
+        public override void ReadFrom(IMessageUnpack data)
+        {
+            if (data is TextMessage m)
+            {
+                Content = m.Data;
+            }
+        }
+
+        public override IMessagePack? WriteTo()
+        {
+            return new TextMessage()
+            {
+                Data = Content
+            };
         }
     }
 
@@ -156,6 +178,26 @@ namespace ZoDream.FileTransfer.Models
         {
             return "[文件]";
         }
+
+        public override void ReadFrom(IMessageUnpack data)
+        {
+            if (data is FileMessage m)
+            {
+                FileName = m.FileName;
+                Size = m.Length;
+                Id = m.MessageId;
+            }
+        }
+
+        public override IMessagePack? WriteTo()
+        {
+            return new FileMessage()
+            {
+                FileName = FileName,
+                Length = Size,
+                MessageId = Id
+            };
+        }
     }
 
     public class FolderMessageItem : FileMessageItem
@@ -165,10 +207,30 @@ namespace ZoDream.FileTransfer.Models
         {
             return "[文件夹]";
         }
+
+        public override void ReadFrom(IMessageUnpack data)
+        {
+            if (data is FileMessage m)
+            {
+                FolderName = m.FileName;
+                Id = m.MessageId;
+            }
+        }
+
+        public override IMessagePack? WriteTo()
+        {
+            return new FileMessage()
+            {
+                FileName = FolderName,
+                MessageId = Id
+            };
+        }
     }
 
     public class SyncMessageItem : FolderMessageItem
     {
+
+        
     }
 
     public class UserMessageItem: MessageItem
@@ -178,6 +240,23 @@ namespace ZoDream.FileTransfer.Models
         public override string ToShortMessage()
         {
             return $"[推荐用户]";
+        }
+
+        public override void ReadFrom(IMessageUnpack data)
+        {
+            if (data is UserMessage m)
+            {
+                Data = m.Data;
+            }
+        }
+
+        public override IMessagePack? WriteTo()
+        {
+            return new UserMessage()
+            {
+                Data = Data,
+                
+            };
         }
     }
 

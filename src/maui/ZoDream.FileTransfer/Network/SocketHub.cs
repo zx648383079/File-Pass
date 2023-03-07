@@ -164,7 +164,7 @@ namespace ZoDream.FileTransfer.Network
         /// <param name="message"></param>
         /// <returns>是否发送成功，udp无法判断默认返回true</returns>
         public async Task<bool> SendAsync(IUser user, SocketMessageType type,
-            IMessagePack message)
+            IMessagePack? message)
         {
             return await SendAsync(user.Ip, user.Port, type, true, message);
         }

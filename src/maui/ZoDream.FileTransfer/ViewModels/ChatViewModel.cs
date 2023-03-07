@@ -1,6 +1,5 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Microsoft.Maui.Controls;
 using System.Collections.ObjectModel;
 using System.Windows.Input;
 using ZoDream.FileTransfer.Controls;
@@ -311,6 +310,7 @@ namespace ZoDream.FileTransfer.ViewModels
 						return;
 					}
 					User = user;
+					User.UnreadCount = 0;
                     Title = $"与 {User.Name} 聊天中";
                     _ = LoadMessageAsync();
                 }

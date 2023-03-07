@@ -187,9 +187,12 @@ namespace ZoDream.FileTransfer.Repositories
         private void NetHub_MessageReceived(SocketClient? client, string ip, int port, MessageEventArg message)
         {
             var user = Get(ip, port);
+            if (user != null)
+            {
+                user.Online = true;
+            }
             App.Logger.Debug($"Receive<ip[{ip}:{port}]user[{user?.Name}]>:{message.EventType}->{message.IsRequest}");
             var net = App.NetHub;
-            MessageItem? msg = null; 
             switch (message.EventType)
             {
                 case SocketMessageType.Ping:
@@ -244,98 +247,13 @@ namespace ZoDream.FileTransfer.Repositories
                     }
                     break;
                 case SocketMessageType.MessageText:
-                    msg = new TextMessageItem()
-                    {
-                        UserId = user!.Id,
-                        ReceiveId = App.Option.Id,
-                        Content = (message.Data as TextMessage)!.Data,
-                        IsSender = false,
-                        CreatedAt = DateTime.Now,
-                        IsSuccess = true,
-                    };
-                    App.DataHub.AddMessageAsync(user, msg);
-                    user.Message = msg;
-                    NewMessage?.Invoke(user.Id, msg);
-                    break;
                 case SocketMessageType.Close:
                 case SocketMessageType.MessagePing:
-                    msg = new ActionMessageItem(message.EventType)
-                    {
-                        UserId = user!.Id,
-                        ReceiveId = App.Option.Id,
-                        IsSender = false,
-                        CreatedAt = DateTime.Now,
-                        IsSuccess = true,
-                    };
-                    if (message.EventType == SocketMessageType.MessagePing)
-                    {
-                        App.DataHub.AddMessageAsync(user, msg);
-                    }
-                    NewMessage?.Invoke(user.Id, msg);
-                    break;
                 case SocketMessageType.MessageFile:
-                    var file = message.Data as FileMessage;
-                    msg = new FileMessageItem()
-                    {
-                        Id = file!.MessageId,
-                        UserId = user!.Id,
-                        ReceiveId = App.Option.Id,
-                        FileName = file.FileName,
-                        Size = file.Length,
-                        IsSender = false,
-                        CreatedAt = DateTime.Now,
-                        IsSuccess = true,
-                    };
-                    App.DataHub.AddMessageAsync(user, msg);
-                    user.Message = msg;
-                    NewMessage?.Invoke(user.Id, msg);
-                    break;
                 case SocketMessageType.MessageFolder:
-                    var folder = message.Data as FileMessage;
-                    msg = new FolderMessageItem()
-                    {
-                        Id = folder!.MessageId,
-                        UserId = user!.Id,
-                        ReceiveId = App.Option.Id,
-                        FolderName = folder.FileName,
-                        IsSender = false,
-                        CreatedAt = DateTime.Now,
-                        IsSuccess = true,
-                    };
-                    App.DataHub.AddMessageAsync(user, msg);
-                    user.Message = msg;
-                    NewMessage?.Invoke(user.Id, msg);
-                    break;
                 case SocketMessageType.MessageSync:
-                    var sync = message.Data as FileMessage;
-                    msg = new SyncMessageItem()
-                    {
-                        Id = sync!.MessageId,
-                        UserId = user!.Id,
-                        ReceiveId = App.Option.Id,
-                        FolderName = sync.FileName,
-                        IsSender = false,
-                        CreatedAt = DateTime.Now,
-                        IsSuccess = true,
-                    };
-                    App.DataHub.AddMessageAsync(user, msg);
-                    user.Message = msg;
-                    NewMessage?.Invoke(user.Id, msg);
-                    break;
                 case SocketMessageType.MessageUser:
-                    var u = message.Data as UserMessage;
-                    msg = new UserMessageItem()
-                    {
-                        UserId = user!.Id,
-                        ReceiveId = App.Option.Id,
-                        Data = u!.Data,
-                        IsSender = false,
-                        CreatedAt = DateTime.Now,
-                        IsSuccess = true,
-                    };
-                    App.DataHub.AddMessageAsync(user, msg);
-                    user.Message = msg;
-                    NewMessage?.Invoke(user.Id, msg);
+                    AddMessage(message.EventType, message.Data, user);
                     break;
                 case SocketMessageType.MessageAction:
                     var action = message.Data as ActionMessage;
@@ -376,6 +294,47 @@ namespace ZoDream.FileTransfer.Repositories
                 default:
                     break;
             }
+        }
+
+        private void AddMessage(SocketMessageType type, IMessageUnpack? data, IUser? user)
+        {
+            if (user is null || data is null)
+            {
+                return;
+            }
+            var msg = RenderMessage(type);
+            if (msg is null)
+            {
+                return;
+            }
+            msg.UserId = user.Id;
+            msg.ReceiveId = App.Option.Id;
+            msg.IsSender = false;
+            msg.CreatedAt = DateTime.Now;
+            msg.IsSuccess = true;
+            msg.ReadFrom(data);
+            if (type != SocketMessageType.Close)
+            {
+                App.DataHub.AddMessageAsync(user, msg);
+            }
+            if (user is UserItem u)
+            {
+                u.Message = msg;
+            }
+            NewMessage?.Invoke(user.Id, msg);
+        }
+
+        private static MessageItem? RenderMessage(SocketMessageType type)
+        {
+            return type switch
+            {
+                SocketMessageType.MessageText => new TextMessageItem(),
+                SocketMessageType.MessageFile => new FileMessageItem(),
+                SocketMessageType.MessageFolder => new FolderMessageItem(),
+                SocketMessageType.MessageSync => new SyncMessageItem(),
+                SocketMessageType.MessagePing or SocketMessageType.Close => new ActionMessageItem(type),
+                _ => null,
+            };
         }
 
         public void AddConfirmMessage(MessageItem message)
@@ -470,7 +429,7 @@ namespace ZoDream.FileTransfer.Repositories
         public void RemoveConfirmMessage(MessageItem message)
         {
             ConfirmItems.Remove(message.Id);
-            if (LinkItems.TryGetValue(message.Id, out IMessageSocket value))
+            if (LinkItems.TryGetValue(message.Id, out IMessageSocket? value))
             {
                 value.Dispose();
                 LinkItems.Remove(message.Id);
@@ -498,10 +457,9 @@ namespace ZoDream.FileTransfer.Repositories
                 CreatedAt = DateTime.Now,
                 IsSuccess = false
             };
-            message.IsSuccess = await App.NetHub.SendAsync(user, SocketMessageType.MessageText, new TextMessage()
-            {
-                Data = content,
-            });
+            message.IsSuccess = await App.NetHub.SendAsync(user, 
+                SocketMessageType.MessageText, 
+                message.WriteTo());
             _ = App.DataHub.AddMessageAsync(user, message);
             return message;
         }
@@ -516,7 +474,8 @@ namespace ZoDream.FileTransfer.Repositories
                 CreatedAt = DateTime.Now,
                 IsSuccess = false
             };
-            message.IsSuccess = await App.NetHub.SendAsync(user, SocketMessageType.Ping, null);
+            message.IsSuccess = await App.NetHub.SendAsync(user, SocketMessageType.Ping,
+                message.WriteTo());
             _ = App.DataHub.AddMessageAsync(user, message);
             return message;
         }
@@ -535,13 +494,8 @@ namespace ZoDream.FileTransfer.Repositories
                 CreatedAt = DateTime.Now,
                 IsSuccess = false
             };
-            message.IsSuccess = await App.NetHub.SendAsync(user, SocketMessageType.MessageFile, 
-                new FileMessage()
-            {
-                FileName = message.FileName,
-                MessageId = message.Id,
-                Length = message.Size
-            });
+            message.IsSuccess = await App.NetHub.SendAsync(user, SocketMessageType.MessageFile,
+                message.WriteTo());
             _ = App.DataHub.AddMessageAsync(user, message);
             AddConfirmMessage(message);
             return message;
@@ -563,12 +517,7 @@ namespace ZoDream.FileTransfer.Repositories
             };
             message.IsSuccess = await App.NetHub.SendAsync(user, 
                 SocketMessageType.MessageFolder,
-                new FileMessage()
-                {
-                    FileName = message.FileName,
-                    MessageId = message.Id,
-                    Length = 0
-                });
+                message.WriteTo());
             _ = App.DataHub.AddMessageAsync(user, message);
             AddConfirmMessage(message);
             return message;
@@ -590,12 +539,7 @@ namespace ZoDream.FileTransfer.Repositories
             };
             message.IsSuccess = await App.NetHub.SendAsync(user,
                 SocketMessageType.MessageSync,
-                new FileMessage()
-                {
-                    FileName = message.FileName,
-                    MessageId = message.Id,
-                    Length = 0
-                });
+                message.WriteTo());
             _ = App.DataHub.AddMessageAsync(user, message);
             AddConfirmMessage(message);
             return message;
@@ -615,10 +559,7 @@ namespace ZoDream.FileTransfer.Repositories
             };
             message.IsSuccess = await App.NetHub.SendAsync(user,
                 SocketMessageType.MessageUser,
-                new UserMessage()
-                {
-                    Data = data
-                });
+                message.WriteTo());
             _ = App.DataHub.AddMessageAsync(user, message);
             return message;
         }

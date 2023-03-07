@@ -192,14 +192,18 @@ public class MessageListView : ContentView
         }
     }
 
-    private void Obj_PropertyChanged(object sender, PropertyChangedEventArgs e)
+    private void Obj_PropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        RefreshView();
+        MainThread.BeginInvokeOnMainThread(() => {
+            RefreshView();
+        });
     }
 
-    private void Obj_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
+    private void Obj_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
-        RefreshView();
+        MainThread.BeginInvokeOnMainThread(() => {
+            RefreshView();
+        });
     }
 
 }
