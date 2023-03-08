@@ -69,22 +69,28 @@ namespace ZoDream.FileTransfer.Repositories
 
         public async Task<IList<MessageItem>> GetMessagesAsync(string userId)
         {
-            var items = await ReadAsync<IList<MessageItem>>(
+            return (await GetMessageDataAsync(userId)).Select(i => i.ReadFrom()).ToList();
+        }
+
+        public async Task<IList<MessageFormatItem>> GetMessageDataAsync(string userId)
+        {
+            var items = await ReadAsync<IList<MessageFormatItem>>(
                 $"{Constants.MESSAGE_FOLDER}/{userId}.db"
                 );
-            return items ?? new List<MessageItem>();
+            return items ?? new List<MessageFormatItem>();
         }
 
         public async Task RemoveMessageAsync(MessageItem message)
         {
             var roomId = message.IsSender ? message.ReceiveId : message.UserId;
-            var items = await GetMessagesAsync(roomId);
+            var items = await GetMessageDataAsync(roomId);
             var isUpdated = false;
             for (int i = items.Count - 1; i >= 0; i--)
             {
                 if (
                     (string.IsNullOrEmpty(message.Id) 
-                    && items[i].CreatedAt == message.CreatedAt && message.IsSender == items[i].IsSender) 
+                    && items[i].CreatedAt == message.CreatedAt && 
+                    message.UserId == items[i].UserId && message.ReceiveId == items[i].ReceiveId) 
                     || (!string.IsNullOrEmpty(message.Id) && items[i].Id == message.Id)
                     )
                 {
@@ -150,8 +156,8 @@ namespace ZoDream.FileTransfer.Repositories
 
         public async Task AddMessageAsync(IUser user, MessageItem message) {
             var roomId = message.IsSender ? message.ReceiveId : message.UserId;
-            var items = await GetMessagesAsync(roomId);
-            items.Add(message);
+            var items = await GetMessageDataAsync(roomId);
+            items.Add(MessageFormatItem.WriteTo(message));
             await WriteAsync($"{Constants.MESSAGE_FOLDER}/{roomId}.db", items);
         }
 

@@ -111,42 +111,19 @@ namespace ZoDream.FileTransfer.Repositories
             {
                 while (reader.Read())
                 {
-                    var type = reader.GetInt32(3);
-                    MessageItem message = type switch
+                    var data = new MessageFormatItem()
                     {
-                        1 => new ActionMessageItem()
-                        {
-                            Content = reader.GetString(4),
-                        },
-                        2 => new FileMessageItem()
-                        {
-                            FileName = reader.GetString(4),
-                            Size = reader.GetInt32(5),
-                        },
-                        3 => new FolderMessageItem()
-                        {
-                            FolderName = reader.GetString(4),
-                        },
-                        4 => new SyncMessageItem()
-                        {
-                            FolderName = reader.GetString(4),
-                        },
-                        5 => new UserMessageItem()
-                        {
-                            Data = UserInfoItem.FromStr(reader.GetString(4)),
-                        },
-                        _ => new TextMessageItem()
-                        {
-                            Content = reader.GetString(4),
-                        }
+                        Id = reader.GetString(0),
+                        UserId = reader.GetString(1),
+                        ReceiveId = reader.GetString(2),
+                        Type = reader.GetInt32(3),
+                        Content = reader.GetString(4),
+                        ExtraRule = reader.GetString(5),
+                        Status = reader.GetInt32(6),
+                        CreatedAt = reader.GetDateTime(7),
                     };
-                    var userId = reader.GetString(1);
-                    message.Id = reader.GetString(0);
-                    message.UserId = userId;
-                    message.ReceiveId = reader.GetString(2);
-                    message.IsSender = room.Id != userId;
-                    message.IsSuccess = reader.GetBoolean(6);
-                    message.CreatedAt = reader.GetDateTime(7);
+                    var message = data.ReadFrom();
+                    message.IsSender = room.Id != message.UserId;
                     items.Add(message);
                 }
             }
@@ -218,6 +195,7 @@ namespace ZoDream.FileTransfer.Repositories
         }
 
         public Task AddMessageAsync(IUser user, MessageItem message) {
+            var data = MessageFormatItem.WriteTo(message);
             var command = Connect.CreateCommand();
             command.CommandText =
                 @"INSERT INTO Messages (Id,UserId,ReceiveId,Type,Content,ExtraRule,Status,CreatedAt)
@@ -227,45 +205,9 @@ namespace ZoDream.FileTransfer.Repositories
             command.Parameters.AddWithValue(":receive", message.ReceiveId);
             command.Parameters.AddWithValue(":status", message.IsSuccess);
             command.Parameters.AddWithValue(":now", message.CreatedAt);
-            if (message is ActionMessageItem action)
-            {
-                command.Parameters.AddWithValue(":type", 1);
-                command.Parameters.AddWithValue(":content", action.Content);
-                command.Parameters.AddWithValue(":rule", "");
-            } else if (message is TextMessageItem text)
-            {
-                command.Parameters.AddWithValue(":type", 0);
-                command.Parameters.AddWithValue(":content", text.Content);
-                command.Parameters.AddWithValue(":rule", "");
-            }
-            else if (message is SyncMessageItem sync)
-            {
-                command.Parameters.AddWithValue(":type", 4);
-                command.Parameters.AddWithValue(":content", sync.FolderName);
-                command.Parameters.AddWithValue(":rule", "");
-            }
-            else if (message is FolderMessageItem folder)
-            {
-                command.Parameters.AddWithValue(":type", 3);
-                command.Parameters.AddWithValue(":content", folder.FolderName);
-                command.Parameters.AddWithValue(":rule", "");
-            }
-            else if (message is FileMessageItem file)
-            {
-                command.Parameters.AddWithValue(":type", 2);
-                command.Parameters.AddWithValue(":content", file.FileName);
-                command.Parameters.AddWithValue(":rule", file.Size);
-            }
-            else if (message is UserMessageItem u)
-            {
-                command.Parameters.AddWithValue(":type", 5);
-                command.Parameters.AddWithValue(":content", UserInfoItem.ToStr(u.Data));
-                command.Parameters.AddWithValue(":rule", "");
-            }
-            else
-            {
-                return Task.CompletedTask;
-            }
+            command.Parameters.AddWithValue(":type", data.Type);
+            command.Parameters.AddWithValue(":content", data.Content);
+            command.Parameters.AddWithValue(":rule", data.ExtraRule);
             command.ExecuteNonQuery();
             return Task.CompletedTask;
         }
