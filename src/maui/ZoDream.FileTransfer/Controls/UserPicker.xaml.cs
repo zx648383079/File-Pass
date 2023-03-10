@@ -115,12 +115,12 @@ public partial class UserPicker : ContentView
         }
     }
 
-    private void CloseBtn_Clicked(object sender, EventArgs e)
+    private void CloseBtn_Clicked(object? sender, EventArgs e)
     {
         TapClose();
     }
 
-    private void YesBtn_Clicked(object sender, EventArgs e)
+    private void YesBtn_Clicked(object? sender, EventArgs e)
     {
         TapYes();
     }

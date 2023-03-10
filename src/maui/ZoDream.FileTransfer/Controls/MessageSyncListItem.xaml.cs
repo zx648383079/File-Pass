@@ -49,12 +49,11 @@ public partial class MessageSyncListItem : ContentView
         BindableProperty.Create(nameof(TapCommand), typeof(ICommand),
             typeof(MessageSyncListItem), null);
 
-
-    private BoxView Hr;
-    private ProgressBar SpeedBar;
-    private Label StatusTb;
-    private Button RevBtn;
-    private Button CancelBtn;
+    private BoxView? Hr;
+    private ProgressBar? SpeedBar;
+    private Label? StatusTb;
+    private Button? RevBtn;
+    private Button? CancelBtn;
 
     protected override void OnApplyTemplate()
     {
@@ -74,12 +73,12 @@ public partial class MessageSyncListItem : ContentView
         }
     }
 
-    private void CancelBtn_Clicked(object sender, EventArgs e)
+    private void CancelBtn_Clicked(object? sender, EventArgs e)
     {
         TapCommand?.Execute(new MessageTapEventArg(ItemSource, MessageTapEvent.Cancel));
     }
 
-    private void RevBtn_Clicked(object sender, EventArgs e)
+    private void RevBtn_Clicked(object? sender, EventArgs e)
     {
         TapCommand?.Execute(new MessageTapEventArg(ItemSource, MessageTapEvent.Confirm));
     }
@@ -96,9 +95,10 @@ public partial class MessageSyncListItem : ContentView
                     0, 0);
         ItemSource.PropertyChanged -= ItemSource_PropertyChanged;
         ItemSource.PropertyChanged += ItemSource_PropertyChanged;
+        ChangeStatus();
     }
 
-    private void ItemSource_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+    private void ItemSource_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
         switch (e.PropertyName)
         {
@@ -108,8 +108,8 @@ public partial class MessageSyncListItem : ContentView
             case nameof(ItemSource.Progress):
                 if (ItemSource.Status == FileMessageStatus.Transferring)
                 {
-                    SpeedBar.Progress = ItemSource.Progress / ItemSource.Size;
-                    StatusTb.Text = $"{ItemSource.FileName}\n{Disk.FormatSize(ItemSource.Speed)}/s {Disk.FormatSize(ItemSource.Progress)}/{Disk.FormatSize(ItemSource.Size)}";
+                    SpeedBar!.Progress = ItemSource.Progress / ItemSource.Size;
+                    StatusTb!.Text = $"{ItemSource.FileName}\n{Disk.FormatSize(ItemSource.Speed)}/s {Disk.FormatSize(ItemSource.Progress)}/{Disk.FormatSize(ItemSource.Size)}";
                 }
                 break;
             default:
@@ -120,11 +120,11 @@ public partial class MessageSyncListItem : ContentView
     private void ChangeStatus()
     {
         var status = ItemSource.Status;
-        Hr.IsVisible = status != FileMessageStatus.Transferring;
-        SpeedBar.IsVisible = status == FileMessageStatus.Transferring;
-        StatusTb.IsVisible = status != FileMessageStatus.None;
-        RevBtn.IsVisible = status == FileMessageStatus.None;
-        CancelBtn.IsVisible = status == FileMessageStatus.None ||
+        Hr!.IsVisible = status != FileMessageStatus.Transferring;
+        SpeedBar!.IsVisible = status == FileMessageStatus.Transferring;
+        StatusTb!.IsVisible = status != FileMessageStatus.None;
+        RevBtn!.IsVisible = status == FileMessageStatus.None && !ItemSource.IsSender;
+        CancelBtn!.IsVisible = status == FileMessageStatus.None ||
             status == FileMessageStatus.Transferring;
         switch (ItemSource.Status)
         {

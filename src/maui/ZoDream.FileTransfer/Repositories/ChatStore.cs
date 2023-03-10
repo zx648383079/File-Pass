@@ -19,7 +19,7 @@ namespace ZoDream.FileTransfer.Repositories
 
         private readonly AppRepository App;
 
-        public IList<UserItem> UserItems { get; private set; }
+        public IList<UserItem> UserItems { get; private set; } = new List<UserItem>();
         /// <summary>
         /// 以确认的消息，允许后台进行操作，例如文件接收和发送
         /// </summary>

@@ -64,5 +64,6 @@
         </FlexLayout>
         <ctl:StoragePicker x:Name="FilePicker" Grid.RowSpan="4"/>
         <ctl:UserPicker x:Name="UserPicker" Grid.RowSpan="4"/>
+        <ctl:NotifyDialog Grid.RowSpan="4"/>
     </Grid>
 </ContentPage>

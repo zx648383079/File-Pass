@@ -38,7 +38,7 @@
                             </DataTemplate>
                         </CollectionView.ItemTemplate>
                     </CollectionView>
-                    <Grid ColumnDefinitions="*,auto" Grid.Row="2" IsVisible="{TemplateBinding IsCheckable}">
+                    <Grid ColumnDefinitions="*,auto" Grid.Row="2">
                         <Button x:Name="PART_YesBtn" Text="确定"  Grid.Column="1"/>
                     </Grid>
                 </Grid>

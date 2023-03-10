@@ -16,12 +16,12 @@ namespace ZoDream.FileTransfer.Network
         }
 
         private readonly SocketClient Link;
-        private string Name;
+        private readonly string Name;
         private readonly string FileName;
         public event MessageProgressEventHandler? OnProgress;
         public event MessageCompletedEventHandler? OnCompleted;
         public string MessageId { get; private set; }
-        private CancellationTokenSource TokenSource = new();
+        private readonly CancellationTokenSource TokenSource = new();
 
         public void Dispose()
         {
@@ -52,11 +52,18 @@ namespace ZoDream.FileTransfer.Network
         {
             var token = TokenSource.Token;
             return Task.Factory.StartNew(() => {
-                Link.ReceiveFile(FileName, true, (name, _, p, t) => {
-                    OnProgress?.Invoke(MessageId, name, p, t);
-                }, (name, _, isSuccess) => {
-                    OnCompleted?.Invoke(MessageId, name, isSuccess != false);
-                }, token);
+                try
+                {
+                    Link.ReceiveFile(FileName, true, (name, _, p, t) => {
+                        OnProgress?.Invoke(MessageId, name, p, t);
+                    }, (name, _, isSuccess) => {
+                        OnCompleted?.Invoke(MessageId, name, isSuccess != false);
+                    }, token);
+                }
+                catch (Exception ex)
+                {
+                    App.Repository.Logger.Error(ex.Message);
+                }
                 // 线程由接收方结束
                 App.Repository.NetHub.Close(Link);
             }, token);

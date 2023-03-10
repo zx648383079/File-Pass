@@ -121,7 +121,7 @@ namespace ZoDream.FileTransfer.Models
             }
         }
 
-        private FileMessageStatus status;
+        private FileMessageStatus status = FileMessageStatus.None;
 
         public FileMessageStatus Status
         {
