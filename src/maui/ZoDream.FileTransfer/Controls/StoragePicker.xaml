@@ -38,8 +38,10 @@
                             </DataTemplate>
                         </CollectionView.ItemTemplate>
                     </CollectionView>
-                    <Grid ColumnDefinitions="*,auto" Grid.Row="2" IsVisible="{TemplateBinding IsCheckable}">
-                        <Button x:Name="PART_YesBtn" Text="确定"  Grid.Column="1"/>
+                    <Grid ColumnDefinitions="*,auto,auto" Grid.Row="2" IsVisible="{TemplateBinding IsCheckable}">
+                        <Button x:Name="PART_CurrentBtn" Text="选择当前文件夹"  
+                                Grid.Column="1" IsVisible="{TemplateBinding IsFolderPicker}"/>
+                        <Button x:Name="PART_YesBtn" Text="确定"  Grid.Column="2"/>
                     </Grid>
                 </Grid>
             </Grid>

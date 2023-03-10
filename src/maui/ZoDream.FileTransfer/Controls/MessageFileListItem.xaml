@@ -20,7 +20,7 @@
                             <Label Text="{TemplateBinding ItemSource.Size,Converter={StaticResource SizeCvt}}" Grid.Column="1"/>
                         </Grid>
                         <BoxView x:Name="PART_Hr" Color="Gray" HeightRequest="2" HorizontalOptions="Fill"/>
-                        <ProgressBar x:Name="PART_ProgressBar" Progress=".5" IsVisible="false"/>
+                        <ProgressBar x:Name="PART_ProgressBar" Progress=".5" HeightRequest="5" IsVisible="false"/>
                         <Grid ColumnDefinitions="*,*">
                             <Label x:Name="PART_StatusTb" Text="已取消" IsVisible="false"/>
                             <Button x:Name="PART_RevBtn" Text="接收" CornerRadius="0" IsVisible="false"/>

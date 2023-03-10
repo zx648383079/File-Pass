@@ -40,9 +40,15 @@ namespace ZoDream.FileTransfer.ViewModels
 			}
 			for (int i = MessageItems.Count - 1; i >= 0; i--)
 			{
-				if (MessageItems[i].Id == messageId && !MessageItems[i].IsSender)
+				if (MessageItems[i].Id == messageId)
 				{
-					MessageItems.RemoveAt(i);
+					if (eventType == MessageTapEvent.Withdraw && !MessageItems[i].IsSender)
+					{
+                        MessageItems.RemoveAt(i);
+                    } else if (eventType == MessageTapEvent.Cancel && MessageItems[i] is FileMessageItem file)
+					{
+						file.Status = FileMessageStatus.Canceled;
+					}
 				}
 			}
         }
@@ -327,6 +333,10 @@ namespace ZoDream.FileTransfer.ViewModels
 			}
             foreach (var item in items)
             {
+				if (item is FileMessageItem file)
+				{
+					file.Status = FileMessageStatus.Canceled;
+				}
 				MessageItems.Add(item);
             }
 			

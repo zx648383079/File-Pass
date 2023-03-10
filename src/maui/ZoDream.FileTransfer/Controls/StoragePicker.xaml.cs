@@ -1,9 +1,7 @@
 using CommunityToolkit.Mvvm.Input;
-using System.Collections;
 using System.Text.RegularExpressions;
 using System.Windows.Input;
 using ZoDream.FileTransfer.Models;
-using ZoDream.FileTransfer.ViewModels;
 
 namespace ZoDream.FileTransfer.Controls;
 
@@ -112,13 +110,13 @@ public partial class StoragePicker : ContentView
             new List<FilePickerOption>());
 
     private bool Result = false;
-    private Grid InnerPanel;
-    private List<string> Histories = new();
+    private Grid? InnerPanel;
+    private readonly List<FilePickerOption> Histories = new();
     public ICommand SelectedCommand { get; private set; }
 
-    public FilePickerOption SelectedItem {
+    public FilePickerOption? SelectedItem {
         get {
-            if (Items is null)
+            if (Items is null || Items.Count == 0)
             {
                 return null;
             }
@@ -139,29 +137,9 @@ public partial class StoragePicker : ContentView
         }
     }
 
-    public IList<FilePickerOption> SelectedItems {
-        get {
-            var items = new List<FilePickerOption>();
-            if (Items is null)
-            {
-                return items;
-            }
-            foreach (var item in Items)
-            {
-                if (!item.IsChecked)
-                {
-                    continue;
-                }
-                if (
-                    IsFolderPicker != item.IsFolder)
-                {
-                    continue;
-                }
-                items.Add(item);
-            }
-            return items;
-        }
-    }
+    public List<FilePickerOption> SelectedItems { get; private set; } = new();
+
+   
 
     public Task<bool> ShowAsync()
     {
@@ -181,6 +159,8 @@ public partial class StoragePicker : ContentView
         });
     }
 
+
+    
     protected override void OnApplyTemplate()
     {
         base.OnApplyTemplate();
@@ -200,7 +180,47 @@ public partial class StoragePicker : ContentView
         {
             backBtn.Clicked += BackBtn_Clicked;
         }
+        if (GetTemplateChild("PART_CurrentBtn") is Button currentBtn)
+        {
+            currentBtn.Clicked += CurrentBtn_Clicked;
+        }
     }
+
+    private void CurrentBtn_Clicked(object? sender, EventArgs e)
+    {
+        if (Histories.Count == 0 || !IsFolderPicker)
+        {
+            return;
+        }
+        SelectedItems.Clear();
+        SelectedItems.Add(Histories.Last());
+        Result = true;
+        IsOpen = false;
+        ConfirmCommand?.Execute(IsMultiple ? SelectedItems : SelectedItem);
+    }
+
+    private void UpdateSelectedItems()
+    {
+        SelectedItems.Clear();
+        if (Items is null)
+        {
+            return;
+        }
+        foreach (var item in Items)
+        {
+            if (!item.IsChecked)
+            {
+                continue;
+            }
+            if (
+                IsFolderPicker != item.IsFolder)
+            {
+                continue;
+            }
+            SelectedItems.Add(item);
+        }
+    }
+
     private void ToggleOpen(bool oldVal, bool newVal)
     {
 
@@ -215,33 +235,38 @@ public partial class StoragePicker : ContentView
         }
     }
 
-    private void BackBtn_Clicked(object sender, EventArgs e)
+    private void BackBtn_Clicked(object? sender, EventArgs e)
     {
         TapBack();
     }
 
-    private void CloseBtn_Clicked(object sender, EventArgs e)
+    private void CloseBtn_Clicked(object? sender, EventArgs e)
     {
         TapClose();
     }
 
-    private void YesBtn_Clicked(object sender, EventArgs e)
+    private void YesBtn_Clicked(object? sender, EventArgs e)
     {
         TapYes();
     }
 
     public void TapYes()
     {
+        UpdateSelectedItems();
         Result = true;
         IsOpen = false;
         ConfirmCommand?.Execute(IsMultiple ? SelectedItems : SelectedItem);
     }
 
-    private void TapSelected(FilePickerOption item)
+    private void TapSelected(FilePickerOption? item)
     {
+        if (item == null)
+        {
+            return;
+        }
         if (item.IsFolder)
         {
-            Histories.Add(item.Name);
+            Histories.Add(item);
             LoadFile();
             return;
         }
@@ -256,6 +281,7 @@ public partial class StoragePicker : ContentView
 
     private void TapClose()
     {
+        SelectedItems.Clear();
         IsOpen = false;
         Result = true;
     }
@@ -271,79 +297,42 @@ public partial class StoragePicker : ContentView
 
     private void LoadFile()
     {
+        Items.Clear();
         if (Histories.Count < 1)
         {
             Title = "设备和驱动器";
             CanBackable = false;
-            Items = LoadDrivers();
+            _ = LoadDriverAsync();
             return;
         }
         CanBackable = true;
-        var path = Path.Combine(Histories.ToArray());
-        Title = Histories.Last().Length > 20 ?
-            Histories.Last()[..20] + "..." :
+        var last = Histories.Last();
+        var path = string.Join("/", Histories.Select(i => i.Name));
+        Title = last.Name.Length > 20 ?
+            last.Name[..20] + "..." :
             path.Length > 20 ? string.Concat("...", path.AsSpan(path.Length - 20)) : path;
-        _ = LoadFileAsync(path);
+        
+        _ = LoadFileAsync(last.FileName);
+    }
+
+    private async Task LoadDriverAsync()
+    {
+        var items = await App.Repository.Storage.LoadDriverAsync();
+        MainThread.BeginInvokeOnMainThread(() => {
+            Items = items;
+        });
     }
 
     private async Task LoadFileAsync(string path)
     {
         var filter = IsFolderPicker || string.IsNullOrWhiteSpace(Filter) ? null : new Regex(Filter);
-        var items = await GetFileAsync(path, IsFolderPicker,
+        var items = await App.Repository.Storage.GetFilesAsync(path, IsFolderPicker,
             filter);
         MainThread.BeginInvokeOnMainThread(() => {
             Items = items;
         });
     }
 
-    private IList<FilePickerOption> LoadDrivers()
-    {
-        var data = new List<FilePickerOption>();
-        var items = Environment.GetLogicalDrives();
-        foreach (var item in items)
-        {
-            data.Add(new FilePickerOption()
-            {
-                FileName = item,
-                Name = item[..(item.Length - 1)],
-                IsFolder = true,
-            });
-        }
-        return data;
-    }
 
-    private Task<List<FilePickerOption>> GetFileAsync(string folder, bool isFolder, Regex filter)
-    {
-        return Task.Factory.StartNew(() => {
-            var files = new List<FilePickerOption>();
-            var folders = new List<FilePickerOption>();
-            var dir = new DirectoryInfo(folder);
-            var items = isFolder ? dir.GetDirectories() : dir.GetFileSystemInfos();
-            foreach (var i in items)
-            {
-                if (i is DirectoryInfo)     //判断是否文件夹
-                {
-                    folders.Add(new FilePickerOption()
-                    {
-                        Name = i.Name,
-                        IsFolder = true,
-                        FileName = i.FullName,
-                    });
-                    continue;
-                }
-                if (filter is not null && !filter.IsMatch(i.Name))
-                {
-                    continue;
-                }
-                files.Add(new FilePickerOption()
-                {
-                    Name = i.Name,
-                    IsFolder = false,
-                    FileName = i.FullName,
-                });
-            }
-            folders.AddRange(files);
-            return folders;
-        });
-    }
+    
 }

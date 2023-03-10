@@ -19,13 +19,14 @@ public class MessageListView : ContentView
             BackgroundColor = Colors.Gray,
             Padding = new Thickness(20)
         };
-		Content = new ScrollView()
+		Content = ScrollBar = new ScrollView()
         {
             Content = InnerPanel
         };
 	}
 
     private VerticalStackLayout InnerPanel;
+    private ScrollView ScrollBar;
 
     public int MaxTime
     {
@@ -48,7 +49,7 @@ public class MessageListView : ContentView
 	public static readonly BindableProperty ItemsSourceProperty =
         BindableProperty.Create(nameof(ItemsSource), typeof(IEnumerable<MessageItem>), typeof(MessageListView), null, BindingMode.OneWay, null, (d, newVal, oldVal) =>
 		{
-			(d as MessageListView).OnItemsSourceChanged();
+			(d as MessageListView)?.OnItemsSourceChanged();
 		});
 
 
@@ -104,6 +105,7 @@ public class MessageListView : ContentView
             InnerPanel.Children.Add(ele);
             beforeMessage = true;
         }
+        ScrollBar.ScrollToAsync(0, InnerPanel.Height, false);
     }
 
     private View CreateTip(string value)

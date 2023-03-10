@@ -434,6 +434,10 @@ namespace ZoDream.FileTransfer.Repositories
                 value.Dispose();
                 LinkItems.Remove(message.Id);
             }
+            if (message is FileMessageItem file)
+            {
+                file.Status = FileMessageStatus.Canceled;
+            }
         }
 
         #region 发送消息

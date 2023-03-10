@@ -1,9 +1,5 @@
-﻿using Microsoft.Maui.Storage;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Text.RegularExpressions;
+using ZoDream.FileTransfer.Models;
 using ZoDream.FileTransfer.Utils;
 
 namespace ZoDream.FileTransfer.Repositories 
@@ -172,6 +168,118 @@ namespace ZoDream.FileTransfer.Repositories
                 return false;
             }
             return Disk.GetMD5(fileName) != md5;
+        }
+
+        /// <summary>
+        /// 获取系统盘符
+        /// </summary>
+        /// <returns></returns>
+        public Task<List<FilePickerOption>> LoadDriverAsync()
+        {
+            return Task.Factory.StartNew(() => {
+                var data = new List<FilePickerOption>();
+#if WINDOWS
+               var items = Environment.GetLogicalDrives();
+                foreach (var item in items)
+                {
+                    data.Add(new FilePickerOption()
+                    {
+                        FileName = item,
+                        Name = item[..(item.Length - 1)],
+                        IsFolder = true,
+                    });
+                }
+#endif
+
+#if ANDROID
+                var downloadFolder = Android.OS.Environment.GetExternalStoragePublicDirectory(Android.OS.Environment.DirectoryDownloads);
+                if (downloadFolder is not null)
+                {
+                    data.Add(new FilePickerOption()
+                    {
+                        FileName = downloadFolder.AbsolutePath,
+                        Name = "下载",
+                        IsFolder = true,
+                    });
+                }
+#endif
+                data.Add(new FilePickerOption()
+                {
+                    FileName = Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
+                    Name = "桌面",
+                    IsFolder = true,
+                });
+                var docFolder = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+                data.Add(new FilePickerOption()
+                {
+                    FileName = docFolder,
+                    Name = "文档",
+                    IsFolder = true,
+                });
+                data.Add(new FilePickerOption()
+                {
+                    FileName = Environment.GetFolderPath(Environment.SpecialFolder.MyMusic),
+                    Name = "音乐",
+                    IsFolder = true,
+                });
+                data.Add(new FilePickerOption()
+                {
+                    FileName = Environment.GetFolderPath(Environment.SpecialFolder.MyVideos),
+                    Name = "视频",
+                    IsFolder = true,
+                });
+                data.Add(new FilePickerOption()
+                {
+                    FileName = Environment.GetFolderPath(Environment.SpecialFolder.MyPictures),
+                    Name = "图片",
+                    IsFolder = true,
+                });
+#if WINDOWS
+                data.Add(new FilePickerOption()
+                {
+                    FileName = Path.Combine(Path.GetDirectoryName(docFolder)!, "Downloads"),
+                    Name = "下载",
+                    IsFolder = true,
+                });
+#endif
+                return data;
+            });
+        }
+
+        public Task<List<FilePickerOption>> GetFilesAsync(string folder, bool isFolder, 
+            Regex? filter)
+        {
+            return Task.Factory.StartNew(() => {
+                var files = new List<FilePickerOption>();
+                var folders = new List<FilePickerOption>();
+                var dir = new DirectoryInfo(folder);
+                var items = isFolder ? dir.GetDirectories() : dir.GetFileSystemInfos();
+                foreach (var i in items)
+                {
+                    if (i is DirectoryInfo)     //判断是否文件夹
+                    {
+                        folders.Add(new FilePickerOption()
+                        {
+                            Name = i.Name,
+                            IsFolder = true,
+                            FileName = i.FullName,
+                        });
+                        continue;
+                    }
+                    if (filter is not null && !filter.IsMatch(i.Name))
+                    {
+                        continue;
+                    }
+                    files.Add(new FilePickerOption()
+                    {
+                        Name = i.Name,
+                        IsFolder = false,
+                        FileName = i.FullName,
+                    });
+                }
+                folders.AddRange(files);
+                return folders;
+            });
         }
     }
 }
