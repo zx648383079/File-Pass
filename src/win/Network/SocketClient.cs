@@ -443,7 +443,7 @@ namespace ZoDream.FileTransfer.Network
                 else
                 {
                     Hub?.EmitReceive(fileName, location, 0, 0);
-                    Hub?.Logger.Error("Lose pack");
+                    Hub?.Logger.Error($"Lose pack:{type}");
                     return;
                 }
             }

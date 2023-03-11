@@ -12,7 +12,13 @@ namespace ZoDream.FileTransfer.Models
         public FileStatus Status
         {
             get => status;
-            set => Set(ref status, value);
+            set {
+                if (status != value)
+                {
+                    UpdateSpeed(0);
+                }
+                Set(ref status, value);
+            }
         }
 
 
@@ -63,13 +69,18 @@ namespace ZoDream.FileTransfer.Models
                 return;
             }
             var diff = (now - LastTime).TotalSeconds;
-            LastTime = now;
             if (diff <= 0)
             {
+                LastTime = now;
                 Speed = 0;
                 return;
             }
-            Speed = (long)Math.Ceiling(Math.Max(newProgress - oldProgress, 0) / diff);
+            var newSpeed = (long)Math.Ceiling(Math.Max(newProgress - oldProgress, 0) / diff);
+            if (diff > 20 || Math.Abs(newSpeed - Speed) > Speed / 10)
+            {
+                LastTime = now;
+                Speed = newSpeed;
+            }
         }
 
 
