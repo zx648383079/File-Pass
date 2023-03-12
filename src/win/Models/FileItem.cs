@@ -76,7 +76,7 @@ namespace ZoDream.FileTransfer.Models
                 return;
             }
             var newSpeed = (long)Math.Ceiling(Math.Max(newProgress - oldProgress, 0) / diff);
-            if (diff > 20 || Math.Abs(newSpeed - Speed) > Speed / 10)
+            if (diff > 20 || Math.Abs(newSpeed - Speed) > Speed / 3)
             {
                 LastTime = now;
                 Speed = newSpeed;

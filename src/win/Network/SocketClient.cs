@@ -370,6 +370,7 @@ namespace ZoDream.FileTransfer.Network
                         Jump();
                         Hub?.EmitReceive(fileName, location, 0,0);
                         Hub?.Logger.Debug($"Receive File Exist: {fileName}->{overwrite}");
+                        location = fileName = string.Empty;
                         continue;
                     }
                     var md5 = ReceiveText();
@@ -385,6 +386,7 @@ namespace ZoDream.FileTransfer.Network
                         Hub?.Logger.Debug($"Receive File Failure: {fileName}->{md5}");
                         Hub?.EmitReceive(fileName, location, 0, 0);
                         File.Delete(tempFile);
+                        location = fileName = string.Empty;
                         continue;
                     }
                     Directory.CreateDirectory(Path.GetDirectoryName(location)!);
@@ -392,6 +394,7 @@ namespace ZoDream.FileTransfer.Network
                     Send(SocketMessageType.Received);
                     Hub?.Logger.Debug($"Receive File Complete: {fileName}->{length}");
                     Hub?.EmitReceive(fileName, location, length, length);
+                    location = fileName = string.Empty;
                     continue;
                 }
                 else if (type == SocketMessageType.FileMerge)
@@ -408,6 +411,7 @@ namespace ZoDream.FileTransfer.Network
                         Send(SocketMessageType.ReceivedError);
                         Hub?.Logger.Debug($"Receive File Failure: {fileName}->{md5}");
                         File.Delete(cacheFile);
+                        location = fileName = string.Empty;
                         continue;
                     }
                     Directory.CreateDirectory(Path.GetDirectoryName(location)!);
@@ -415,6 +419,7 @@ namespace ZoDream.FileTransfer.Network
                     Send(SocketMessageType.Received);
                     Hub?.Logger.Debug($"Receive File Complete: {fileName}->{length}");
                     Hub?.EmitReceive(fileName, location, length, length);
+                    location = fileName = string.Empty;
                     continue;
                 }
                 else if (type == SocketMessageType.FilePart)

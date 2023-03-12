@@ -75,7 +75,8 @@
                   VerticalAlignment="Center" ToolTip="{ll:LocalizedLang overwriteTip}" Grid.Row="2" Grid.Column="3"  Grid.ColumnSpan="2"/>
 
         <ListView x:Name="FileBox" Grid.Row="3" Grid.ColumnSpan="5" ItemsSource="{Binding FileItems}" AllowDrop="True" 
-                  PreviewDragOver="FileBox_PreviewDragOver" Drop="FileBox_Drop">
+                  PreviewDragOver="FileBox_PreviewDragOver" 
+                  Drop="FileBox_Drop">
             <ListView.ContextMenu>
                 <ContextMenu>
                     <MenuItem x:Name="ChooseFileMenu" Header="{ll:LocalizedLang pickFile}" Command="{Binding DragFileCommand}"/>

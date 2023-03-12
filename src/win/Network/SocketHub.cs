@@ -176,7 +176,7 @@ namespace ZoDream.FileTransfer.Network
             Task.Factory.StartNew(() => {
                 while (true)
                 {
-                    Thread.Sleep(1000);
+                    Thread.Sleep(500);
                     if (token.IsCancellationRequested)
                     {
                         return;
