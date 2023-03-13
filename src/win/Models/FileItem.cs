@@ -1,4 +1,5 @@
 ﻿using System;
+using ZoDream.FileTransfer.Utils;
 using ZoDream.FileTransfer.ViewModels;
 
 namespace ZoDream.FileTransfer.Models
@@ -57,30 +58,30 @@ namespace ZoDream.FileTransfer.Models
         }
 
         public FileInfoItem? FileInfo { get; set; }
-        private DateTime LastTime = DateTime.MinValue;
+        private DateTime LastProgressTime = DateTime.MinValue;
+        private DateTime LastSpeedTime = DateTime.MinValue;
+        private long LastProgress = 0;
 
         public void UpdateSpeed(long newProgress, long oldProgress = 0)
         {
             var now = DateTime.Now;
-            if (LastTime == DateTime.MinValue)
+            var speed = Disk.GetSpeed(now, newProgress, LastProgressTime, oldProgress);
+            LastProgressTime = now;
+            if (speed == 0 || Speed == 0)
             {
-                Speed = newProgress;
-                LastTime = now;
+                LastSpeedTime = now;
+                Speed = speed;
+                LastProgress = newProgress;
                 return;
             }
-            var diff = (now - LastTime).TotalSeconds;
-            if (diff <= 0)
+            if ((now - LastSpeedTime).TotalSeconds < 30)
             {
-                LastTime = now;
-                Speed = 0;
                 return;
             }
-            var newSpeed = (long)Math.Ceiling(Math.Max(newProgress - oldProgress, 0) / diff);
-            if (diff > 20 || Math.Abs(newSpeed - Speed) > Speed / 3)
-            {
-                LastTime = now;
-                Speed = newSpeed;
-            }
+            speed = Disk.GetSpeed(now, newProgress, LastSpeedTime, LastProgress);
+            LastSpeedTime = now;
+            Speed = speed;
+            LastProgress = newProgress;
         }
 
 
