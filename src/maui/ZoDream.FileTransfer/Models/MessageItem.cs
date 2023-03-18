@@ -1,5 +1,6 @@
 ﻿using ZoDream.FileTransfer.Network;
 using ZoDream.FileTransfer.Network.Messages;
+using ZoDream.FileTransfer.Utils;
 
 namespace ZoDream.FileTransfer.Models
 {
@@ -148,26 +149,53 @@ namespace ZoDream.FileTransfer.Models
             }
         }
 
-        private DateTime LastTime = DateTime.MinValue;
+        private DateTime LastProgressTime = DateTime.MinValue;
+        private DateTime LastSpeedTime = DateTime.MinValue;
+        private long LastProgress = 0;
 
         public void UpdateSpeed(long newProgress, long oldProgress = 0)
         {
             var now = DateTime.Now;
-            if (LastTime == DateTime.MinValue)
+            var speed = Disk.GetSpeed(now, newProgress, LastProgressTime, oldProgress);
+            LastProgressTime = now;
+            if (IsMoreThan(speed, Speed))
             {
-                Speed = newProgress;
-                LastTime = now;
+                LastSpeedTime = now;
+                Speed = speed;
+                LastProgress = newProgress;
                 return;
             }
-            var diff = (now - LastTime).TotalSeconds;
-            LastTime = now;
-            if (diff <= 0)
+            if ((now - LastSpeedTime).TotalSeconds < 5)
             {
-                Speed = 0;
                 return;
             }
-            Speed = (long)Math.Ceiling((newProgress - oldProgress) / diff);
+            speed = Disk.GetSpeed(now, newProgress, LastSpeedTime, LastProgress);
+            LastSpeedTime = now;
+            Speed = speed;
+            LastProgress = newProgress;
         }
+        /// <summary>
+        /// 判断是否需要更新
+        /// </summary>
+        /// <param name="arg"></param>
+        /// <param name="arg2"></param>
+        /// <returns></returns>
+        private bool IsMoreThan(long arg, long arg2)
+        {
+            if (arg == arg2)
+            {
+                return false;
+            }
+            if (arg <= 0 || arg <= 0)
+            {
+                return true;
+            }
+            var maxDiff = 10;
+            return (arg > arg2 && arg2 * maxDiff < arg) ||
+                (arg < arg2 && arg * maxDiff < arg2);
+        }
+
+
 
         public FileMessageItem()
         {

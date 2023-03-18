@@ -5,6 +5,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
+using ZoDream.FileTransfer.Network.Messages;
 using ZoDream.FileTransfer.Repositories;
 
 namespace ZoDream.FileTransfer.Network
@@ -85,14 +86,7 @@ namespace ZoDream.FileTransfer.Network
 
         public Task<bool> SendAsync(string ip, int port, SocketMessageType type, bool isRequest, IMessagePack? pack)
         {
-            byte[] buffer;
-            if (pack is not null)
-            {
-                buffer = SocketHub.RenderPack(pack.Pack(), (byte)type, Convert.ToByte(isRequest));
-            } else
-            {
-                buffer = new byte[] { (byte)type, Convert.ToByte(isRequest) };
-            }
+            var buffer = TypeMessage.Pack(type, isRequest, pack);
             if (buffer.Length > Constants.UDP_BUFFER_SIZE)
             {
                 App.Repository.Logger.Error($"UDP Send Max Size: {Constants.UDP_BUFFER_SIZE}");

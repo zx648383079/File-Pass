@@ -425,6 +425,19 @@ namespace ZoDream.FileTransfer.Network
             }.Pack(this);
             return true;
         }
+        public bool Send(SocketMessageType type, bool isRequest, IMessagePack? message)
+        {
+            Send(type);
+            if (MessageEventArg.HasRequest(type))
+            {
+                Send(isRequest);
+            }
+            if (message == null)
+            {
+                return true;
+            }
+            return Send(message);
+        }
 
         public bool Send(IMessagePack message)
         {

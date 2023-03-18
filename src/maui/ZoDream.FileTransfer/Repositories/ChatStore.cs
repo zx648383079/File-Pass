@@ -365,8 +365,7 @@ namespace ZoDream.FileTransfer.Repositories
         {
             if (!hasHeader)
             {
-                client.Send(SocketMessageType.SpecialLine);
-                client.Send(new TextMessage()
+                client.Send(SocketMessageType.SpecialLine, false, new TextMessage()
                 {
                     Data = message.Id
                 });

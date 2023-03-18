@@ -197,13 +197,7 @@ namespace ZoDream.FileTransfer.Network
             {
                 return await UdpSendAsync(ip, port, type, isRequest, pack);
             }
-            client.Send(type);
-            client.Send(isRequest);
-            if (pack is null)
-            {
-                return true;
-            }
-            return client.Send(pack);
+            return client.Send(type, isRequest, pack);
         }
 
         public async Task<bool> UdpSendAsync(string ip, int port, SocketMessageType type, bool isRequest, IMessagePack? pack)
@@ -224,11 +218,17 @@ namespace ZoDream.FileTransfer.Network
         internal MessageEventArg Emit(string ip, int port, byte[] buffer)
         {
             var type = (SocketMessageType)buffer[0];
-            var isRequest = Convert.ToBoolean(buffer[1]);
-            var pack = RenderUnpack(type);
+            var isRequest = false;
+            var start = 1;
+            if (MessageEventArg.HasRequest(type))
+            {
+                start = 2;
+                isRequest = Convert.ToBoolean(buffer[1]);
+            }
+            var pack = MessageEventArg.RenderUnpack(type);
             if (pack is not null)
             {
-                pack.Unpack(buffer[2..]);
+                pack.Unpack(buffer[start..]);
             }
             var arg = new MessageEventArg(type, isRequest, pack);
             MessageReceived?.Invoke(null, ip, port, arg);
@@ -287,8 +287,12 @@ namespace ZoDream.FileTransfer.Network
         {
             type ??= client.ReceiveMessageType();
             // 请注意有些事件是没有isRequest 这个参数的，
-            var isRequest = type != SocketMessageType.Ip && client.ReceiveBool();
-            var pack = RenderUnpack(type);
+            var isRequest = false;
+            if (MessageEventArg.HasRequest(type))
+            {
+                isRequest = client.ReceiveBool();
+            }
+            var pack = MessageEventArg.RenderUnpack(type);
             if (pack is IMessageUnpackStream o)
             {
                 o.Unpack(client);
@@ -304,24 +308,7 @@ namespace ZoDream.FileTransfer.Network
             return new MessageEventArg((SocketMessageType)type, isRequest, pack);
         }
 
-        /// <summary>
-        /// 根据类型创建解包器
-        /// </summary>
-        /// <param name="type"></param>
-        /// <returns></returns>
-        public static IMessageUnpack? RenderUnpack(SocketMessageType? type)
-        {
-            return type switch
-            {
-                SocketMessageType.Ping or SocketMessageType.UserAddRequest or SocketMessageType.MessageUser => new UserMessage(),
-                SocketMessageType.UserAddResponse => new BoolMessage(),
-                SocketMessageType.MessageText or SocketMessageType.SpecialLine => new TextMessage(),
-                SocketMessageType.MessageFile or SocketMessageType.MessageFolder or SocketMessageType.MessageSync => new FileMessage(),
-                SocketMessageType.MessageAction or SocketMessageType.RequestSpecialLine => new ActionMessage(),
-                SocketMessageType.Ip => new IpMessage(),
-                _ => null,
-            };
-        }
+        
 
         /// <summary>
         /// 自动跳过一些不需要的类型

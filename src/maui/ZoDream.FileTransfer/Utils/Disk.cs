@@ -93,5 +93,31 @@ namespace ZoDream.FileTransfer.Utils
             return sb.ToString();
         }
 
+        /// <summary>
+        /// 计算速度/s
+        /// </summary>
+        /// <param name="newTime"></param>
+        /// <param name="newProgress"></param>
+        /// <param name="lastTime"></param>
+        /// <param name="lastProgress"></param>
+        /// <returns></returns>
+        public static long GetSpeed(DateTime newTime, long newProgress, DateTime lastTime, long lastProgress)
+        {
+            if (lastTime == DateTime.MinValue)
+            {
+                return newProgress;
+            }
+            if (newProgress <= lastProgress)
+            {
+                return 0;
+            }
+            var diff = (newTime - lastTime).TotalSeconds;
+            if (diff <= 0)
+            {
+                return 0;
+            }
+            return (long)Math.Ceiling(Math.Max(newProgress - lastProgress, 0) / diff);
+        }
+
     }
 }
