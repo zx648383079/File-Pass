@@ -36,7 +36,7 @@ namespace ZoDream.FileTransfer.Network
         {
             return type switch
             {
-                SocketMessageType.Ip or SocketMessageType.SpecialLine 
+                SocketMessageType.Ip or SocketMessageType.SpecialLine or SocketMessageType.Null
                 or SocketMessageType.RequestSpecialLine 
                 or SocketMessageType.PreClose or SocketMessageType.Received 
                 or SocketMessageType.ReceivedError or SocketMessageType.FileCheck 

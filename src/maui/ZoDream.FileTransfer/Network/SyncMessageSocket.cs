@@ -1,11 +1,13 @@
 ﻿using Microsoft.Maui.Devices.Sensors;
 using Microsoft.Maui.Storage;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using ZoDream.FileTransfer.Models;
+using ZoDream.FileTransfer.Repositories;
 using ZoDream.FileTransfer.Utils;
 
 namespace ZoDream.FileTransfer.Network
@@ -21,20 +23,96 @@ namespace ZoDream.FileTransfer.Network
             Folder = folder;
             MessageId = messageId;
             Link.StopLoopReceive();
+            Storage = App.Repository.Storage;
         }
 
         private readonly SocketHub Hub;
         private readonly SocketClient Link;
         private readonly string Folder;
-        private Dictionary<string, FileInfoItem> FileItems = new();
+        private readonly ConcurrentQueue<FileSyncItem> FileItems = new();
         public event MessageProgressEventHandler? OnProgress;
         public event MessageCompletedEventHandler? OnCompleted;
         public string MessageId { get; private set; }
         private readonly CancellationTokenSource TokenSource = new();
         private FileSystemWatcher? Watcher;
+        private readonly StorageRepository Storage;
+
+        public void Add(string fileName)
+        {
+            foreach (var item in FileItems)
+            {
+                if (item.FileName == fileName)
+                {
+                    return;
+                }
+            }
+            var info = new FileInfo(fileName);
+            FileItems.Enqueue(new FileSyncItem()
+            {
+                Name = info.Name,
+                FileName = fileName,
+                RelativeFileName = Path.GetRelativePath(Folder, fileName)
+            });
+        }
+
+        public void Add(FileAction action, string fileName)
+        {
+            if (action == FileAction.Delete)
+            {
+                foreach (var item in FileItems)
+                {
+                    if (item.FileName == fileName)
+                    {
+                        item.IsExpired = true;
+                    }
+                }
+            }
+            FileItems.Enqueue(new FileSyncItem()
+            {
+                Action = action,
+                Name = Path.GetFileName(fileName),
+                FileName = fileName,
+                RelativeFileName = Path.GetRelativePath(Folder, fileName)
+            });
+        }
+
+        public void Add(FileAction action, string fileName, string oldFileName)
+        {
+            if (action == FileAction.Rename)
+            {
+                foreach (var item in FileItems)
+                {
+                    if (item.FileName == fileName || item.FileName == oldFileName)
+                    {
+                        item.IsExpired = true;
+                    }
+                }
+            }
+            FileItems.Enqueue(new FileSyncItem()
+            {
+                Action = action,
+                Name = Path.GetFileName(fileName),
+                FileName = fileName,
+                RelativeFileName = Path.GetRelativePath(Folder, fileName),
+                OldFileName = Path.GetRelativePath(Folder, oldFileName),
+            });
+        }
+
+        public FileSyncItem? Get()
+        {
+            while (FileItems.TryDequeue(out var item))
+            {
+                if (!item.IsExpired)
+                {
+                    return item;
+                }
+            }
+            return null;
+        }
 
         public void Dispose()
         {
+            FileItems.Clear();
             StopAsync();
         }
 
@@ -48,13 +126,13 @@ namespace ZoDream.FileTransfer.Network
             }
             await SendFolderAsync();
             BindWatcher();
-            BindReceive();
+            ReceiveAndSend(true);
         }
 
         public Task ReceiveAsync()
         {
             BindWatcher();
-            BindReceive();
+            ReceiveAndSend(false);
             return Task.CompletedTask;
         }
 
@@ -69,56 +147,234 @@ namespace ZoDream.FileTransfer.Network
                     {
                         return;
                     }
-                    item.Md5 = Disk.GetMD5(item.FileName);
-                    SendCheckFile(item, token);
+                    FileItems.Enqueue(new FileSyncItem()
+                    {
+                        FileName = item.FileName,
+                        RelativeFileName = item.RelativeFile,
+                        Name = item.Name,
+                    });
                 }
-                Link.Send(SocketMessageType.PreClose);
             }, token);
         }
 
-        private void SendCheckFile(FileInfoItem file, CancellationToken token)
-        {
-            Link.Send(SocketMessageType.FileCheck);
-            Link.SendText(file.RelativeFile);
-            Link.SendText(file.Md5);
-            Link.SendText(file.ModifyTime.ToString());
-            FileItems.Add(file.RelativeFile, file);
-            App.Repository.Logger.Debug($"Check File:{file.FileName}");
-        }
-
-        protected void SendFile(FileInfoItem file, CancellationToken token)
-        {
-            SendFile(file.RelativeFile, file.Md5, file.FileName, file.Length,
-               (name, _, p, t) => {
-                   OnProgress?.Invoke(MessageId, name, p, t);
-               }, (name, _, isSuccess) => {
-                   OnCompleted?.Invoke(MessageId, name, isSuccess != false);
-               }, token);
-            App.Repository.Logger.Debug($"Send File:{file.FileName}");
-        }
-
-        protected void SendFile(string fileName, CancellationToken token)
-        {
-            if (FileItems.TryGetValue(fileName, out var file))
-            {
-                SendFile(file, token);
-            }
-        }
-
-        private void BindReceive()
+        private void ReceiveAndSend(bool isSend)
         {
             var token = TokenSource.Token;
             Task.Factory.StartNew(() => {
-                while (Link.Connected)
+                if (isSend)
                 {
-                    ReceiveFile(Folder, (name, _, p, t) => {
-                        OnProgress?.Invoke(MessageId, name, p, t);
-                    }, (name, _, isSuccess) => {
-                        OnCompleted?.Invoke(MessageId, name, isSuccess != false);
-                    }, token);
+                    if (!Link.AreYouReady())
+                    {
+                        OnCompleted?.Invoke(MessageId, Folder, false);
+                        return;
+                    }
+                }
+                while (Link.Connected && !token.IsCancellationRequested)
+                {
+                    if (isSend)
+                    {
+                        SenderDo(token);
+                    } else
+                    {
+                        ReceiverDo(token);
+                    }
                 }
             }, token);
         }
+
+        private void SenderDo(CancellationToken token)
+        {
+            var item = Get();
+            if (item == null)
+            {
+                Link.Send(SocketMessageType.Null);
+                Receive(token);
+            } else
+            {
+                Send(item, token);
+            }
+        }
+
+        private void ReceiverDo(CancellationToken token)
+        {
+            Receive(token);
+        }
+        private void Receive(CancellationToken token)
+        {
+            while (true)
+            {
+                if (!Link.Connected || token.IsCancellationRequested)
+                {
+                    return;
+                }
+                var type = Link.ReceiveMessageType();
+                if (type == SocketMessageType.Ready)
+                {
+                    // 询问是否准备好了
+                    var isRequest = Link.ReceiveBool();
+                    if (isRequest)
+                    {
+                        Link.SendReady(false);
+                    }
+                    return;
+                } else if (type == SocketMessageType.PreClose)
+                {
+                    return;
+                } else if (type == SocketMessageType.Null)
+                {
+                    // 表明对方没有文件发送，你可以发送文件
+                    Send(token);
+                    return;
+                }
+                else if (type == SocketMessageType.FileRename)
+                {
+                    var newPath = Path.Combine(Folder, Link.ReceiveText());
+                    var oldPath = Path.Combine(Folder, Link.ReceiveText());
+                    if (File.Exists(oldPath))
+                    {
+                        File.Move(oldPath, newPath, true);
+                    }
+                    Hub?.Logger.Debug($"Move File:{oldPath}->{newPath}");
+                    return;
+                }
+                else if (type == SocketMessageType.FileDelete)
+                {
+                    var delPath = Path.Combine(Folder, Link.ReceiveText());
+                    App.Repository.Logger.Debug($"Delete File:{delPath}");
+                    if (File.Exists(delPath))
+                    {
+                        File.Delete(delPath);
+                    }
+                    return;
+                }
+                else if (type == SocketMessageType.FileCheck)
+                {
+                    var fileName = Link.ReceiveText();
+                    var md5 = Link.ReceiveText();
+                    var length = Link.ReceiveContentLength();
+                    var location = Path.Combine(Folder, fileName);
+                    var shouldSend = Storage.CheckFile(location, md5);
+                    Link.Send(SocketMessageType.FileCheckResponse);
+                    Link.SendText(fileName);
+                    Link.Send(shouldSend);
+                    Hub?.Logger.Debug($"Receive Check: {fileName}->{shouldSend}");
+                    if (!shouldSend)
+                    {
+                        return;
+                    }
+                    continue;
+                }
+                else if (type == SocketMessageType.File)
+                {
+                    var fileName = Link.ReceiveText();
+                    var location = Path.Combine(Folder, fileName);
+                    var md5 = Link.ReceiveText();
+                    var modifyTime = Link.ReceiveText();
+                    var length = Link.ReceiveContentLength();
+                    using (var fs = Storage.CacheWriter(md5))
+                    {
+                        Link.ReceiveStream(fs, length);
+                    }
+                    OnProgress?.Invoke(fileName, location, length, length);
+                    if (md5 != Storage.CacheFileMD5(md5))
+                    {
+                        Link.Send(SocketMessageType.ReceivedError);
+                        Hub?.Logger.Debug($"Receive File Failure: {fileName}->{md5}");
+                        Storage.CacheRemove(md5);
+                        return;
+                    }
+                    Directory.CreateDirectory(Path.GetDirectoryName(location)!);
+                    Storage.CacheMove(md5, location);
+                    File.SetLastWriteTime(location, DateTime.Parse(modifyTime));
+                    Link.Send(SocketMessageType.Received);
+                    Hub?.Logger.Debug($"Receive File Complete: {fileName}->{length}");
+                    return;
+                }
+                else if (type == SocketMessageType.FileMerge)
+                {
+                    var fileName = Link.ReceiveText();
+                    var location = Path.Combine(Folder, fileName);
+                    var md5 = Link.ReceiveText();
+                    var modifyTime = Link.ReceiveText();
+                    var length = Link.ReceiveContentLength();
+                    Link.Jump();
+                    // var partItems = ReceiveText().Split(',');
+                    if (md5 != Storage.CacheFileMD5(md5))
+                    {
+                        Hub?.Logger.Debug($"Receive File Failure: {fileName}->{md5}");
+                        Storage.CacheRemove(md5);
+                        Link.Send(SocketMessageType.ReceivedError);
+                        return;
+                    }
+                    Directory.CreateDirectory(Path.GetDirectoryName(location)!);
+                    Storage.CacheMove(md5, location);
+                    File.SetLastWriteTime(location, DateTime.Parse(modifyTime));
+                    Link.Send(SocketMessageType.Received);
+                    Hub?.Logger.Debug($"Receive File Complete: {fileName}->{length}");
+                    return;
+                }
+                else if (type == SocketMessageType.FilePart)
+                {
+                    var partName = Link.ReceiveText();
+                    var fileName = Link.ReceiveText();
+                    var md5 = partName.Split('_')[0];
+                    var location = Path.Combine(Folder, fileName);
+                    var rang = Link.ReceiveText().Split(new char[] { '-', '/' });
+                    var length = Convert.ToInt64(rang[2]);
+                    var startPos = Convert.ToInt64(rang[0]);
+                    var endPos = Convert.ToInt64(rang[1]);
+                    var partLength = Link.ReceiveContentLength();
+                    using (var fs = Storage.CacheWriter(md5, true))
+                    {
+                        fs.SetLength(length);
+                        fs.Seek(startPos, SeekOrigin.Begin);
+                        Link.ReceiveStream(fs, partLength);
+                    }
+                    Hub?.Logger.Debug($"Receive File Part: {fileName}[{startPos}-{endPos}]");
+                    OnProgress?.Invoke(fileName, location, endPos, length);
+                    Link.Send(SocketMessageType.Received);
+                    continue;
+                }
+                else
+                {
+                    Hub?.Logger.Error("Lose pack");
+                    return;
+                }
+            }
+        }
+
+        private void Send(CancellationToken token)
+        {
+            var item = Get();
+            if (item == null)
+            {
+                Link.Send(SocketMessageType.Null);
+            }
+            else
+            {
+                Send(item, token);
+            }
+        }
+
+        private void Send(FileSyncItem item, CancellationToken token)
+        {
+            switch (item.Action)
+            {
+                case FileAction.Delete:
+                    Link.Send(SocketMessageType.FileDelete);
+                    Link.SendText(item.RelativeFileName);
+                    break;
+                case FileAction.Rename:
+                    Link.Send(SocketMessageType.FileRename);
+                    Link.SendText(item.RelativeFileName);
+                    Link.SendText(item.OldFileName);
+                    break;
+                default:
+                    SendFile(item.RelativeFileName, item.FileName, token);
+                    break;
+            }
+        }
+
 
         private bool CheckFile(string fileName, string md5, string mTime)
         {
@@ -137,11 +393,8 @@ namespace ZoDream.FileTransfer.Network
 
         private void BindWatcher()
         {
-            if (Watcher != null)
-            {
-                Watcher.Dispose();
-            }
-            
+            Watcher?.Dispose();
+#if WINDOWS || MACCATALYST
             Watcher = new FileSystemWatcher(Folder)
             {
                 NotifyFilter = NotifyFilters.FileName | NotifyFilters.Size | NotifyFilters.DirectoryName,
@@ -151,230 +404,48 @@ namespace ZoDream.FileTransfer.Network
             Watcher.Renamed += Watcher_Renamed;
             Watcher.Deleted += Watcher_Deleted;
             Watcher.Changed += Watcher_Changed;
+#endif
         }
 
 
         private void Watcher_Changed(object sender, FileSystemEventArgs e)
         {
-            _ = SendFileAsync(e.FullPath);
+            Add(e.FullPath);
         }
 
         private void Watcher_Deleted(object sender, FileSystemEventArgs e)
         {
-            Link.Send(SocketMessageType.FileDelete);
-            Link.SendText(Path.GetRelativePath(Folder, e.FullPath));
+            Add(FileAction.Delete, e.FullPath);
         }
 
         private void Watcher_Renamed(object sender, RenamedEventArgs e)
         {
-            Link.Send(SocketMessageType.FileRename);
-            Link.SendText(Path.GetRelativePath(Folder, e.FullPath));
-            Link.SendText(Path.GetRelativePath(Folder, e.OldFullPath));
+            Add(FileAction.Rename, e.FullPath, e.OldFullPath);
         }
 
         private void Watcher_Created(object sender, FileSystemEventArgs e)
         {
-            
+            Add(e.FullPath);
         }
 
-        private Task SendFileAsync(string fullName)
+        private void SendFile(string name, string fullName, CancellationToken token)
         {
-            var token = TokenSource.Token;
-            if (token.IsCancellationRequested)
+            var length = 0L;
+            var md5 = string.Empty;
+            try
             {
-                return Task.CompletedTask;
-            }
-            return Task.Factory.StartNew(() => {
-                var fileName = Path.GetRelativePath(Folder, fullName);
-                var length = 0L;
-                var md5 = string.Empty;
                 using (var fs = File.OpenRead(fullName))
                 {
                     length = fs.Length;
                     md5 = Disk.GetMD5(fs);
                 }
-                SendFile(fileName, md5, fullName, length, 
-                    (name, _, p, t) => {
-                    OnProgress?.Invoke(MessageId, name, p, t);
-                }, (name, _, isSuccess) => {
-                    OnCompleted?.Invoke(MessageId, name, isSuccess != false);
-                });
-            });
-        }
-
-        /// <summary>
-        /// 只接收一个文件
-        /// </summary>
-        /// <param name="folder"></param>
-        /// <param name="onProgress"></param>
-        /// <param name="onCompleted"></param>
-        /// <param name="token"></param>
-        public void ReceiveFile(string folder,
-            FileProgressEventHandler? onProgress = null,
-            FileCompletedEventHandler? onCompleted = null,
-            CancellationToken token = default)
-        {
-            var fileName = string.Empty;
-            var location = string.Empty;
-            var storage = App.Repository.Storage;
-            while (true)
-            {
-                if (!Link.Connected || token.IsCancellationRequested)
-                {
-                    Hub?.Close(Link);
-                    OnCompleted?.Invoke(MessageId, Folder, false);
-                    // onCompleted?.Invoke(fileName, location, false);
-                    return;
-                }
-                var type = Link.ReceiveMessageType();
-                if (type == SocketMessageType.Ready)
-                {
-                    // 询问是否准备好了
-                    var isRequest = Link.ReceiveBool();
-                    if (isRequest)
-                    {
-                        Link.SendReady(false);
-                    }
-                    continue;
-                }
-                if (type == SocketMessageType.PreClose)
-                {
-                    Hub?.Logger.Debug("Receive Complete");
-                    Hub?.Close(Link);
-                    return;
-                }
-                else if (type == SocketMessageType.FileRename)
-                {
-                    var newPath = Path.Combine(Folder, Link.ReceiveText());
-                    var oldPath = Path.Combine(Folder, Link.ReceiveText());
-                    if (File.Exists(oldPath))
-                    {
-                        File.Move(oldPath, newPath, true);
-                    }
-                    Hub?.Logger.Debug($"Move File:{oldPath}->{newPath}");
-                    continue;
-                }
-                else if (type == SocketMessageType.FileCheckResponse)
-                {
-                    fileName = Link.ReceiveText();
-                    var shouldSend = Link.ReceiveBool();
-                    if (shouldSend)
-                    {
-                        SendFile(fileName, token);
-                    }
-                    FileItems.Remove(fileName);
-                    continue;
-                }
-                else if (type == SocketMessageType.FileDelete)
-                {
-                    var delPath = Path.Combine(Folder, Link.ReceiveText());
-                    App.Repository.Logger.Debug($"Delete File:{delPath}");
-                    if (File.Exists(delPath))
-                    {
-                        File.Delete(delPath);
-                    }
-                    continue;
-                }
-                else if (type == SocketMessageType.FileCheck)
-                {
-                    fileName = Link.ReceiveText();
-                    var md5 = Link.ReceiveText();
-                    var length = Link.ReceiveContentLength();
-                    location = Path.Combine(folder, fileName);
-                    var shouldSend = storage.CheckFile(location, md5);
-                    Link.Send(SocketMessageType.FileCheckResponse);
-                    Link.SendText(fileName);
-                    Link.Send(shouldSend);
-                    Hub?.Logger.Debug($"Receive Check: {fileName}->{shouldSend}");
-                    if (!shouldSend)
-                    {
-                        onCompleted?.Invoke(fileName, location, null);
-                        return;
-                    }
-                    continue;
-                }
-                else if (type == SocketMessageType.File)
-                {
-                    fileName = Link.ReceiveText();
-                    location = Path.Combine(folder, fileName);
-                    var md5 = Link.ReceiveText();
-                    var modifyTime = Link.ReceiveText();
-                    var length = Link.ReceiveContentLength();
-                    using (var fs = storage.CacheWriter(md5))
-                    {
-                        Link.ReceiveStream(fs, length);
-                    }
-                    onProgress?.Invoke(fileName, location, length, length);
-                    if (md5 != storage.CacheFileMD5(md5))
-                    {
-                        Link.Send(SocketMessageType.ReceivedError);
-                        Hub?.Logger.Debug($"Receive File Failure: {fileName}->{md5}");
-                        onCompleted?.Invoke(fileName, location, false);
-                        storage.CacheRemove(md5);
-                        return;
-                    }
-                    Directory.CreateDirectory(Path.GetDirectoryName(location)!);
-                    storage.CacheMove(md5, location);
-                    File.SetLastWriteTime(location, DateTime.Parse(modifyTime));
-                    Link.Send(SocketMessageType.Received);
-                    Hub?.Logger.Debug($"Receive File Complete: {fileName}->{length}");
-                    onCompleted?.Invoke(fileName, location, true);
-                    return;
-                }
-                else if (type == SocketMessageType.FileMerge)
-                {
-                    fileName = Link.ReceiveText();
-                    location = Path.Combine(folder, fileName);
-                    var md5 = Link.ReceiveText();
-                    var modifyTime = Link.ReceiveText();
-                    var length = Link.ReceiveContentLength();
-                    Link.Jump();
-                    // var partItems = ReceiveText().Split(',');
-                    if (md5 != storage.CacheFileMD5(md5))
-                    {
-                        Hub?.Logger.Debug($"Receive File Failure: {fileName}->{md5}");
-                        storage.CacheRemove(md5);
-                        Link.Send(SocketMessageType.ReceivedError);
-                        onCompleted?.Invoke(fileName, location, false);
-                        return;
-                    }
-                    Directory.CreateDirectory(Path.GetDirectoryName(location)!);
-                    storage.CacheMove(md5, location);
-                    File.SetLastWriteTime(location, DateTime.Parse(modifyTime));
-                    Link.Send(SocketMessageType.Received);
-                    Hub?.Logger.Debug($"Receive File Complete: {fileName}->{length}");
-                    onCompleted?.Invoke(fileName, location, true);
-                    return;
-                }
-                else if (type == SocketMessageType.FilePart)
-                {
-                    var partName = Link.ReceiveText();
-                    fileName = Link.ReceiveText();
-                    var md5 = partName.Split('_')[0];
-                    location = Path.Combine(folder, fileName);
-                    var rang = Link.ReceiveText().Split(new char[] { '-', '/' });
-                    var length = Convert.ToInt64(rang[2]);
-                    var startPos = Convert.ToInt64(rang[0]);
-                    var endPos = Convert.ToInt64(rang[1]);
-                    var partLength = Link.ReceiveContentLength();
-                    using (var fs = storage.CacheWriter(md5, true))
-                    {
-                        fs.SetLength(length);
-                        fs.Seek(startPos, SeekOrigin.Begin);
-                        Link.ReceiveStream(fs, partLength);
-                    }
-                    Hub?.Logger.Debug($"Receive File Part: {fileName}[{startPos}-{endPos}]");
-                    onProgress?.Invoke(fileName, location, endPos, length);
-                    Link.Send(SocketMessageType.Received);
-                    continue;
-                }
-                else
-                {
-                    onCompleted?.Invoke(fileName, location, false);
-                    Hub?.Logger.Error("Lose pack");
-                    return;
-                }
             }
+            catch (Exception ex)
+            {
+                Hub?.Logger.Error($"[{name}]File Send Error: {ex.Message}");
+                return;
+            }
+            SendFile(name, md5, fullName, length);
         }
 
         /// <summary>
@@ -392,8 +463,6 @@ namespace ZoDream.FileTransfer.Network
             string md5,
             string fileName,
             long length,
-            FileProgressEventHandler? onProgress = null,
-            FileCompletedEventHandler? onCompleted = null,
             CancellationToken token = default)
         {
             Link.Send(SocketMessageType.FileCheck);
@@ -409,7 +478,6 @@ namespace ZoDream.FileTransfer.Network
                 if (!shouldSend)
                 {
                     Hub?.Logger.Debug($"Quicky Send :{name}");
-                    onCompleted?.Invoke(name, fileName, null);
                     // 秒传
                     return true;
                 }
@@ -425,10 +493,9 @@ namespace ZoDream.FileTransfer.Network
                 Link.SendText(modifyTime);
                 Link.Send(length);
                 Link.SendStream(reader, length);
-                onProgress?.Invoke(name, fileName, length, length);
+                OnProgress?.Invoke(name, fileName, length, length);
                 Hub?.Logger.Debug($"File Send :{name}");
                 type = Link.ReceiveMessageType();
-                onCompleted?.Invoke(name, fileName, type == SocketMessageType.Received);
                 return type == SocketMessageType.Received;
             }
             var partItems = new List<string>();
@@ -439,7 +506,6 @@ namespace ZoDream.FileTransfer.Network
             {
                 if (!Link.Connected || token.IsCancellationRequested)
                 {
-                    onCompleted?.Invoke(name, fileName, false);
                     return false;
                 }
                 var partName = $"{md5}_{i}";
@@ -453,12 +519,11 @@ namespace ZoDream.FileTransfer.Network
                 Link.SendStream(reader, partLength);
                 partItems.Add(partName);
                 i++;
-                onProgress?.Invoke(name, fileName, endPos, length);
+                OnProgress?.Invoke(name, fileName, endPos, length);
                 Hub?.Logger.Debug($"File Send Part :{name}[{startPos}-{endPos}]");
                 type = Link.ReceiveMessageType();
                 if (type != SocketMessageType.Received)
                 {
-                    onCompleted?.Invoke(name, fileName, false);
                     Hub?.Logger.Debug("Not Receive Reply");
                     return false;
                 }
@@ -470,10 +535,9 @@ namespace ZoDream.FileTransfer.Network
             Link.SendText(modifyTime);
             Link.Send(length);
             Link.SendText(string.Join(",", partItems));
-            onProgress?.Invoke(name, fileName, length, length);
+            OnProgress?.Invoke(name, fileName, length, length);
             Hub?.Logger.Debug($"File Send Merge :{name}");
             type = Link.ReceiveMessageType();
-            onCompleted?.Invoke(name, fileName, type == SocketMessageType.Received);
             return type == SocketMessageType.Received;
         }
 
@@ -485,5 +549,26 @@ namespace ZoDream.FileTransfer.Network
             OnCompleted?.Invoke(MessageId, Folder, false);
             return Task.CompletedTask;
         }
+    }
+
+    public class FileSyncItem
+    {
+
+        public string Name { get; set; } = string.Empty;
+        public string RelativeFileName { get; set; } = string.Empty;
+        public string FileName { get; set; } = string.Empty;
+
+        public string OldFileName { get; set; } = string.Empty;
+
+        public FileAction Action { get; set; } = FileAction.Send;
+
+        public bool IsExpired { get; set; } = false;
+    }
+
+    public enum FileAction
+    {
+        Send,
+        Delete,
+        Rename,
     }
 }
