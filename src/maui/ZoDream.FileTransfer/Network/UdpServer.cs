@@ -37,7 +37,11 @@ namespace ZoDream.FileTransfer.Network
             {
                 return;
             }
-            var serverIp = new IPEndPoint(IPAddress.Parse(ip), port);
+            if (!IPAddress.TryParse(ip, out var address))
+            {
+                return;
+            }
+            var serverIp = new IPEndPoint(address, port);
             var udpSocket = new Socket(serverIp.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
             try
             {

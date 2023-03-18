@@ -117,7 +117,7 @@ public partial class StoragePicker : ContentView
         BindableProperty.Create(nameof(Items), typeof(IList<FilePickerOption>), typeof(StoragePicker), 
             new List<FilePickerOption>());
 
-    private bool Result = false;
+    private bool? Result = null;
     private Grid? InnerPanel;
     private readonly List<FilePickerOption> Histories = new();
     public ICommand SelectedCommand { get; private set; }
@@ -151,7 +151,7 @@ public partial class StoragePicker : ContentView
 
     public Task<bool> ShowAsync()
     {
-        Result = false;
+        Result = null;
         IsOpen = true;
         IsCheckable = IsMultiple || IsFolderPicker;
         if ((Items is null || Items.Count < 1) && Histories.Count == 0)
@@ -159,11 +159,11 @@ public partial class StoragePicker : ContentView
             LoadFile();
         }
         return Task.Factory.StartNew(() => {
-            while (!Result)
+            while (Result == null)
             {
-
+                Thread.Sleep(100);
             }
-            return SelectedItem is not null;
+            return Result == true;
         });
     }
 
@@ -239,7 +239,7 @@ public partial class StoragePicker : ContentView
         else
         {
             InnerPanel?.TranslateTo(0, 500, 500, Easing.SinOut);
-            Result = true;
+            Result ??= false;
         }
     }
 
@@ -261,8 +261,8 @@ public partial class StoragePicker : ContentView
     public void TapYes()
     {
         UpdateSelectedItems();
-        IsOpen = false;
         Result = true;
+        IsOpen = false;
         ConfirmCommand?.Execute(IsMultiple ? SelectedItems : SelectedItem);
     }
 
@@ -290,8 +290,8 @@ public partial class StoragePicker : ContentView
     private void TapClose()
     {
         SelectedItems.Clear();
+        Result = false;
         IsOpen = false;
-        Result = true;
     }
 
     private void TapBack()

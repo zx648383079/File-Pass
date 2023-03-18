@@ -46,8 +46,12 @@ namespace ZoDream.FileTransfer.Network
             {
                 return;
             }
+            if (!IPAddress.TryParse(ip, out var address))
+            {
+                return;
+            }
             NetFwAddPorts("LargeFile", port, "TCP");
-            var serverIp = new IPEndPoint(IPAddress.Parse(ip), port);
+            var serverIp = new IPEndPoint(address, port);
             var tcpSocket = new Socket(serverIp.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
             try
             {
@@ -81,7 +85,11 @@ namespace ZoDream.FileTransfer.Network
 
         public static SocketClient? Connect(string ip, int port)
         {
-            var clientIp = new IPEndPoint(IPAddress.Parse(ip), port);
+            if (!IPAddress.TryParse(ip, out var address))
+            {
+                return null;
+            }
+            var clientIp = new IPEndPoint(address, port);
             var socket = new Socket(clientIp.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
             try
             {
