@@ -1,4 +1,5 @@
-﻿using ZoDream.FileTransfer.Utils;
+﻿using System.Xml.Linq;
+using ZoDream.FileTransfer.Utils;
 
 namespace ZoDream.FileTransfer.Network
 {
@@ -32,6 +33,11 @@ namespace ZoDream.FileTransfer.Network
         {
             var token = TokenSource.Token;
             return Task.Factory.StartNew(() => {
+                if (!Link.AreYouReady())
+                {
+                    OnCompleted?.Invoke(MessageId, Name, false);
+                    return;
+                }
                 var length = 0L;
                 var md5 = string.Empty;
                 using (var fs = File.OpenRead(FileName))

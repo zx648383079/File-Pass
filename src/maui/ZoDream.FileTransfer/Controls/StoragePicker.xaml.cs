@@ -41,6 +41,14 @@ public partial class StoragePicker : ContentView
     public static readonly BindableProperty IsCheckableProperty =
         BindableProperty.Create(nameof(IsCheckable), typeof(bool), typeof(StoragePicker), false);
 
+    public bool CheckableSelf {
+        get { return (bool)GetValue(CheckableSelfProperty); }
+        set { SetValue(CheckableSelfProperty, value); }
+    }
+
+    // Using a DependencyProperty as the backing store for IsMultiple.  This enables animation, styling, binding, etc...
+    public static readonly BindableProperty CheckableSelfProperty =
+        BindableProperty.Create(nameof(CheckableSelf), typeof(bool), typeof(StoragePicker), false);
 
 
     /// <summary>
@@ -194,8 +202,8 @@ public partial class StoragePicker : ContentView
         }
         SelectedItems.Clear();
         SelectedItems.Add(Histories.Last());
-        Result = true;
         IsOpen = false;
+        Result = true;
         ConfirmCommand?.Execute(IsMultiple ? SelectedItems : SelectedItem);
     }
 
@@ -253,8 +261,8 @@ public partial class StoragePicker : ContentView
     public void TapYes()
     {
         UpdateSelectedItems();
-        Result = true;
         IsOpen = false;
+        Result = true;
         ConfirmCommand?.Execute(IsMultiple ? SelectedItems : SelectedItem);
     }
 
@@ -302,16 +310,17 @@ public partial class StoragePicker : ContentView
         {
             Title = "设备和驱动器";
             CanBackable = false;
+            CheckableSelf = false;
             _ = LoadDriverAsync();
             return;
         }
         CanBackable = true;
+        CheckableSelf = IsFolderPicker;
         var last = Histories.Last();
         var path = string.Join("/", Histories.Select(i => i.Name));
         Title = last.Name.Length > 20 ?
             last.Name[..20] + "..." :
             path.Length > 20 ? string.Concat("...", path.AsSpan(path.Length - 20)) : path;
-        
         _ = LoadFileAsync(last.FileName);
     }
 

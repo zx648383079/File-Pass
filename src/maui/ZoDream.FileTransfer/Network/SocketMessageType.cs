@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace ZoDream.FileTransfer.Network
+﻿namespace ZoDream.FileTransfer.Network
 {
     public enum SocketMessageType: byte
     {
@@ -17,6 +11,7 @@ namespace ZoDream.FileTransfer.Network
         Ping,
         PreClose, // 表明我已经准备结束了，由你结束
         Close,
+        Ready,// 是否准备好了
         Received, // 已收到回复
         ReceivedError, // 已收到错误回复
         // 获取客户端基本信息

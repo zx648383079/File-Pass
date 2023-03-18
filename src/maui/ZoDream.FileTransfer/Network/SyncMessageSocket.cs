@@ -41,6 +41,11 @@ namespace ZoDream.FileTransfer.Network
 
         public async Task SendAsync()
         {
+            if (!Link.AreYouReady())
+            {
+                OnCompleted?.Invoke(MessageId, Folder, false);
+                return;
+            }
             await SendFolderAsync();
             BindWatcher();
             BindReceive();
@@ -222,6 +227,16 @@ namespace ZoDream.FileTransfer.Network
                     return;
                 }
                 var type = Link.ReceiveMessageType();
+                if (type == SocketMessageType.Ready)
+                {
+                    // 询问是否准备好了
+                    var isRequest = Link.ReceiveBool();
+                    if (isRequest)
+                    {
+                        Link.SendReady(false);
+                    }
+                    continue;
+                }
                 if (type == SocketMessageType.PreClose)
                 {
                     Hub?.Logger.Debug("Receive Complete");

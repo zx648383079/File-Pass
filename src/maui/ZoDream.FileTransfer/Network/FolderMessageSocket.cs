@@ -41,6 +41,11 @@ namespace ZoDream.FileTransfer.Network
         {
             var token = TokenSource.Token;
             return Task.Factory.StartNew(() => {
+                if (!Link.AreYouReady())
+                {
+                    OnCompleted?.Invoke(MessageId, Folder, false);
+                    return;
+                }
                 var fileItems = Disk.GetAllFile(Folder);
                 foreach (var item in fileItems)
                 {

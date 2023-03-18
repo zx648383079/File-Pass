@@ -1,5 +1,7 @@
-﻿using System.Net.Sockets;
+﻿using Microsoft.Maui.Storage;
+using System.Net.Sockets;
 using System.Text;
+using System.Xml.Linq;
 using ZoDream.FileTransfer.Models;
 using ZoDream.FileTransfer.Network.Messages;
 
@@ -208,6 +210,16 @@ namespace ZoDream.FileTransfer.Network
                     return;
                 }
                 var type = ReceiveMessageType();
+                if (type == SocketMessageType.Ready)
+                {
+                    // 询问是否准备好了
+                    var isRequest = ReceiveBool();
+                    if (isRequest)
+                    {
+                        SendReady(false);
+                    }
+                    continue;
+                }
                 if (type == SocketMessageType.PreClose)
                 {
                     Hub?.Logger.Debug("Receive Complete");
@@ -321,6 +333,16 @@ namespace ZoDream.FileTransfer.Network
         public void Jump()
         {
             Jump(ReceiveContentLength());
+        }
+
+        public void Jump(SocketMessageType type)
+        {
+            if (Hub == null)
+            {
+                SocketHub.RenderReceivePack(this, type);
+                return;
+            }
+            Hub.Emit(this, type);
         }
 
         /// <summary>
@@ -460,6 +482,38 @@ namespace ZoDream.FileTransfer.Network
                     return;
                 }
                 sent += buffer.Length;
+            }
+        }
+
+        public void SendReady(bool isRequest = true)
+        {
+            Send(SocketMessageType.Ready);
+            Send(isRequest);
+        }
+
+        /// <summary>
+        /// 循环询问是否准备好了吗？
+        /// </summary>
+        /// <returns></returns>
+        public bool AreYouReady()
+        {
+            while (true)
+            {
+                if (!Connected || SendToken.IsCancellationRequested)
+                {
+                    return false;
+                }
+                SendReady(true);
+                var type = ReceiveMessageType();
+                if (type == SocketMessageType.Ready)
+                {
+                    var isRequest = ReceiveBool();
+                    if (!isRequest)
+                    {
+                        return true;
+                    }
+                }
+                Jump(type);
             }
         }
 

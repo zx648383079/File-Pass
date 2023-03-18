@@ -235,9 +235,10 @@ namespace ZoDream.FileTransfer.Network
             return arg;
         }
 
-        internal MessageEventArg Emit(SocketClient client)
+
+        internal MessageEventArg Emit(SocketClient client, SocketMessageType? type = null)
         {
-            var arg = RenderReceivePack(client);
+            var arg = RenderReceivePack(client, type);
             if (arg.EventType == SocketMessageType.SpecialLine)
             {
                 Change(client);
