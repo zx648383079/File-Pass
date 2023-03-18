@@ -52,11 +52,14 @@ namespace ZoDream.FileTransfer.ViewModels
 
         private void Repository_UsersUpdated()
         {
-            UserItems.Clear();
-            foreach (var item in App.Repository.ChatHub.UserItems)
-            {
-                UserItems.Add(item);
-            }
+            var items = App.Repository.ChatHub.UserItems;
+            MainThread.BeginInvokeOnMainThread(() => {
+                UserItems.Clear();
+                foreach (var item in items)
+                {
+                    UserItems.Add(item);
+                }
+            });
         }
     }
 }

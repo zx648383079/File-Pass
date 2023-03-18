@@ -113,7 +113,12 @@ namespace ZoDream.FileTransfer.Network
 
         public bool Send(string ip, int port, byte[] buffer)
         {
-            var remote = new IPEndPoint(IPAddress.Parse(ip), port);
+            if (!IPAddress.TryParse(ip, out var address))
+            {
+                Hub?.Logger.Error($"IP is error: {ip}");
+                return false;
+            }
+            var remote = new IPEndPoint(address, port);
             try
             {
                 var i = 0;

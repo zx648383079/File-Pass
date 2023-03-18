@@ -179,7 +179,7 @@ namespace ZoDream.FileTransfer.ViewModels
 						{
 							file.Location = folder.FileName;
 						}
-                        await hub.ConfirmMessageAsync(User, arg.Data);
+                        _ = hub.ConfirmMessageAsync(User, arg.Data);
                     }
                     break;
 				case MessageTapEvent.Withdraw:

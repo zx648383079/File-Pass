@@ -105,13 +105,17 @@ public partial class MessageFileListItem : ContentView
         switch (e.PropertyName)
         {
             case nameof(ItemSource.Status):
-                ChangeStatus();
+                MainThread.BeginInvokeOnMainThread(() => {
+                    ChangeStatus();
+                });
                 break;
             case nameof(ItemSource.Progress):
                 if (ItemSource.Status == FileMessageStatus.Transferring)
                 {
-                    SpeedBar!.Progress = ItemSource.Progress / ItemSource.Size;
-                    StatusTb!.Text = $"{Disk.FormatSize(ItemSource.Speed)}/s {Disk.FormatSize(ItemSource.Progress)}/{Disk.FormatSize(ItemSource.Size)}";
+                    MainThread.BeginInvokeOnMainThread(() => {
+                        SpeedBar!.Progress = ItemSource.Progress / ItemSource.Size;
+                        StatusTb!.Text = $"{Disk.FormatSize(ItemSource.Speed)}/s {Disk.FormatSize(ItemSource.Progress)}/{Disk.FormatSize(ItemSource.Size)}";
+                    });
                 }
                 break;
             default:
