@@ -1,12 +1,5 @@
-﻿ using System;
-using System.Buffers.Text;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
+﻿using System.Net;
 using System.Net.Sockets;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using ZoDream.FileTransfer.Loggers;
 using ZoDream.FileTransfer.Models;
 using ZoDream.FileTransfer.Network.Messages;
@@ -20,14 +13,16 @@ namespace ZoDream.FileTransfer.Network
     public class SocketHub : IDisposable, IMessageSender
     {
 
-        public SocketHub(ILogger logger)
+        public SocketHub(ISocketProvider provider, ILogger logger)
         {
             Logger = logger;
+            Provider = provider;
             Udp = new UdpServer(this);
             Tcp = new TcpServer(this);
         }
 
         public ILogger Logger { get; private set; }
+        public ISocketProvider Provider { get; private set; }
         public UdpServer Udp { get; private set; }
         public TcpServer Tcp { get; private set; }
         private readonly IList<SocketClient> ClientItems = new List<SocketClient>();
@@ -48,6 +43,16 @@ namespace ZoDream.FileTransfer.Network
 
         public static SocketClient? Connect(string ip, int port)
         {
+            var socket = ConnectTCP(ip, port);
+            if (socket == null)
+            {
+                return null; ;
+            }
+            return new SocketClient(socket, ip, port);
+        }
+
+        private static Socket? ConnectTCP(string ip, int port)
+        {
             if (!IPAddress.TryParse(ip, out var address))
             {
                 return null;
@@ -57,7 +62,8 @@ namespace ZoDream.FileTransfer.Network
             try
             {
                 socket.Connect(clientIp);
-            } catch (Exception ex)
+            }
+            catch (Exception ex)
             {
                 // 可能对方没有开启tcp
                 App.Repository.Logger.Debug($"TCP[{ip}:{port}]: {ex.Message}");
@@ -67,7 +73,17 @@ namespace ZoDream.FileTransfer.Network
             {
                 return null;
             }
-            return new SocketClient(socket, ip, port);
+            return socket;
+        }
+
+        public static SocketClient? Connect(IClientAddress token)
+        {
+            var socket = ConnectTCP(token.Ip, token.Port);
+            if (socket == null)
+            {
+                return null; ;
+            }
+            return new SocketClient(socket, token);
         }
 
         public async Task<SocketClient?> GetAsync(IUser user)
@@ -77,9 +93,17 @@ namespace ZoDream.FileTransfer.Network
 
         public async Task<SocketClient?> GetAsync(string ip, int port)
         {
+            return await GetAsync(Provider.GetToken(ip, port));
+        }
+
+        public async Task<SocketClient?> GetAsync(IClientAddress address)
+        {
+            var token = address is IClientToken o ? o : Provider.GetToken(address);
             foreach (var item in ClientItems)
             {
-                if (item.Ip != ip || item.Port != port)
+                if (item.Token is null || 
+                    item.Token.Ip != token.Ip || 
+                    item.Token.Port != token.Port || item.Token.Id != token.Id)
                 {
                     continue;
                 }
@@ -90,7 +114,7 @@ namespace ZoDream.FileTransfer.Network
                 return item;
             }
             return await Task.Factory.StartNew(() => {
-                var client = Connect(ip, port);
+                var client = Connect(token);
                 if (client == null)
                 {
                     return null;
@@ -135,8 +159,7 @@ namespace ZoDream.FileTransfer.Network
         public void Ping(IEnumerable<IClientAddress> users, IUser info)
         {
             var ip = Utils.Ip.GetIpInGroup();
-            var buffer = RenderPack(new UserMessage() { Data = info }.Pack(),
-                (byte)SocketMessageType.Ping, Convert.ToByte(true));
+            var buffer = TypeMessage.Pack(SocketMessageType.Ping, true, new UserMessage() { Data = info }); ;
             foreach (var item in users)
             {
                 if (item.Ip == ip)
@@ -147,43 +170,18 @@ namespace ZoDream.FileTransfer.Network
             }
         }
 
-        public void ResponsePing(string ip, int port, IUser info)
+
+        public void Ping(string ip, int port, IUser info, bool isRequest = true)
         {
-            var buffer = RenderPack(new UserMessage() { Data = info }.Pack(), 
-                (byte)SocketMessageType.Ping, Convert.ToByte(false));
+            var buffer = TypeMessage.Pack(SocketMessageType.Ping, isRequest, new UserMessage() { Data = info });
             Udp.Ping(ip, port, buffer);
         }
 
-        public void Ping(string ip, int port, IUser info)
+        public void Ping(IClientAddress address, IUser info, bool isRequest = true)
         {
-            var buffer = RenderPack(new UserMessage() { Data = info }.Pack(),
-                (byte)SocketMessageType.Ping, Convert.ToByte(true));
-            Udp.Ping(ip, port, buffer);
+            Ping(address.Ip, address.Port, info, isRequest);
         }
-        /// <summary>
-        /// 发送消息，自动转udp
-        /// </summary>
-        /// <param name="user"></param>
-        /// <param name="type"></param>
-        /// <param name="message"></param>
-        /// <returns>是否发送成功，udp无法判断默认返回true</returns>
-        public async Task<bool> SendAsync(IUser user, SocketMessageType type,
-            IMessagePack? message)
-        {
-            return await SendAsync(user.Ip, user.Port, type, true, message);
-        }
-        /// <summary>
-        /// 响应消息，自动转udp
-        /// </summary>
-        /// <param name="user"></param>
-        /// <param name="type"></param>
-        /// <param name="message"></param>
-        /// <returns>是否发送成功，udp无法判断默认返回true</returns>
-        public async Task<bool> ResponseAsync(IUser user, SocketMessageType type,
-            IMessagePack message)
-        {
-            return await SendAsync(user.Ip, user.Port, type, false, message);
-        }
+
 
         /// <summary>
         /// 发送消息，自动转udp
@@ -194,32 +192,46 @@ namespace ZoDream.FileTransfer.Network
         /// <param name="isRequest"></param>
         /// <param name="pack"></param>
         /// <returns>是否发送成功，udp无法判断默认返回true</returns>
-        public async Task<bool> SendAsync(string ip, int port, SocketMessageType type, bool isRequest, IMessagePack? pack)
+        public async Task<bool> SendAsync(IClientAddress address, SocketMessageType type, bool isRequest, IMessagePack? pack)
         {
-            var client = await GetAsync(ip, port);
+            var client = await GetAsync(address);
             if (client == null)
             {
-                return await UdpSendAsync(ip, port, type, isRequest, pack);
+                return await UdpSendAsync(address, type, isRequest, pack);
             }
             return client.Send(type, isRequest, pack);
         }
 
-        public async Task<bool> UdpSendAsync(string ip, int port, SocketMessageType type, bool isRequest, IMessagePack? pack)
+        public async Task<bool> UdpSendAsync(IClientAddress address, SocketMessageType type, bool isRequest, IMessagePack? pack)
         {
-            return await Udp.SendAsync(ip, port, type, isRequest, pack);
+            return await Udp.SendAsync(address, type, isRequest, pack);
         }
-        public async Task<bool> RequestAsync(string ip, int port, SocketMessageType type, IMessagePack pack)
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="address"></param>
+        /// <param name="type"></param>
+        /// <param name="pack"></param>
+        /// <returns></returns>
+        public async Task<bool> RequestAsync(IClientAddress address, SocketMessageType type, IMessagePack? pack)
         {
-            return await SendAsync(ip, port, type, true, pack);
+            return await SendAsync(address, type, true, pack);
         }
-        public async Task<bool> ResponseAsync(string ip, int port, SocketMessageType type, IMessagePack pack)
+        /// <summary>
+        /// 响应消息，自动转udp
+        /// </summary>
+        /// <param name="address"></param>
+        /// <param name="type"></param>
+        /// <param name="pack"></param>
+        /// <returns>是否发送成功，udp无法判断默认返回true</returns>
+        public async Task<bool> ResponseAsync(IClientAddress address, SocketMessageType type, IMessagePack? pack)
         {
-            return await SendAsync(ip, port, type, false, pack);
+            return await SendAsync(address, type, false, pack);
         }
 
         #endregion
 
-        internal MessageEventArg Emit(string ip, int port, byte[] buffer)
+        internal MessageEventArg Emit(IClientAddress address, byte[] buffer)
         {
             var type = (SocketMessageType)buffer[0];
             var isRequest = false;
@@ -230,12 +242,15 @@ namespace ZoDream.FileTransfer.Network
                 isRequest = Convert.ToBoolean(buffer[1]);
             }
             var pack = MessageEventArg.RenderUnpack(type);
-            if (pack is not null)
-            {
-                pack.Unpack(buffer[start..]);
-            }
+            pack?.Unpack(buffer[start..]);
             var arg = new MessageEventArg(type, isRequest, pack);
-            MessageReceived?.Invoke(null, ip, port, arg);
+            MessageReceived?.Invoke(null, Provider.GetToken(address), arg);
+            return arg;
+        }
+
+        internal MessageEventArg Emit(IClientAddress address, MessageEventArg arg)
+        {
+            MessageReceived?.Invoke(null, Provider.GetToken(address), arg);
             return arg;
         }
 
@@ -247,7 +262,7 @@ namespace ZoDream.FileTransfer.Network
             {
                 Change(client);
             }
-            MessageReceived?.Invoke(client, client.Ip, client.Port, arg);
+            MessageReceived?.Invoke(client, client.Token, arg);
             return arg;
         }
         /// <summary>

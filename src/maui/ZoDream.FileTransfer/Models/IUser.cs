@@ -1,8 +1,7 @@
 ﻿namespace ZoDream.FileTransfer.Models
 {
-    public interface IUser: IClientAddress
+    public interface IUser: IClientToken
     {
-        public string Id { get; }
         public string Name { get; }
         public string Avatar { get; }
     }

@@ -80,6 +80,10 @@ namespace ZoDream.FileTransfer.Models
             }
         }
 
+        public int EncryptType { get; set; }
+
+        public string EncryptRule { get; set; } = string.Empty;
+
 
         public Color? AvatarBackground { get; set; }
 

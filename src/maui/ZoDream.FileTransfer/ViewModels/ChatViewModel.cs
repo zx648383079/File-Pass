@@ -238,7 +238,11 @@ namespace ZoDream.FileTransfer.ViewModels
 
 		private async Task PickFileAsync()
 		{
-			var res = await FilePicker.Default.PickMultipleAsync();
+            var res = await FilePicker.Default.PickMultipleAsync();
+			if (res == null)
+			{
+				return;
+			}
             foreach (var item in res)
             {
                 var message = await App.Repository.ChatHub
@@ -333,7 +337,7 @@ namespace ZoDream.FileTransfer.ViewModels
 			}
             foreach (var item in items)
             {
-				if (item is FileMessageItem file)
+				if (item is FileMessageItem file && !User.Online)
 				{
 					file.Status = FileMessageStatus.Canceled;
 				}

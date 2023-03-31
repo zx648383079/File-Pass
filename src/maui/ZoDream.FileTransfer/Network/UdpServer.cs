@@ -5,6 +5,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
+using ZoDream.FileTransfer.Models;
 using ZoDream.FileTransfer.Network.Messages;
 using ZoDream.FileTransfer.Repositories;
 
@@ -77,7 +78,7 @@ namespace ZoDream.FileTransfer.Network
                         Buffer.BlockCopy(CacheBuffer, 0, buffer, 0, length);
                         if (sendIp is IPEndPoint o)
                         {
-                            Hub?.Emit(o.Address.ToString(), o.Port, buffer);
+                            EmitHub(o.Address.ToString(), o.Port, buffer);
                         }
                     }
                     catch (Exception ex)
@@ -90,13 +91,79 @@ namespace ZoDream.FileTransfer.Network
 
         public Task<bool> SendAsync(string ip, int port, SocketMessageType type, bool isRequest, IMessagePack? pack)
         {
-            var buffer = TypeMessage.Pack(type, isRequest, pack);
+            var buffer = Pack(string.Empty, type, isRequest, pack);
             if (buffer.Length > Constants.UDP_BUFFER_SIZE)
             {
                 App.Repository.Logger.Error($"UDP Send Max Size: {Constants.UDP_BUFFER_SIZE}");
                 return Task.FromResult(false);
             }
             return Task.FromResult(Send(ip, port, buffer));
+        }
+
+        public Task<bool> SendAsync(IClientAddress address, SocketMessageType type, bool isRequest, IMessagePack? pack)
+        {
+            var buffer = Pack(address is IClientToken o ? o.Id : string.Empty, type, isRequest, pack);
+            if (buffer.Length > Constants.UDP_BUFFER_SIZE)
+            {
+                App.Repository.Logger.Error($"UDP Send Max Size: {Constants.UDP_BUFFER_SIZE}");
+                return Task.FromResult(false);
+            }
+            return Task.FromResult(Send(address.Ip, address.Port, buffer));
+        }
+
+        private byte[] Pack(string token, SocketMessageType type, bool isRequest, IMessagePack? pack)
+        {
+            if (!MessageEventArg.HasToken(type))
+            {
+                return TypeMessage.Pack(type, isRequest, pack);
+            }
+            var items = new List<byte>();
+            items.Add((byte)type);
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                items.Add(0);
+            } else
+            {
+                var buffer = Encoding.ASCII.GetBytes(token.Trim());
+                items.Add((byte)buffer.Length);
+                items.AddRange(buffer);
+            }
+            if (MessageEventArg.HasRequest(type))
+            {
+                items.Add(Convert.ToByte(isRequest));
+            }
+            if (pack is not null)
+            {
+                items.AddRange(pack.Pack());
+            }
+            return items.ToArray();
+        }
+
+        private void EmitHub(string ip, int port, byte[] buffer)
+        {
+            var type = (SocketMessageType)buffer[0];
+            var start = 1;
+            var token = string.Empty;
+            if (MessageEventArg.HasToken(type))
+            {
+                var tokenLength = Convert.ToInt32(buffer[start]);
+                var end = start + tokenLength + 1;
+                if (tokenLength > 0)
+                {
+                    token = Encoding.ASCII.GetString(buffer[start..end]);
+                }
+                start = end;
+            }
+            var isRequest = false;
+            if (MessageEventArg.HasRequest(type))
+            {
+                isRequest = Convert.ToBoolean(buffer[start]);
+                start++;
+            }
+            var pack = MessageEventArg.RenderUnpack(type);
+            pack?.Unpack(buffer[start..]);
+            var arg = new MessageEventArg(type, isRequest, pack);
+            Hub?.Emit(string.IsNullOrWhiteSpace(token) ? new ClientAddress(ip, port) : new ClientToken(ip, port, token), arg);
         }
 
         public bool Ping(string ip, byte[] buffer)
@@ -129,7 +196,6 @@ namespace ZoDream.FileTransfer.Network
                     }
                     i++;
                 }
-                
             }
             catch (Exception ex)
             {

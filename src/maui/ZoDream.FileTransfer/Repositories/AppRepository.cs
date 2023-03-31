@@ -124,7 +124,7 @@ namespace ZoDream.FileTransfer.Repositories
             }
             Option = await LoadOptionAsync();
             // Logger.Debug(UserInfoItem.ToStr(Option));
-            NetHub = new SocketHub(Logger);
+            NetHub = new SocketHub(ChatHub, Logger);
             await ChatHub.InitializeAsync();
             Booted = true;
             Logger.Info("System Booted");

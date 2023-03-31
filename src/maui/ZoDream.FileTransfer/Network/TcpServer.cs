@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using System.Net.Sockets;
+using ZoDream.FileTransfer.Models;
 
 namespace ZoDream.FileTransfer.Network
 {
@@ -60,6 +61,16 @@ namespace ZoDream.FileTransfer.Network
             }, token);
         }
 
+        public async Task<bool> SendAsync(IClientAddress address, SocketMessageType type, bool isRequest, IMessagePack? pack)
+        {
+            var client = await Hub.GetAsync(address);
+            if (client == null)
+            {
+                return false;
+            }
+            return client.Send(type, isRequest, pack);
+        }
+
         public async Task<bool> SendAsync(string ip, int port, SocketMessageType type, bool isRequest, IMessagePack? pack)
         {
             var client = await Hub.GetAsync(ip, port);
@@ -67,13 +78,7 @@ namespace ZoDream.FileTransfer.Network
             {
                 return false;
             }
-            client.Send(type);
-            client.Send(isRequest);
-            if (pack is null)
-            {
-                return true;
-            }
-            return client.Send(pack);
+            return client.Send(type, isRequest, pack);
         }
 
         public void Dispose()

@@ -13,6 +13,12 @@ namespace ZoDream.FileTransfer.Models
 
         public int Port { get; }
     }
+
+    public interface IClientToken: IClientAddress
+    {
+        public string Id { get; }
+    }
+
     public class ClientAddress: IClientAddress
     {
         public ClientAddress(string ip, int port)
@@ -24,5 +30,21 @@ namespace ZoDream.FileTransfer.Models
         public string Ip { get; set; }
 
         public int Port { get; set; }
+    }
+
+    public class ClientToken : ClientAddress, IClientToken
+    {
+        public ClientToken(string ip, int port): base(ip, port)
+        {
+            Ip = ip;
+            Port = port;
+        }
+
+        public ClientToken(string ip, int port, string token): base(ip, port)
+        {
+            Id = token;
+        }
+
+        public string Id { get; set; } = string.Empty;
     }
 }

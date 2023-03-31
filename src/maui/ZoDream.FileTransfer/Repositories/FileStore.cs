@@ -2,6 +2,7 @@
 using System.Text;
 using System.Text.Json;
 using ZoDream.FileTransfer.Models;
+using ZoDream.FileTransfer.Securities;
 
 namespace ZoDream.FileTransfer.Repositories
 {
@@ -11,39 +12,16 @@ namespace ZoDream.FileTransfer.Repositories
 
         public string Password { get; private set; }
 
-        private readonly Aes Cipher;
+        private readonly AesSecurity Cipher;
 
         public FileStore(StorageRepository storage, string password) 
         {
             Storage = storage;
             Password = password;
-            try {
-                Cipher = Aes.Create();
-                Cipher.Key = Encoding.UTF8.GetBytes(Password);
-                Cipher.IV = VerifyIV(Encoding.UTF8.GetBytes(Constants.AES_IV), 16);
-            }
-            catch (Exception) 
-            {
-
-            }
+            Cipher = new AesSecurity(password);
         }
 
-        private byte[] VerifyIV(byte[] iv, int size) {
-            if (iv.Length == size) {
-                return iv;
-            }
-            var items = new byte[size];
-            for (int i = 0; i < size; i++) {
-                if (iv.Length > i) {
-                    items[i] = iv[i];
-                }
-                else {
-                    items[i] = (byte)i;
-                }
-            }
-            return items;
-        }
-
+        
         public async Task InitializeAsync() 
         {
             await Storage.MakeFolderAsync(Constants.MESSAGE_FOLDER);
@@ -170,8 +148,7 @@ namespace ZoDream.FileTransfer.Repositories
             return await Task.Factory.StartNew(() => 
             {
                 using var fs = File.OpenRead(file);
-                var descriptor = Cipher.CreateDecryptor(Cipher.Key, Cipher.IV);
-                using var csDecrypt = new CryptoStream(fs, descriptor, CryptoStreamMode.Read);
+                using var csDecrypt = Cipher.Decrypt(fs);
                 var res = JsonSerializer.Deserialize(csDecrypt, typeof(T));
                 if (res != null) {
                     return (T)res;
@@ -186,10 +163,7 @@ namespace ZoDream.FileTransfer.Repositories
             await Task.Factory.StartNew(() => 
             {
                 using var fs = File.Create(file);
-
-                // Create an encryptor to perform the stream transform.
-                var encryptor = Cipher.CreateEncryptor(Cipher.Key, Cipher.IV);
-                using var csEncrypt = new CryptoStream(fs, encryptor, CryptoStreamMode.Write);
+                using var csEncrypt = Cipher.Encrypt(fs);
                 JsonSerializer.Serialize(csEncrypt, data);
             });
         }
@@ -201,9 +175,7 @@ namespace ZoDream.FileTransfer.Repositories
                 return string.Empty;
             }
             using var fs = File.OpenRead(file);
-            // Create an encryptor to perform the stream transform.
-            var descriptor = Cipher.CreateDecryptor(Cipher.Key, Cipher.IV);
-            using var csDecrypt = new CryptoStream(fs, descriptor, CryptoStreamMode.Read);
+            using var csDecrypt = Cipher.Decrypt(fs);
             using var srDecrypt = new StreamReader(csDecrypt);
             return await srDecrypt.ReadToEndAsync();
         }
@@ -212,10 +184,7 @@ namespace ZoDream.FileTransfer.Repositories
         {
             var file = Storage.Combine(fileName);
             using var fs = File.Create(file);
-
-            // Create an encryptor to perform the stream transform.
-            var encryptor = Cipher.CreateEncryptor(Cipher.Key, Cipher.IV);
-            using var csEncrypt = new CryptoStream(fs, encryptor, CryptoStreamMode.Write);
+            using var csEncrypt = Cipher.Encrypt(fs);
             using var swEncrypt = new StreamWriter(csEncrypt);
             await swEncrypt.WriteAsync(content);
         }
@@ -233,7 +202,6 @@ namespace ZoDream.FileTransfer.Repositories
         }
         public void Dispose() 
         {
-            Cipher?.Dispose();
         }
 
     }

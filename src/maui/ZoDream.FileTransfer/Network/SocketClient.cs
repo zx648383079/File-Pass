@@ -11,14 +11,12 @@ namespace ZoDream.FileTransfer.Network
     {
         public readonly int ChunkSize = 500;
         public readonly int FileChunkSize = 100 * 1024;
-        public string Ip { get; private set; } = string.Empty;
-
-        public int Port { get; private set; } = 80;
+        public IClientToken? Token { get; private set; }
         public SocketHub? Hub { get; set; }
         private bool IsLoopReceive = false;
         private readonly Socket ClientSocket;
         private CancellationTokenSource ReceiveToken = new();
-        private CancellationTokenSource SendToken = new();
+        private readonly CancellationTokenSource SendToken = new();
 
         public SocketClient(Socket socket)
         {
@@ -27,20 +25,33 @@ namespace ZoDream.FileTransfer.Network
 
         public SocketClient(Socket socket, string ip, int port): this(socket)
         {
-            Ip = ip;
-            Port = port;
+            Token = new ClientToken(ip, port);
+        }
+
+        public SocketClient(Socket socket, IClientAddress token) : this(socket)
+        {
+            Address = token;
         }
 
         private bool connected = true;
         public bool Connected => connected && ClientSocket.Connected;
-        public IClientAddress Address 
+        public IClientAddress? Address 
         {
             get {
-                return new ClientAddress(Ip, Port);
+                return Token;
             }
             set {
-                Ip = value.Ip;
-                Port = value.Port;
+                if (value == null)
+                {
+                    Token = null;
+                    return;
+                }
+                if (value is IClientToken o)
+                {
+                    Token = new ClientToken(o.Ip, o.Port, o.Id);
+                    return;
+                }
+                Token = new ClientToken(value.Ip, value.Port);
             }
         }
 
@@ -420,8 +431,7 @@ namespace ZoDream.FileTransfer.Network
             }
             Send(SocketMessageType.Ip);
             new IpMessage() { 
-                Ip = address.Ip,
-                Port = address.Port,
+                Data = address
             }.Pack(this);
             return true;
         }

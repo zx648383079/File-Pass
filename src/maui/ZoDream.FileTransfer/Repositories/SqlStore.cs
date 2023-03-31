@@ -76,7 +76,7 @@ namespace ZoDream.FileTransfer.Repositories
             IList<UserItem> items = new List<UserItem>();
             var command = Connect.CreateCommand();
             command.CommandText = @"SELECT 
-                    Id,Name,Ip,Port,Avatar,MarkName,LastAt,LastMessage
+                    Id,Name,Ip,Port,Avatar,MarkName,LastAt,LastMessage,EncryptType,EncryptRule
                     FROM Users ORDER BY UpdatedAt DESC";
             using (var reader = command.ExecuteReader())
             {
@@ -92,6 +92,8 @@ namespace ZoDream.FileTransfer.Repositories
                         MarkName = reader.GetString(5),
                         LastAt = reader.GetDateTime(6),
                         LastMessage = reader.GetString(7),
+                        EncryptType = reader.GetInt32(8),
+                        EncryptRule = reader.GetString(9),
                     });
                 }
             }
@@ -157,8 +159,8 @@ namespace ZoDream.FileTransfer.Repositories
             }
             var command = Connect.CreateCommand();
             command.CommandText =
-                @"INSERT INTO Users (Id,Name,Ip,Port,Avatar,MarkName,CreatedAt)
-                  VALUES (:id,:name,:ip,:port,:avatar,:mark,:now)";
+                @"INSERT INTO Users (Id,Name,Ip,Port,Avatar,MarkName,EncryptType,EncryptRule,CreatedAt)
+                  VALUES (:id,:name,:ip,:port,:avatar,:mark,:etype,:erule,:now)";
             command.Parameters.AddWithValue(":id", user.Id);
             command.Parameters.AddWithValue(":name", user.Name);
             command.Parameters.AddWithValue(":ip", user.Ip);
@@ -167,9 +169,13 @@ namespace ZoDream.FileTransfer.Repositories
             if (user is UserItem info)
             {
                 command.Parameters.AddWithValue(":mark", info.MarkName);
+                command.Parameters.AddWithValue(":etype", info.EncryptType);
+                command.Parameters.AddWithValue(":erule", info.EncryptRule);
             } else
             {
                 command.Parameters.AddWithValue(":mark", user.Name);
+                command.Parameters.AddWithValue(":etype", 0);
+                command.Parameters.AddWithValue(":erule", "");
             }
             command.Parameters.AddWithValue(":now", DateTime.Now);
             command.ExecuteNonQuery();
@@ -180,7 +186,7 @@ namespace ZoDream.FileTransfer.Repositories
             var command = Connect.CreateCommand();
             command.CommandText =
                 @"UPDATE  Users SET 
-                    Name=:name,Ip=:ip,Port=:port,Avatar=:avatar,MarkName=:mark,LastAt=:at,LastMessage=:last
+                    Name=:name,Ip=:ip,Port=:port,Avatar=:avatar,MarkName=:mark,EncryptType=:etype,EncryptRule=erule,LastAt=:at,LastMessage=:last
                  WHERE Id=:id";
             command.Parameters.AddWithValue(":id", user.Id);
             command.Parameters.AddWithValue(":name", user.Name);
@@ -189,6 +195,8 @@ namespace ZoDream.FileTransfer.Repositories
             command.Parameters.AddWithValue(":avatar", user.Avatar);
             command.Parameters.AddWithValue(":mark", user.MarkName);
             command.Parameters.AddWithValue(":at", user.LastAt);
+            command.Parameters.AddWithValue(":etype", user.EncryptType);
+            command.Parameters.AddWithValue(":erule", user.EncryptRule);
             command.Parameters.AddWithValue(":last", user.LastMessage);
             command.ExecuteNonQuery();
             return Task.CompletedTask;

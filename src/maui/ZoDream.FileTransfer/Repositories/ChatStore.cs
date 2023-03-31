@@ -1,16 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using ZoDream.FileTransfer.Models;
+﻿using ZoDream.FileTransfer.Models;
 using ZoDream.FileTransfer.Network;
 using ZoDream.FileTransfer.Network.Messages;
+using ZoDream.FileTransfer.Securities;
 using ZoDream.FileTransfer.Utils;
 
 namespace ZoDream.FileTransfer.Repositories
 {
-    public class ChatStore
+    public class ChatStore: ISocketProvider
     {
         public ChatStore(AppRepository app) 
         {
@@ -25,6 +21,7 @@ namespace ZoDream.FileTransfer.Repositories
         /// </summary>
         public Dictionary<string, MessageItem> ConfirmItems = new();
         public Dictionary<string, IMessageSocket> LinkItems = new();
+        public Dictionary<string, ISecurity?> SecurityItems = new();
         public List<IUser> ApplyItems = new();
 
         public event UsersUpdatedEventHandler? UsersUpdated;
@@ -181,17 +178,30 @@ namespace ZoDream.FileTransfer.Repositories
             return null;
         }
 
+        public UserItem? Get(IClientToken? token)
+        {
+            if (token == null)
+            {
+                return null;
+            }
+            if (string.IsNullOrWhiteSpace(token.Id))
+            {
+                return Get(token.Ip, token.Port);
+            }
+            return Get(token.Id);
+        }
+
         #endregion
 
 
-        private void NetHub_MessageReceived(SocketClient? client, string ip, int port, MessageEventArg message)
+        private void NetHub_MessageReceived(SocketClient? client, IClientToken? token, MessageEventArg message)
         {
-            var user = Get(ip, port);
+            var user = Get(token);
             if (user != null)
             {
                 user.Online = true;
             }
-            App.Logger.Debug($"Receive<ip[{ip}:{port}]user[{user?.Name}]>:{message.EventType}->{message.IsRequest}");
+            App.Logger.Debug($"Receive<ip[{token?.Ip}:{token?.Port}]user[{user?.Name}]>:{message.EventType}->{message.IsRequest}");
             var net = App.NetHub;
             switch (message.EventType)
             {
@@ -204,7 +214,7 @@ namespace ZoDream.FileTransfer.Repositories
                     var hasUser = IndexOf(remote.Id) >= 0;
                     if (message.IsRequest && (!App.Option.IsHideClient || hasUser))
                     {
-                        net.ResponsePing(ip, port, App.Option);
+                        net.Ping(token!, App.Option, false);
                     }
                     if (hasUser)
                     {
@@ -234,7 +244,7 @@ namespace ZoDream.FileTransfer.Repositories
                     var isAgree = (message.Data as BoolMessage)!.Data;
                     foreach (var item in ApplyItems)
                     {
-                        if (item.Ip == ip && item.Port == port)
+                        if (item.Ip == token?.Ip && item.Port == token?.Port)
                         {
                             if (isAgree)
                             {
@@ -272,13 +282,13 @@ namespace ZoDream.FileTransfer.Repositories
                     break;
                 case SocketMessageType.RequestSpecialLine:
                     var act = message.Data as ActionMessage;
-                    if (ConfirmItems.TryGetValue(act!.MessageId, out var mess))
+                    if (token is not null && ConfirmItems.TryGetValue(act!.MessageId, out var mess))
                     {
-                        var link = SocketHub.Connect(ip, port);
+                        var link = SocketHub.Connect(token);
                         if (link is null)
                         {
                             // 失败
-                            App.Logger.Error($"Request Special Line Error: {ip}:{port}");
+                            App.Logger.Error($"Request Special Line Error: {token.Ip}:{token.Port}");
                             return;
                         }
                         SendConfirmedMessage(link, mess);
@@ -349,7 +359,7 @@ namespace ZoDream.FileTransfer.Repositories
             if (client is null)
             {
                 // 无法创建连接，发送消息给对面，让对方创建
-                _ = App.NetHub.SendAsync(user,
+                _ = App.NetHub.RequestAsync(user,
                     SocketMessageType.RequestSpecialLine, new ActionMessage()
                     {
                         EventType = MessageTapEvent.None,
@@ -460,7 +470,7 @@ namespace ZoDream.FileTransfer.Repositories
                 CreatedAt = DateTime.Now,
                 IsSuccess = false
             };
-            message.IsSuccess = await App.NetHub.SendAsync(user, 
+            message.IsSuccess = await App.NetHub.RequestAsync(user, 
                 SocketMessageType.MessageText, 
                 message.WriteTo());
             _ = App.DataHub.AddMessageAsync(user, message);
@@ -477,7 +487,7 @@ namespace ZoDream.FileTransfer.Repositories
                 CreatedAt = DateTime.Now,
                 IsSuccess = false
             };
-            message.IsSuccess = await App.NetHub.SendAsync(user, SocketMessageType.Ping,
+            message.IsSuccess = await App.NetHub.RequestAsync(user, SocketMessageType.Ping,
                 message.WriteTo());
             _ = App.DataHub.AddMessageAsync(user, message);
             return message;
@@ -497,7 +507,7 @@ namespace ZoDream.FileTransfer.Repositories
                 CreatedAt = DateTime.Now,
                 IsSuccess = false
             };
-            message.IsSuccess = await App.NetHub.SendAsync(user, SocketMessageType.MessageFile,
+            message.IsSuccess = await App.NetHub.RequestAsync(user, SocketMessageType.MessageFile,
                 message.WriteTo());
             _ = App.DataHub.AddMessageAsync(user, message);
             AddConfirmMessage(message);
@@ -518,7 +528,7 @@ namespace ZoDream.FileTransfer.Repositories
                 CreatedAt = DateTime.Now,
                 IsSuccess = false
             };
-            message.IsSuccess = await App.NetHub.SendAsync(user, 
+            message.IsSuccess = await App.NetHub.RequestAsync(user, 
                 SocketMessageType.MessageFolder,
                 message.WriteTo());
             _ = App.DataHub.AddMessageAsync(user, message);
@@ -540,7 +550,7 @@ namespace ZoDream.FileTransfer.Repositories
                 CreatedAt = DateTime.Now,
                 IsSuccess = false
             };
-            message.IsSuccess = await App.NetHub.SendAsync(user,
+            message.IsSuccess = await App.NetHub.RequestAsync(user,
                 SocketMessageType.MessageSync,
                 message.WriteTo());
             _ = App.DataHub.AddMessageAsync(user, message);
@@ -560,7 +570,7 @@ namespace ZoDream.FileTransfer.Repositories
                 CreatedAt = DateTime.Now,
                 IsSuccess = false
             };
-            message.IsSuccess = await App.NetHub.SendAsync(user,
+            message.IsSuccess = await App.NetHub.RequestAsync(user,
                 SocketMessageType.MessageUser,
                 message.WriteTo());
             _ = App.DataHub.AddMessageAsync(user, message);
@@ -576,7 +586,7 @@ namespace ZoDream.FileTransfer.Repositories
         /// <exception cref="NotImplementedException"></exception>
         public async Task<bool> CancelMessageAsync(IUser user, MessageItem data)
         {
-            var res = await App.NetHub.SendAsync(user, SocketMessageType.MessageAction,
+            var res = await App.NetHub.RequestAsync(user, SocketMessageType.MessageAction,
                 new ActionMessage()
                 {
                     MessageId = data.Id,
@@ -597,7 +607,7 @@ namespace ZoDream.FileTransfer.Repositories
         /// <exception cref="NotImplementedException"></exception>
         public async Task<bool> ConfirmMessageAsync(IUser user, MessageItem data)
         {
-            var res = await App.NetHub.SendAsync(user, SocketMessageType.MessageAction,
+            var res = await App.NetHub.RequestAsync(user, SocketMessageType.MessageAction,
                 new ActionMessage()
                 {
                     MessageId = data.Id,
@@ -619,7 +629,7 @@ namespace ZoDream.FileTransfer.Repositories
         /// <exception cref="NotImplementedException"></exception>
         public async Task<bool> WithdrawMessageAsync(IUser user, MessageItem data)
         {
-            var res = await App.NetHub.SendAsync(user, SocketMessageType.MessageAction,
+            var res = await App.NetHub.RequestAsync(user, SocketMessageType.MessageAction,
                 new ActionMessage()
                 {
                     MessageId = data.Id,
@@ -662,7 +672,7 @@ namespace ZoDream.FileTransfer.Repositories
             {
                 return true;
             }
-            var res = await App.NetHub.SendAsync(user, SocketMessageType.UserAddRequest, new UserMessage()
+            var res = await App.NetHub.RequestAsync(user, SocketMessageType.UserAddRequest, new UserMessage()
             {
                 Data = App.Option
             });
@@ -687,5 +697,96 @@ namespace ZoDream.FileTransfer.Repositories
         }
 
         #endregion
+
+        public IClientToken GetToken(string ip, int port)
+        {
+            var user = Get(ip, port);
+            if (user == null)
+            {
+                return new ClientToken(ip, port);
+            }
+            return user;
+        }
+
+        public IClientToken GetToken(IClientAddress address)
+        {
+            if (address is IClientToken o)
+            {
+                return o;
+            }
+            return GetToken(address.Ip, address.Port);
+        }
+
+        public ISecurity GetSecurity(string token)
+        {
+            return GetSecurity(Get(token));
+        }
+
+        public ISecurity GetSecurity(IClientAddress address)
+        {
+            if (address is UserItem o)
+            {
+                return GetSecurity(o);
+            }
+            return GetSecurity(Get(address.Ip, address.Port));
+        }
+
+        public ISecurity GetSecurity(UserItem? user)
+        {
+            var type = App.Option.EncryptType;
+            var rule = App.Option.EncryptRule;
+            if (user != null && user.EncryptType > 0)
+            {
+                type = user.EncryptType; 
+                rule = user.EncryptRule;
+            }
+            if (type < 1 || string.IsNullOrWhiteSpace(rule))
+            {
+                return new NoneSecurity();
+            }
+            return CreateSecurity(type, rule);
+        }
+
+        public ISecurity CreateSecurity(int type, string rule)
+        {
+            if (type < 1 || string.IsNullOrWhiteSpace(rule))
+            {
+                return new NoneSecurity();
+            }
+            return type switch
+            {
+                1 => new AesSecurity(rule),
+                2 => new RsaSecurity(rule),
+                _ => new NoneSecurity()
+            };
+        }
+
+        public Task<byte[]> EncodeAsync(string token, byte[] buffer)
+        {
+            return Task.Factory.StartNew(() => {
+                return GetSecurity(token).Encrypt(buffer);
+            });
+        }
+
+        public Task<byte[]> EncodeAsync(IClientAddress address, byte[] buffer)
+        {
+            return Task.Factory.StartNew(() => {
+                return GetSecurity(address).Encrypt(buffer);
+            });
+        }
+
+        public Task<byte[]> DecodeAsync(string token, byte[] buffer)
+        {
+            return Task.Factory.StartNew(() => {
+                return GetSecurity(token).Decrypt(buffer);
+            });
+        }
+
+        public Task<byte[]> DecodeAsync(IClientAddress address, byte[] buffer)
+        {
+            return Task.Factory.StartNew(() => {
+                return GetSecurity(address).Decrypt(buffer);
+            });
+        }
     }
 }

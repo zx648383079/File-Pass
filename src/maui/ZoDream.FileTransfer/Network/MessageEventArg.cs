@@ -65,5 +65,19 @@ namespace ZoDream.FileTransfer.Network
                 _ => null,
             };
         }
+
+        /// <summary>
+        /// 通过udp 发送消息时是否需要带上用户id
+        /// </summary>
+        /// <param name="type"></param>
+        /// <returns></returns>
+        public static bool HasToken(SocketMessageType? type)
+        {
+            return type switch
+            {
+                SocketMessageType.Ip or SocketMessageType.Ping => false,
+                _ => true
+            };
+        }
     }
 }

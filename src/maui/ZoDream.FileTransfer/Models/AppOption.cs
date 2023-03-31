@@ -21,6 +21,10 @@ namespace ZoDream.FileTransfer.Models
         /// </summary>
         public bool IsSaveFile { get; set; }
 
+        public int EncryptType { get; set; }
+
+        public string EncryptRule { get; set; } = string.Empty;
+
         public UserInfoItem FormatInfo()
         {
             return new UserInfoItem()

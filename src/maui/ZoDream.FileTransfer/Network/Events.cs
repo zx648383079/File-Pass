@@ -7,7 +7,7 @@ using ZoDream.FileTransfer.Models;
 
 namespace ZoDream.FileTransfer.Network
 {
-    public delegate void MessageReceivedEventHandler(SocketClient? client, string ip, int port, MessageEventArg arg);
+    public delegate void MessageReceivedEventHandler(SocketClient? client, IClientToken? token, MessageEventArg arg);
 
     public delegate void UsersUpdatedEventHandler();
     public delegate void NewUserEventHandler(IUser user, bool isAddRequest = false);

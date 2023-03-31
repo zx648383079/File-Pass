@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using ZoDream.FileTransfer.Models;
 
 namespace ZoDream.FileTransfer.Network
 {
@@ -11,7 +7,7 @@ namespace ZoDream.FileTransfer.Network
         public bool IsListening { get; }
         public void Listen(string ip, int port);
 
-        public Task<bool> SendAsync(string ip, int port, SocketMessageType type, bool isRequest, IMessagePack? pack);
+        public Task<bool> SendAsync(IClientAddress address, SocketMessageType type, bool isRequest, IMessagePack? pack);
 
     }
 }
