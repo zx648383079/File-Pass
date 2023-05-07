@@ -350,6 +350,17 @@ namespace ZoDream.FileTransfer.Network
                     fileName = ReceiveText();
                     var md5 = ReceiveText();
                     var length = ReceiveContentLength();
+                    location = Path.Combine(folder, fileName);
+                    if (File.Exists(location) && !overwrite)
+                    {
+                        Send(SocketMessageType.FileCheckResponse);
+                        SendText(fileName);
+                        Send(false);
+                        location = fileName = string.Empty;
+                        Hub?.EmitReceive(fileName, location, 0, 0);
+                        Hub?.Logger.Debug($"Receive File Exist: {fileName}->{overwrite}");
+                        return;
+                    }
                     var shouldSend = CheckFile(folder, fileName, md5);
                     Send(SocketMessageType.FileCheckResponse);
                     SendText(fileName);
@@ -357,7 +368,6 @@ namespace ZoDream.FileTransfer.Network
                     Hub?.Logger.Debug($"Receive Check: {fileName}->{shouldSend}");
                     if (!shouldSend)
                     {
-                        location = Path.Combine(folder, fileName);
                         Hub?.EmitReceive(fileName, location, length, length);
                     }
                     continue;
@@ -393,10 +403,11 @@ namespace ZoDream.FileTransfer.Network
 #if NETCOREAPP3_0_OR_GREATER
                     File.Move(tempFile, location, overwrite);
 #else
-    if (File.Exists(location)) {
-        File.Delete(location);
-    }
-    File.Move(tempFile, location);
+                    if (File.Exists(location)) 
+                    {
+                        File.Delete(location);
+                    }
+                    File.Move(tempFile, location);
 #endif
                     Send(SocketMessageType.Received);
                     Hub?.Logger.Debug($"Receive File Complete: {fileName}->{length}");
@@ -422,7 +433,15 @@ namespace ZoDream.FileTransfer.Network
                         continue;
                     }
                     Directory.CreateDirectory(Path.GetDirectoryName(location)!);
+#if NETCOREAPP3_0_OR_GREATER
+                    File.Move(cacheFile, location, overwrite);
+#else
+                    if (File.Exists(location)) 
+                    {
+                        File.Delete(location);
+                    }
                     File.Move(cacheFile, location);
+#endif
                     Send(SocketMessageType.Received);
                     Hub?.Logger.Debug($"Receive File Complete: {fileName}->{length}");
                     Hub?.EmitReceive(fileName, location, length, length);
