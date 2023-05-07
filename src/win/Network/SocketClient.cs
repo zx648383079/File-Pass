@@ -365,7 +365,7 @@ namespace ZoDream.FileTransfer.Network
                 {
                     fileName = ReceiveText();
                     location = Path.Combine(folder, fileName);
-                    if (File.Exists(fileName) && overwrite) {
+                    if (File.Exists(location) && overwrite) {
                         Jump();
                         Jump();
                         Hub?.EmitReceive(fileName, location, 0,0);
@@ -390,7 +390,14 @@ namespace ZoDream.FileTransfer.Network
                         continue;
                     }
                     Directory.CreateDirectory(Path.GetDirectoryName(location)!);
-                    File.Move(tempFile, location);
+#if NETCOREAPP3_0_OR_GREATER
+                    File.Move(tempFile, location, overwrite);
+#else
+    if (File.Exists(location)) {
+        File.Delete(location);
+    }
+    File.Move(tempFile, location);
+#endif
                     Send(SocketMessageType.Received);
                     Hub?.Logger.Debug($"Receive File Complete: {fileName}->{length}");
                     Hub?.EmitReceive(fileName, location, length, length);
@@ -490,7 +497,7 @@ namespace ZoDream.FileTransfer.Network
             }
             return writer.Length;
         }
-        #endregion
+#endregion
 
 
 

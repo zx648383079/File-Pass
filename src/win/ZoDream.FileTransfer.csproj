@@ -3,12 +3,12 @@
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
 	  <TargetFrameworks>net7.0-windows;net48</TargetFrameworks>
-	  <LangVersion>10.0</LangVersion>
+	  <LangVersion>11</LangVersion>
     <Nullable>enable</Nullable>
     <UseWPF>true</UseWPF>
 	  <UseWindowsForms>true</UseWindowsForms>
     <ApplicationIcon>pass.ico</ApplicationIcon>
-	  <Version>1.4</Version>
+	  <Version>1.5</Version>
     <Authors>zodream</Authors>
     <Company>zodream.cn</Company>
     <Product>FileTransfer</Product>
