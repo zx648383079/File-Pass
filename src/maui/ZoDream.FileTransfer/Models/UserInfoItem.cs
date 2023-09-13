@@ -11,7 +11,7 @@ namespace ZoDream.FileTransfer.Models
 {
     public class UserInfoItem: IUser
     {
-        public string Id { get; set; }
+        public string Id { get; set; } = string.Empty;
 
         public string Avatar { get; set; } = string.Empty;
 

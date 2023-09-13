@@ -20,6 +20,10 @@ namespace ZoDream.FileTransfer.Models
         /// 当收到文件时自动同意接收并保存文件
         /// </summary>
         public bool IsSaveFile { get; set; }
+        /// <summary>
+        /// 每次确认保存文件夹
+        /// </summary>
+        public bool WhenSaveCheckFolder { get; set; }
 
         public int EncryptType { get; set; }
 

@@ -92,8 +92,8 @@
 
 
 	<ItemGroup>
-		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.0" />
-		<PackageReference Include="Microsoft.Data.Sqlite" Version="7.0.5" />
+		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.1" />
+		<PackageReference Include="Microsoft.Data.Sqlite" Version="7.0.10" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="7.0.0" />
 		<PackageReference Include="System.Security.Cryptography.Cng" Version="6.0.0-preview.4.21253.7" />
 		<PackageReference Include="System.Security.Cryptography.OpenSsl" Version="6.0.0-preview.4.21253.7" />

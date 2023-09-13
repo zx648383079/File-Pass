@@ -4,7 +4,8 @@
              xmlns:vm="clr-namespace:ZoDream.FileTransfer.ViewModels"
              x:Class="ZoDream.FileTransfer.Views.SettingPage"
              Style="{StaticResource PageStyle}"
-             Title="设置">
+             Title="设置"
+             Unloaded="ContentPage_Unloaded">
     <ContentPage.BindingContext>
         <vm:SettingViewModel/>
     </ContentPage.BindingContext>
@@ -63,7 +64,14 @@
                     <Switch IsToggled="{Binding IsOpenLink}" Grid.Column="1"  Grid.RowSpan="2"/>
                 </Grid>
             </Frame>
-
+            <Frame Style="{StaticResource InputBox}">
+                <Grid ColumnDefinitions="*,auto"  RowDefinitions="*,*">
+                    <Label Text="每次确认保存文件夹" Style="{StaticResource InputLabel}"/>
+                    <Label Text="当收到文件时每次确认保存文件夹" Grid.Row="1" 
+                        Style="{StaticResource InputMetaLabel}"/>
+                    <Switch IsToggled="{Binding WhenSaveCheckFolder}" Grid.Column="1"  Grid.RowSpan="2"/>
+                </Grid>
+            </Frame>
             <Frame Style="{StaticResource InputBox}">
                 <Grid ColumnDefinitions="*,auto"  RowDefinitions="*,*">
                     <Label Text="自动接收文件" Style="{StaticResource InputLabel}"/>

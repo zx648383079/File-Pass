@@ -25,9 +25,11 @@ namespace ZoDream.FileTransfer.ViewModels
 				{
 					return;
 				}
-				App.Repository.ChangeOptionAsync(Option);
+				IsUpdated = true;
 			};
         }
+
+		private bool IsUpdated = false;
 
 		public ICommand ResetCommand { get; set; }
 		public ICommand ClearCommand { get; set; }
@@ -44,7 +46,7 @@ namespace ZoDream.FileTransfer.ViewModels
 			}
 		}
 
-        private string name;
+        private string name = string.Empty;
 
 		public string Name
 		{
@@ -55,7 +57,7 @@ namespace ZoDream.FileTransfer.ViewModels
 			}
 		}
 
-		private string ip;
+		private string ip = string.Empty;
 
 		public string Ip
 		{
@@ -108,8 +110,19 @@ namespace ZoDream.FileTransfer.ViewModels
             }
 		}
 
+		private bool whenSaveCheckFolder;
 
-		private AppOption option;
+		public bool WhenSaveCheckFolder {
+			get { return whenSaveCheckFolder; }
+			set { 
+				whenSaveCheckFolder = value;
+                OnPropertyChanged();
+            }
+		}
+
+
+
+		private AppOption option = new();
 
 		public AppOption Option {
 			get {
@@ -118,6 +131,7 @@ namespace ZoDream.FileTransfer.ViewModels
 				option.IsHideClient = IsHideClient;
 				option.IsOpenLink = IsOpenLink;
 				option.IsSaveFile = IsSaveFile;
+				option.WhenSaveCheckFolder = WhenSaveCheckFolder;
 				option.Name = Name;
 				return option; 
 			}
@@ -129,6 +143,7 @@ namespace ZoDream.FileTransfer.ViewModels
                 IsHideClient = option.IsHideClient;
                 IsOpenLink = option.IsOpenLink;
                 IsSaveFile = option.IsSaveFile;
+				WhenSaveCheckFolder = option.WhenSaveCheckFolder;
             }
 		}
 
@@ -142,5 +157,15 @@ namespace ZoDream.FileTransfer.ViewModels
 			await App.Repository.ClearMessageAsync();
         }
 
+
+		public void AutoSave()
+		{
+			if (!IsUpdated)
+			{
+				return;
+			}
+			IsUpdated = true;
+            App.Repository.ChangeOptionAsync(Option);
+        }
     }
 }
