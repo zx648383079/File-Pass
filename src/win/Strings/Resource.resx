@@ -135,6 +135,9 @@
   <data name="countLabel" xml:space="preserve">
     <value>Linked:</value>
   </data>
+  <data name="countTip" xml:space="preserve">
+    <value>In count/Out count</value>
+  </data>
   <data name="linkTo" xml:space="preserve">
     <value>Ask a link</value>
   </data>

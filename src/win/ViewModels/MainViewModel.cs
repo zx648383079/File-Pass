@@ -127,9 +127,9 @@ namespace ZoDream.FileTransfer.ViewModels
         public string SendText => LocalizedLangExtension.GetString(IsPassively ? "linkTo" : "pickFile");
 
 
-        private int linkedCount;
+        private string linkedCount;
 
-        public int LinkedCount {
+        public string LinkedCount {
             get => linkedCount;
             set => Set(ref linkedCount, value);
         }
@@ -184,7 +184,7 @@ namespace ZoDream.FileTransfer.ViewModels
 
         private void Hub_OnLinkChange()
         {
-            LinkedCount = Hub.LinkedCount;
+            LinkedCount = $"{Hub.LinkedCount}/{Hub.LinkCount}";
         }
 
         private void Hub_OnCompleted(string name, string fileName, bool isSuccess, bool isSend)

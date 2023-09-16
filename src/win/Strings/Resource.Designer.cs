@@ -115,6 +115,15 @@ namespace ZoDream.FileTransfer.Strings {
         }
         
         /// <summary>
+        ///   查找类似 In count/Out count 的本地化字符串。
+        /// </summary>
+        internal static string countTip {
+            get {
+                return ResourceManager.GetString("countTip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Ask a link 的本地化字符串。
         /// </summary>
         internal static string linkTo {

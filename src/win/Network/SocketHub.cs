@@ -3,6 +3,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
@@ -37,7 +38,8 @@ namespace ZoDream.FileTransfer.Network
         public bool Overwrite { get; set; } = true;
         public ILogger Logger { get; private set; }
 
-        public int LinkedCount => LinkItems.Count;
+        public int LinkedCount => LinkItems.Where(i => i.IsPassively).Count();
+        public int LinkCount => LinkItems.Where(i => !i.IsPassively).Count();
 
         public event MessageProgressEventHandler? OnProgress;
         public event MessageCompletedEventHandler? OnCompleted;

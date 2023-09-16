@@ -120,8 +120,12 @@
             <TextBlock Text="{ll:LocalizedLang sendLabel}" Grid.Column="2"  Style="{StaticResource TipHeader}"/>
             <TextBlock Text="{Binding ClientMessage, Mode=OneWay}" Grid.Column="3" HorizontalAlignment="Left"/>
             
-            <TextBlock Text="{ll:LocalizedLang countLabel}" Grid.Column="4"  Style="{StaticResource TipHeader}"/>
-            <TextBlock Text="{Binding LinkedCount, Mode=OneWay}" Grid.Column="5" HorizontalAlignment="Left"/>
+            <TextBlock Text="{ll:LocalizedLang countLabel}" Grid.Column="4" 
+                       ToolTip="{ll:LocalizedLang countTip}"
+                       Style="{StaticResource TipHeader}"/>
+            <TextBlock Text="{Binding LinkedCount, Mode=OneWay}"
+                       ToolTip="{ll:LocalizedLang countTip}"
+                       Grid.Column="5" HorizontalAlignment="Left"/>
         </Grid>
     </Grid>
 </Window>

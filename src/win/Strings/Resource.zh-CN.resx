@@ -135,6 +135,9 @@
   <data name="countLabel" xml:space="preserve">
     <value>连接数：</value>
   </data>
+  <data name="countTip" xml:space="preserve">
+    <value>入数/出数</value>
+  </data>
   <data name="linkTo" xml:space="preserve">
     <value>请求连接</value>
   </data>
