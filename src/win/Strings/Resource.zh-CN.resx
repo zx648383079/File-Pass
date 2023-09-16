@@ -132,8 +132,17 @@
   <data name="clientPort" xml:space="preserve">
     <value>监听端口：</value>
   </data>
+  <data name="countLabel" xml:space="preserve">
+    <value>连接数：</value>
+  </data>
+  <data name="linkTo" xml:space="preserve">
+    <value>请求连接</value>
+  </data>
   <data name="listen" xml:space="preserve">
     <value>监听</value>
+  </data>
+  <data name="listenNotOpen" xml:space="preserve">
+    <value>监听模式没有开启</value>
   </data>
   <data name="messageTip" xml:space="preserve">
     <value>成功{0}/失败{1}/共{2}</value>
@@ -221,5 +230,14 @@
   </data>
   <data name="status" xml:space="preserve">
     <value>状态</value>
+  </data>
+  <data name="toggle" xml:space="preserve">
+    <value>切换</value>
+  </data>
+  <data name="toggleTip" xml:space="preserve">
+    <value>切换为被动模式</value>
+  </data>
+  <data name="toggleToTip" xml:space="preserve">
+    <value>切换为主动模式</value>
   </data>
 </root>

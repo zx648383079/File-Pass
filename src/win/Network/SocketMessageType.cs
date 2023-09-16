@@ -20,5 +20,8 @@ namespace ZoDream.FileTransfer.Network
         File,
         FileCheck, // 发出是否传输的询问
         FileCheckResponse, // 回复是否传输
+        Header, // 声明请求头，包含版本信息
+        PreFile, // 接下来是发送文件，请准备接收
+        PreReceive, // 声明本连接是由接收方主动接收的专线
     }
 }

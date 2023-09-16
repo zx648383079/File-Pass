@@ -106,11 +106,38 @@ namespace ZoDream.FileTransfer.Strings {
         }
         
         /// <summary>
+        ///   查找类似 Linked: 的本地化字符串。
+        /// </summary>
+        internal static string countLabel {
+            get {
+                return ResourceManager.GetString("countLabel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Ask a link 的本地化字符串。
+        /// </summary>
+        internal static string linkTo {
+            get {
+                return ResourceManager.GetString("linkTo", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Listen 的本地化字符串。
         /// </summary>
         internal static string listen {
             get {
                 return ResourceManager.GetString("listen", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Listen mode is not open 的本地化字符串。
+        /// </summary>
+        internal static string listenNotOpen {
+            get {
+                return ResourceManager.GetString("listenNotOpen", resourceCulture);
             }
         }
         
@@ -372,6 +399,33 @@ namespace ZoDream.FileTransfer.Strings {
         internal static string status {
             get {
                 return ResourceManager.GetString("status", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Toggle 的本地化字符串。
+        /// </summary>
+        internal static string toggle {
+            get {
+                return ResourceManager.GetString("toggle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Switch to passive mode 的本地化字符串。
+        /// </summary>
+        internal static string toggleTip {
+            get {
+                return ResourceManager.GetString("toggleTip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Switch to active mode 的本地化字符串。
+        /// </summary>
+        internal static string toggleToTip {
+            get {
+                return ResourceManager.GetString("toggleToTip", resourceCulture);
             }
         }
     }

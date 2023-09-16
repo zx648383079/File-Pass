@@ -17,6 +17,7 @@ namespace ZoDream.FileTransfer.Network
     /// </summary>
     public class SocketHub : IDisposable
     {
+        public const string Version = "1.0.1";
         public int ThreadCount { get; set; } = 5;
         private string ListenIp = string.Empty;
         private int ListenPort = 0;
@@ -24,8 +25,7 @@ namespace ZoDream.FileTransfer.Network
         private CancellationTokenSource ListenToken = new();
         private CancellationTokenSource SendToken = new();
         private bool IsSending = false;
-        private readonly List<SocketClient> ReceiveItems = new();
-        private readonly List<SocketClient> SendItems = new();
+        private readonly List<SocketClient> LinkItems = new();
         private readonly ConcurrentDictionary<string, FileMessageSocket> FileItems = new();
 
         public SocketHub(ILogger logger)
@@ -37,8 +37,11 @@ namespace ZoDream.FileTransfer.Network
         public bool Overwrite { get; set; } = true;
         public ILogger Logger { get; private set; }
 
+        public int LinkedCount => LinkItems.Count;
+
         public event MessageProgressEventHandler? OnProgress;
         public event MessageCompletedEventHandler? OnCompleted;
+        public event LinkChangeEventHandler? OnLinkChange;
 
         public void Listen(string ip, int port)
         {
@@ -78,7 +81,7 @@ namespace ZoDream.FileTransfer.Network
                         return;
                     }
                     var socket = tcpSocket.Accept();
-                    Add(new SocketClient(socket), true);
+                    Add(new SocketClient(socket));
                 }
             }, token);
         }
@@ -97,14 +100,16 @@ namespace ZoDream.FileTransfer.Network
             }
             catch (Exception)
             {
-                // 可能对方没有开启tcp
+                // 可能对方没有开启 tcp
                 return null;
             }
             if (!socket.Connected)
             {
                 return null;
             }
-            return new SocketClient(socket, ip, port);
+            var link = new SocketClient(socket, ip, port);
+            link.SendText(SocketMessageType.Header, Version);
+            return link;
         }
 
         public SocketClient? Add(string ip, int port)
@@ -118,9 +123,24 @@ namespace ZoDream.FileTransfer.Network
             return client;
         }
 
+        public SocketClient? Add(string ip, int port, bool isReceive)
+        {
+            var client = Connect(ip, port);
+            if (client == null)
+            {
+                return null;
+            }
+            Add(client, isReceive);
+            if (isReceive)
+            {
+                client.AsReceiveLink();
+            }
+            return client;
+        }
+
         public async Task<SocketClient?> GetAsync(string ip, int port)
         {
-            foreach (var item in SendItems)
+            foreach (var item in LinkItems)
             {
                 if (item.Ip != ip || item.Port != port)
                 {
@@ -143,6 +163,18 @@ namespace ZoDream.FileTransfer.Network
             });
         }
 
+        public void Add(SocketClient client)
+        {
+            if (client == null)
+            {
+                return;
+            }
+            client.Hub = this;
+            LinkItems.Add(client);
+            client.LoopReceive();
+            OnLinkChange?.Invoke();
+        }
+
         public void Add(SocketClient client, bool isReceive)
         {
             if (client == null)
@@ -152,15 +184,16 @@ namespace ZoDream.FileTransfer.Network
             client.Hub = this;
             if (!isReceive)
             {
-                SendItems.Add(client);
+                LinkItems.Add(client);
+                OnLinkChange?.Invoke();
                 return;
             }
-            ReceiveItems.Add(client);
-            Task.Factory.StartNew(() => {
-                client.ReceiveFile(WorkFolder, Overwrite, ListenToken.Token);
-            }, ListenToken.Token);
+            LinkItems.Add(client);
+            client.LoopReceive();
+            OnLinkChange?.Invoke();
         }
 
+        #region 主动模式下发送文件
         public FileMessageSocket GetFilePack(string ip, int port)
         {
             if (FileItems.TryGetValue(ip, out FileMessageSocket? file))
@@ -190,7 +223,7 @@ namespace ZoDream.FileTransfer.Network
                         return;
                     }
                     var max = ThreadCount;
-                    var rate = max - SendItems.Count;
+                    var rate = max - LinkItems.Count;
                     if (rate <= 0)
                     {
                         continue;
@@ -259,6 +292,65 @@ namespace ZoDream.FileTransfer.Network
             return Task.FromResult(true);
         }
 
+        #endregion
+
+        #region 被动模式下
+        /// <summary>
+        /// 获取被动连接
+        /// </summary>
+        /// <returns></returns>
+        public SocketClient? Get()
+        {
+            foreach (var item in LinkItems)
+            {
+                if (item.IsPassively && !item.IsBusy && item.IsReceiveLink)
+                {
+                    return item;
+                }
+            }
+            return null;
+        }
+
+        public Task<bool> SendFileAsync(string fileName)
+        {
+            var fileInfo = new FileInfo(fileName);
+            if (!fileInfo.Exists)
+            {
+                return Task.FromResult(false);
+            }
+            GetFilePack(string.Empty, 80).Add(new FileInfoItem(fileInfo.Name, fileName, fileInfo.Name, fileInfo.Length));
+            SendFile();
+            return Task.FromResult(true);
+        }
+
+        public Task<bool> SendFileAsync(string name, string fileName)
+        {
+            var fileInfo = new FileInfo(fileName);
+            if (!fileInfo.Exists)
+            {
+                return Task.FromResult(false);
+            }
+            GetFilePack(string.Empty, 80).Add(new FileInfoItem(fileInfo.Name,
+                fileName, name, fileInfo.Length));
+            SendFile();
+            return Task.FromResult(true);
+        }
+
+        public Task<bool> SendFileAsync(IEnumerable<FileInfoItem> items)
+        {
+            GetFilePack(string.Empty, 80).Add(items);
+            SendFile();
+            return Task.FromResult(true);
+        }
+
+        public Task<bool> SendFileAsync(FileInfoItem item)
+        {
+            GetFilePack(string.Empty, 80).Add(item);
+            SendFile();
+            return Task.FromResult(true);
+        }
+        #endregion
+
         public void StopSend()
         {
             SendToken.Cancel();
@@ -266,12 +358,12 @@ namespace ZoDream.FileTransfer.Network
             {
                 item.Value.Dispose();
             }
-            foreach (var item in SendItems)
+            foreach (var item in LinkItems)
             {
                 item.Dispose();
             }
             FileItems.Clear();
-            SendItems.Clear();
+            LinkItems.Clear();
             SendToken = new CancellationTokenSource();
             IsSending = false;
         }
@@ -306,20 +398,16 @@ namespace ZoDream.FileTransfer.Network
 
         public void Close(SocketClient client)
         {
-            SendItems.Remove(client);
-            ReceiveItems.Remove(client);
+            LinkItems.Remove(client);
             client.Dispose();
+            OnLinkChange?.Invoke();
         }
 
         public void Dispose()
         {
             ListenToken.Cancel();
             SendToken?.Cancel();
-            foreach (var item in SendItems)
-            {
-                item.Dispose();
-            }
-            foreach (var item in ReceiveItems)
+            foreach (var item in LinkItems)
             {
                 item.Dispose();
             }

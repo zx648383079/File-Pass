@@ -20,10 +20,14 @@ namespace ZoDream.FileTransfer.Network
 
         public int Port { get; private set; } = 80;
 
+        public bool IsReceiveLink { get; private set; } = false;
+        public bool IsBusy { get; set; } = false;
+        private bool IsLoopReceive = false;
         private readonly int ChunkSize = 500;
         private readonly int FileChunkSize = 100 * 1024;
         private readonly Socket ClientSocket;
-        private readonly CancellationTokenSource CancellationToken = new();
+        private readonly CancellationTokenSource SendToken = new();
+        private CancellationTokenSource ReceiveToken = new();
         public SocketHub? Hub { get; set; }
         public SocketClient(Socket socket)
         {
@@ -37,7 +41,69 @@ namespace ZoDream.FileTransfer.Network
 
         private bool connected = true;
         public bool Connected => connected && ClientSocket.Connected;
+        /// <summary>
+        /// 是否是被连接的
+        /// </summary>
+        public bool IsPassively => string.IsNullOrEmpty(Ip);
 
+
+        public void LoopReceive()
+        {
+            IsLoopReceive = true;
+            ReceiveToken?.Cancel();
+            ReceiveToken = new CancellationTokenSource();
+            var token = ReceiveToken.Token;
+            Task.Factory.StartNew(() => {
+                while (true)
+                {
+                    if (token.IsCancellationRequested)
+                    {
+                        IsLoopReceive = false;
+                        return;
+                    }
+                    if (!Connected)
+                    {
+                        IsLoopReceive = false;
+                        Hub?.Close(this);
+                        return;
+                    }
+                    var type = ReceiveMessageType();
+                    if (type == SocketMessageType.Header)
+                    {
+                        if (ReceiveText() != SocketHub.Version)
+                        {
+                            IsLoopReceive = false;
+                            Hub?.Close(this);
+                            return;
+                        }
+                    } else if (type == SocketMessageType.PreClose)
+                    {
+                        IsLoopReceive = false;
+                        Hub?.Close(this);
+                        return;
+                    }
+                    else if (type == SocketMessageType.PreFile)
+                    {
+                        IsReceiveLink = false;
+                        IsLoopReceive = false;
+                        ReceiveFile(Hub!.WorkFolder, Hub!.Overwrite);
+                        continue;
+                    }
+                    else if (type == SocketMessageType.PreReceive)
+                    {
+                        IsReceiveLink = true;
+                        IsLoopReceive = false;
+                        return;
+                    }
+                }
+            }, token);
+        }
+
+        public void StopLoopReceive()
+        {
+            ReceiveToken?.Cancel();
+            ReceiveToken = new CancellationTokenSource();
+        }
 
         #region 接受消息
         private SocketMessageType ReceiveMessageType()
@@ -194,6 +260,12 @@ namespace ZoDream.FileTransfer.Network
             Send((byte)messageType);
         }
 
+        public void AsReceiveLink()
+        {
+            Send(SocketMessageType.PreReceive);
+            IsReceiveLink = true;
+        }
+
         public void SendText(SocketMessageType messageType, string text)
         {
             Send(messageType);
@@ -212,7 +284,7 @@ namespace ZoDream.FileTransfer.Network
             var sent = 0L;
             while (sent < length)
             {
-                if (!Connected || CancellationToken.IsCancellationRequested)
+                if (!Connected || SendToken.IsCancellationRequested)
                 {
                     return;
                 }
@@ -243,6 +315,7 @@ namespace ZoDream.FileTransfer.Network
             long length,
             CancellationToken token = default)
         {
+            Send(SocketMessageType.PreFile);
             Send(SocketMessageType.FileCheck);
             SendText(name);
             SendText(md5);
@@ -282,8 +355,8 @@ namespace ZoDream.FileTransfer.Network
             var endPos = 0L;
             while (endPos < length)
             {
-                if (!Connected || token.IsCancellationRequested || 
-                    CancellationToken.IsCancellationRequested)
+                if (!Connected || token.IsCancellationRequested ||
+                    SendToken.IsCancellationRequested)
                 {
                     Hub?.EmitSend(name, fileName, 0, 0);
                     return false;
@@ -331,7 +404,7 @@ namespace ZoDream.FileTransfer.Network
             while (true)
             {
                 if (!Connected || token.IsCancellationRequested
-                    || CancellationToken.IsCancellationRequested)
+                    || SendToken.IsCancellationRequested)
                 {
                     Hub?.EmitReceive(fileName, location, 0, 0);
                     Hub?.Close(this);
@@ -343,6 +416,15 @@ namespace ZoDream.FileTransfer.Network
                 {
                     Hub?.Logger.Debug("Receive Complete");
                     Hub?.Close(this);
+                    return;
+                }
+                else if (type == SocketMessageType.Header)
+                {
+                    Jump();
+                    return;
+                }
+                else if (type == SocketMessageType.PreFile)
+                {
                     return;
                 }
                 else if (type == SocketMessageType.FileCheck)
@@ -523,7 +605,8 @@ namespace ZoDream.FileTransfer.Network
         public void Dispose()
         {
             connected = false;
-            CancellationToken.Cancel();
+            SendToken?.Cancel();
+            ReceiveToken?.Cancel();
             ClientSocket?.Close();
         }
     }

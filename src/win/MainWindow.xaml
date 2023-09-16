@@ -64,15 +64,26 @@
         <Button x:Name="ListenBtn" Content="{ll:LocalizedLang listen}" Grid.Column="4" 
                 IsEnabled="{Binding IsNotListen}"
                 Command="{Binding ListenCommand}"/>
-        <Button x:Name="ChooseBtn" Content="{ll:LocalizedLang pickFile}" Grid.Column="4" Grid.Row="1" Command="{Binding DragFileCommand}"/>
+        <Button x:Name="ChooseBtn" Content="{Binding SendText}" Grid.Column="4" 
+                Grid.Row="1" Command="{Binding ClientDoCommand}"/>
 
         <TextBlock Text="{ll:LocalizedLang saveFolder}" Grid.Row="2"/>
         <TextBox x:Name="SaveFolderTb"  Text="{Binding SaveFolder}" Grid.Row="2" Grid.Column="1" IsReadOnly="True"/>
         <Button x:Name="SaveFolderBtn" Content="{ll:LocalizedLang pick}" 
                 IsEnabled="{Binding IsNotListen}"
                 Grid.Row="2" Grid.Column="2" Command="{Binding SaveCommand}"/>
-        <CheckBox x:Name="OverCb" IsChecked="{Binding Overwrite}" Content="{ll:LocalizedLang autoOverwrite}" 
-                  VerticalAlignment="Center" ToolTip="{ll:LocalizedLang overwriteTip}" Grid.Row="2" Grid.Column="3"  Grid.ColumnSpan="2"/>
+        <Grid Grid.Row="2" Grid.Column="3"  Grid.ColumnSpan="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition/>
+                <ColumnDefinition Width="auto"/>
+            </Grid.ColumnDefinitions>
+            <CheckBox x:Name="OverCb" IsChecked="{Binding Overwrite}" Content="{ll:LocalizedLang autoOverwrite}" 
+                    VerticalAlignment="Center" ToolTip="{ll:LocalizedLang overwriteTip}"/>
+            <Button Content="{ll:LocalizedLang toggle}" Grid.Column="1" 
+                    ToolTip="{Binding ToggleTip}"
+                    Command="{Binding ToggleCommand}"
+                    Padding="4,0"/>
+        </Grid>
 
         <ListView x:Name="FileBox" Grid.Row="3" Grid.ColumnSpan="5" ItemsSource="{Binding FileItems}" AllowDrop="True" 
                   PreviewDragOver="FileBox_PreviewDragOver" 
@@ -101,11 +112,16 @@
                 <ColumnDefinition/>
                 <ColumnDefinition Width="auto"/>
                 <ColumnDefinition/>
+                <ColumnDefinition Width="auto"/>
+                <ColumnDefinition Width="60"/>
             </Grid.ColumnDefinitions>
             <TextBlock Text="{ll:LocalizedLang receiveLabel}" Style="{StaticResource TipHeader}"/>
             <TextBlock Text="{Binding ServerMessage, Mode=OneWay}" Grid.Column="1" HorizontalAlignment="Left"/>
             <TextBlock Text="{ll:LocalizedLang sendLabel}" Grid.Column="2"  Style="{StaticResource TipHeader}"/>
             <TextBlock Text="{Binding ClientMessage, Mode=OneWay}" Grid.Column="3" HorizontalAlignment="Left"/>
+            
+            <TextBlock Text="{ll:LocalizedLang countLabel}" Grid.Column="4"  Style="{StaticResource TipHeader}"/>
+            <TextBlock Text="{Binding LinkedCount, Mode=OneWay}" Grid.Column="5" HorizontalAlignment="Left"/>
         </Grid>
     </Grid>
 </Window>

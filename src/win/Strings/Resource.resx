@@ -132,8 +132,17 @@
   <data name="clientPort" xml:space="preserve">
     <value>Client Port</value>
   </data>
+  <data name="countLabel" xml:space="preserve">
+    <value>Linked:</value>
+  </data>
+  <data name="linkTo" xml:space="preserve">
+    <value>Ask a link</value>
+  </data>
   <data name="listen" xml:space="preserve">
     <value>Listen</value>
+  </data>
+  <data name="listenNotOpen" xml:space="preserve">
+    <value>Listen mode is not open</value>
   </data>
   <data name="messageTip" xml:space="preserve">
     <value>Success {0} / Failure {1} / Total {2}</value>
@@ -221,5 +230,14 @@
   </data>
   <data name="status" xml:space="preserve">
     <value>Status</value>
+  </data>
+  <data name="toggle" xml:space="preserve">
+    <value>Toggle</value>
+  </data>
+  <data name="toggleTip" xml:space="preserve">
+    <value>Switch to passive mode</value>
+  </data>
+  <data name="toggleToTip" xml:space="preserve">
+    <value>Switch to active mode</value>
   </data>
 </root>

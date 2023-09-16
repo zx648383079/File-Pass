@@ -7,7 +7,6 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Input;
 using ZoDream.FileTransfer.Loggers;
 using ZoDream.FileTransfer.Models;
@@ -25,9 +24,12 @@ namespace ZoDream.FileTransfer.ViewModels
             DragFileCommand = new RelayCommand(TapDragFile);
             DragFolderCommand = new RelayCommand(TapDragFolder);
             ClearCommand = new RelayCommand(TapClearFile);
+            ClientDoCommand = new RelayCommand(TapClientDo);
+            ToggleCommand = new RelayCommand(TapToggle);
             Hub = new SocketHub(Logger);
             Hub.OnProgress += Hub_OnProgress;
             Hub.OnCompleted += Hub_OnCompleted;
+            Hub.OnLinkChange += Hub_OnLinkChange;
             Logger.OnLog += Logger_OnLog;
             Task.Factory.StartNew(() => {
                 ClientIp = Ip.Get();
@@ -44,11 +46,28 @@ namespace ZoDream.FileTransfer.ViewModels
         private readonly SocketHub Hub;
         public EventLogger Logger { get; private set; } = new EventLogger();
 
-        public ICommand ListenCommand { get; set; }
-        public ICommand SaveCommand { get; set; }
-        public ICommand DragFileCommand { get; set; }
-        public ICommand DragFolderCommand { get; set; }
-        public ICommand ClearCommand { get; set; }
+        public ICommand ListenCommand { get; private set; }
+        public ICommand SaveCommand { get; private set; }
+        public ICommand ClientDoCommand { get; private set; }
+        public ICommand ToggleCommand { get; private set; }
+        public ICommand DragFileCommand { get; private set; }
+        public ICommand DragFolderCommand { get; private set; }
+        public ICommand ClearCommand { get; private set; }
+
+        
+        private bool isPassively = false;
+        /// <summary>
+        /// 判断是否是被动模式
+        /// </summary>
+        public bool IsPassively {
+            get => isPassively;
+            set {
+                Set(ref isPassively, value);
+                OnPropertyChanged(nameof(ToggleTip));
+                OnPropertyChanged(nameof(SendText));
+            }
+        }
+
 
         private bool isNotListen = true;
 
@@ -103,6 +122,19 @@ namespace ZoDream.FileTransfer.ViewModels
             }
         }
 
+        public string ToggleTip => LocalizedLangExtension.GetString(IsPassively ? "toggleToTip" : "toggleTip");
+
+        public string SendText => LocalizedLangExtension.GetString(IsPassively ? "linkTo" : "pickFile");
+
+
+        private int linkedCount;
+
+        public int LinkedCount {
+            get => linkedCount;
+            set => Set(ref linkedCount, value);
+        }
+
+
 
         private ObservableCollection<string> ipItems = new();
 
@@ -140,12 +172,19 @@ namespace ZoDream.FileTransfer.ViewModels
 
         public bool IsVerifySendAddress => Regex.IsMatch(SendIp, @"\d+\.\d+\.\d+\.\d") && SendPort >= 1000;
 
+        public bool CanDropFile => (IsPassively && IsNotListen) || (!IsPassively && IsVerifySendAddress);
+
         private void Logger_OnLog(string message, LogLevel level)
         {
             if (level > LogLevel.Debug)
             {
                 ShowMessage(message);
             }
+        }
+
+        private void Hub_OnLinkChange()
+        {
+            LinkedCount = Hub.LinkedCount;
         }
 
         private void Hub_OnCompleted(string name, string fileName, bool isSuccess, bool isSend)
@@ -181,6 +220,52 @@ namespace ZoDream.FileTransfer.ViewModels
             });
         }
 
+        private void TapToggle(object? _)
+        {
+            IsPassively = !IsPassively;
+        }
+
+        private void TapClientDo(object? _)
+        {
+            if (!IsPassively)
+            {
+                TapDragFile(null);
+                return;
+            }
+            if (!CheckSaveFolder())
+            {
+                return;
+            }
+            if (!IsVerifySendAddress)
+            {
+                MessageBox.Show(LocalizedLangExtension.GetString("remoteIpError"));
+                return;
+            }
+            Hub.WorkFolder = SaveFolder;
+            Hub.Overwrite = Overwrite;
+            Hub.Add(ClientIp, ClientPort, true);
+        }
+
+        private bool CheckSaveFolder()
+        {
+            if (!string.IsNullOrWhiteSpace(SaveFolder))
+            {
+                return true;
+            }
+            var openFolderDialog = new System.Windows.Forms.FolderBrowserDialog
+            {
+                SelectedPath = AppDomain.CurrentDomain.BaseDirectory,
+                ShowNewFolderButton = true
+            };
+            if (openFolderDialog.ShowDialog() != System.Windows.Forms.DialogResult.OK)
+            {
+                MessageBox.Show(LocalizedLangExtension.GetString("pickSaveFolderTip"));
+                IsNotListen = true;
+                return false;
+            }
+            SaveFolder = openFolderDialog.SelectedPath;
+            return true;
+        }
 
         private void TapListen(object? _)
         {
@@ -189,20 +274,9 @@ namespace ZoDream.FileTransfer.ViewModels
                 MessageBox.Show(LocalizedLangExtension.GetString("clientIpError"));
                 return;
             }
-            if (string.IsNullOrWhiteSpace(SaveFolder))
+            if (!CheckSaveFolder())
             {
-                var openFolderDialog = new System.Windows.Forms.FolderBrowserDialog
-                {
-                    SelectedPath = AppDomain.CurrentDomain.BaseDirectory,
-                    ShowNewFolderButton = true
-                };
-                if (openFolderDialog.ShowDialog() != System.Windows.Forms.DialogResult.OK)
-                {
-                    MessageBox.Show(LocalizedLangExtension.GetString("pickSaveFolderTip"));
-                    IsNotListen = true;
-                    return;
-                }
-                SaveFolder = openFolderDialog.SelectedPath;
+                return;
             }
             ServerMessage = LocalizedLangExtension.GetString("receivingTip");
             IsNotListen = false;
@@ -244,11 +318,13 @@ namespace ZoDream.FileTransfer.ViewModels
             DragFile(openFileDialog.FileNames);
         }
 
+
+
         private void TapDragFolder(object? _)
         {
-            if (!IsVerifySendAddress)
+            if (!CanDropFile)
             {
-                MessageBox.Show(LocalizedLangExtension.GetString("remoteIpError"));
+                MessageBox.Show(LocalizedLangExtension.GetString(IsPassively ?  "listenNotOpen" : "remoteIpError"));
                 return;
             }
             var openFolderDialog = new System.Windows.Forms.FolderBrowserDialog
@@ -442,9 +518,9 @@ namespace ZoDream.FileTransfer.ViewModels
 
         public void DragFile(IEnumerable<string> items)
         {
-            if (!IsVerifySendAddress)
+            if (!CanDropFile)
             {
-                MessageBox.Show(LocalizedLangExtension.GetString("remoteIpError"));
+                MessageBox.Show(LocalizedLangExtension.GetString(IsPassively ? "listenNotOpen" : "remoteIpError"));
                 return;
             }
             foreach (var item in items)
@@ -489,7 +565,14 @@ namespace ZoDream.FileTransfer.ViewModels
                 {
                     item.Md5 = Disk.GetMD5(item.FileName);
                 }
-                Hub.SendFileAsync(SendIp, SendPort, item);
+                if (IsPassively)
+                {
+                    Hub.SendFileAsync(item);
+                } else
+                {
+                    Hub.SendFileAsync(SendIp, SendPort, item);
+                }
+                
             });
         }
 

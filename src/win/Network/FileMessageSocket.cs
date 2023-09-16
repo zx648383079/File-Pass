@@ -30,7 +30,7 @@ namespace ZoDream.FileTransfer.Network
 
         private readonly ConcurrentQueue<FileInfoItem> FileItems = new();
 
-        public void Add( FileInfoItem item )
+        public void Add(FileInfoItem item )
         {
             FileItems.Enqueue(item);
         }
@@ -55,12 +55,14 @@ namespace ZoDream.FileTransfer.Network
                 
                 if (FileItems.TryDequeue(out var file))
                 {
-                    var client = Hub.Add(Ip, Port);
+                    var client = string.IsNullOrEmpty(Ip) ? Hub.Get() : Hub.Add(Ip, Port);
                     if (client is null)
                     {
                         Add(file);
                         return i;
                     }
+                    client.IsBusy = true;
+                    client.StopLoopReceive();
                     Task.Factory.StartNew(() => {
                         if (string.IsNullOrEmpty(file.Md5))
                         {
@@ -69,8 +71,12 @@ namespace ZoDream.FileTransfer.Network
                         client.SendFile(file.RelativeFile, 
                             file.Md5, 
                             file.FileName, file.Length, token);
-                        client.Send(SocketMessageType.PreClose);
-                        Hub.Close(client);
+                        if (!client.IsPassively)
+                        {
+                            client.Send(SocketMessageType.PreClose);
+                            Hub.Close(client);
+                        }
+                        client.IsBusy = false;
                         Hub.Logger.Debug($"Send Complete: {file.RelativeFile}");
                     }, token);
                 }
