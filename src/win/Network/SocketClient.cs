@@ -94,6 +94,11 @@ namespace ZoDream.FileTransfer.Network
                         IsReceiveLink = true;
                         IsLoopReceive = false;
                         return;
+                    } else
+                    {
+                        IsLoopReceive = false;
+                        Hub?.Close(this);
+                        return;
                     }
                 }
             }, token);
@@ -542,11 +547,20 @@ namespace ZoDream.FileTransfer.Network
                     var endPos = Convert.ToInt64(rang[1]);
                     var partLength = ReceiveContentLength();
                     var tempFile = Path.Combine(folder, $"_{md5}.cache");
-                    using (var fs = File.OpenWrite(tempFile))
+                    // TODO 可能出现多线程 冲突
+                    try
                     {
+                        using var fs = File.OpenWrite(tempFile);
                         fs.SetLength(length);
                         fs.Seek(startPos, SeekOrigin.Begin);
                         ReceiveStream(fs, partLength);
+                    }
+                    catch (Exception ex)
+                    {
+                        Send(SocketMessageType.ReceivedError);
+                        Hub?.Logger.Debug($"Receive File Failure: {ex.Message}");
+                        Hub?.EmitReceive(fileName, location, 0, 0);
+                        return;
                     }
                     Hub?.Logger.Debug($"Receive File Part: {fileName}[{startPos}-{endPos}]");
                     Hub?.EmitReceive(fileName, location, endPos, length);

@@ -172,7 +172,7 @@ namespace ZoDream.FileTransfer.ViewModels
 
         public bool IsVerifySendAddress => Regex.IsMatch(SendIp, @"\d+\.\d+\.\d+\.\d") && SendPort >= 1000;
 
-        public bool CanDropFile => (IsPassively && IsNotListen) || (!IsPassively && IsVerifySendAddress);
+        public bool CanDropFile => (IsPassively && !IsNotListen) || (!IsPassively && IsVerifySendAddress);
 
         private void Logger_OnLog(string message, LogLevel level)
         {
@@ -243,7 +243,7 @@ namespace ZoDream.FileTransfer.ViewModels
             }
             Hub.WorkFolder = SaveFolder;
             Hub.Overwrite = Overwrite;
-            Hub.Add(ClientIp, ClientPort, true);
+            Hub.Add(SendIp, SendPort, true);
         }
 
         private bool CheckSaveFolder()
