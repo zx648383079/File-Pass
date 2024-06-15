@@ -7,7 +7,13 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ZoDream.FileTransfer", "win
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "maui", "maui", "{139DC882-CCF8-49B0-BFB0-6E0F0D8189C9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZoDream.FileTransfer", "maui\ZoDream.FileTransfer\ZoDream.FileTransfer.csproj", "{E4EE2440-2E86-483D-B8F0-569125B564A9}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ZoDream.FileTransfer", "maui\ZoDream.FileTransfer\ZoDream.FileTransfer.csproj", "{E4EE2440-2E86-483D-B8F0-569125B564A9}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "wpf", "wpf", "{B437F0AC-26DD-42D6-8513-D122B914E83E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZoDream.FileTransfer", "wpf\ZoDream.FileTransfer\ZoDream.FileTransfer.csproj", "{7D934011-90D4-431A-8780-DECA7A6F0FC8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZoDream.Shared", "ZoDream.Shared\ZoDream.Shared.csproj", "{6D93C81D-3395-45AF-82D6-B8402859BC39}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -25,12 +31,21 @@ Global
 		{E4EE2440-2E86-483D-B8F0-569125B564A9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E4EE2440-2E86-483D-B8F0-569125B564A9}.Release|Any CPU.Build.0 = Release|Any CPU
 		{E4EE2440-2E86-483D-B8F0-569125B564A9}.Release|Any CPU.Deploy.0 = Release|Any CPU
+		{7D934011-90D4-431A-8780-DECA7A6F0FC8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7D934011-90D4-431A-8780-DECA7A6F0FC8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7D934011-90D4-431A-8780-DECA7A6F0FC8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7D934011-90D4-431A-8780-DECA7A6F0FC8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6D93C81D-3395-45AF-82D6-B8402859BC39}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6D93C81D-3395-45AF-82D6-B8402859BC39}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6D93C81D-3395-45AF-82D6-B8402859BC39}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6D93C81D-3395-45AF-82D6-B8402859BC39}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{E4EE2440-2E86-483D-B8F0-569125B564A9} = {139DC882-CCF8-49B0-BFB0-6E0F0D8189C9}
+		{7D934011-90D4-431A-8780-DECA7A6F0FC8} = {B437F0AC-26DD-42D6-8513-D122B914E83E}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {1D2110C7-0A25-4F82-AB9B-BBEE5889BF10}

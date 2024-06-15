@@ -25,8 +25,8 @@ public class MessageListView : ContentView
         };
 	}
 
-    private VerticalStackLayout InnerPanel;
-    private ScrollView ScrollBar;
+    private readonly VerticalStackLayout InnerPanel;
+    private readonly ScrollView ScrollBar;
 
     public int MaxTime
     {

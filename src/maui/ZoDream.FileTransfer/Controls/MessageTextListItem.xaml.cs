@@ -47,5 +47,4 @@ public partial class MessageTextListItem : ContentView
 					ItemSource.IsSender ? 0 : MessageListView.MessageRadius,
 					MessageListView.MessageRadius, MessageListView.MessageRadius);
     }
-
 }
