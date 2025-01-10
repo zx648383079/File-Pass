@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="ZoDream.FileTransfer.Pages.FriendsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:bhv="using:ZoDream.FileTransfer.Behaviors"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:ivy="using:Microsoft.Xaml.Interactivity"
+    xmlns:local="using:ZoDream.FileTransfer.Pages"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="using:ZoDream.FileTransfer.ViewModels"
+    mc:Ignorable="d">
+    <Page.DataContext>
+        <vm:FriendViewModel />
+    </Page.DataContext>
+    <Page.Resources>
+        <ResourceDictionary Source="ms-appx:///Themes/ChatTheme.xaml" />
+    </Page.Resources>
+
+    <StackPanel>
+        <AutoSuggestBox PlaceholderText="Find by name" QueryIcon="Find" />
+
+        <ListView
+            IsDoubleTapEnabled="True"
+            ItemTemplate="{StaticResource ContactItemTemplate}"
+            ItemsSource="{Binding ItemsSource.View}">
+            <ivy:Interaction.Behaviors>
+                <bhv:ListItemDoubleClickBehavior Command="{Binding TapItemCommand}" />
+            </ivy:Interaction.Behaviors>
+            <ListView.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <ItemsStackPanel AreStickyGroupHeadersEnabled="False" />
+                </ItemsPanelTemplate>
+            </ListView.ItemsPanel>
+            <ListView.GroupStyle>
+                <GroupStyle HeaderTemplate="{StaticResource ContactGroupTemplate}" />
+            </ListView.GroupStyle>
+        </ListView>
+    </StackPanel>
+</Page>

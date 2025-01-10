@@ -1,5 +1,7 @@
-﻿using System.Globalization;
-using ZoDream.Shared.Converters;
+﻿using Microsoft.Maui.Controls;
+using System;
+using System.Globalization;
+using ZoDream.Shared.Helpers;
 
 namespace ZoDream.FileTransfer.Converters
 {
@@ -7,7 +9,7 @@ namespace ZoDream.FileTransfer.Converters
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            return ToggleConverter.IsVisible(value, parameter);
+            return ConverterHelper.IsVisible(value, parameter);
         }
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         {

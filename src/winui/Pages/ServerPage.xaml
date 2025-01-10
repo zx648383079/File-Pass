@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="ZoDream.FileTransfer.Pages.ServerPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:cvt="using:ZoDream.FileTransfer.Converters"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="using:ZoDream.FileTransfer.Pages"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="using:ZoDream.FileTransfer.ViewModels"
+    mc:Ignorable="d">
+    <Page.DataContext>
+        <vm:ServerViewModel />
+    </Page.DataContext>
+
+    <Page.Resources>
+        <cvt:AgoConverter x:Key="AgoCvt" />
+        <DataTemplate x:Key="ClientItemTemplate" x:DataType="vm:ClientItemViewModel">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="40" />
+                    <ColumnDefinition />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition />
+                    <RowDefinition />
+                </Grid.RowDefinitions>
+                <FontIcon Grid.RowSpan="2" />
+                <TextBlock Grid.Column="1" Text="{Binding UserName}" />
+                <TextBlock Grid.Column="2" Text="{Binding UpdatedAt, Converter={StaticResource AgoCvt}}" />
+                <StackPanel
+                    Grid.Row="1"
+                    Grid.Column="1"
+                    Orientation="Horizontal">
+                    <TextBlock Text="{Binding Ip}" />
+                    <TextBlock Text=":" />
+                    <TextBlock Text="{Binding Port}" />
+                </StackPanel>
+            </Grid>
+        </DataTemplate>
+    </Page.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="auto" />
+            <RowDefinition />
+            <RowDefinition Height="auto" />
+        </Grid.RowDefinitions>
+
+        <CommandBar HorizontalAlignment="Center">
+            <AppBarButton Icon="Play" Label="开始" />
+            <AppBarButton Icon="Stop" Label="停止" />
+            <AppBarButton Icon="Setting" Label="设置" />
+        </CommandBar>
+
+        <ListBox
+            Grid.Row="1"
+            HorizontalContentAlignment="Stretch"
+            ItemTemplate="{StaticResource ClientItemTemplate}"
+            ItemsSource="{Binding Items}" />
+        <Grid Grid.Row="2" Margin="8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition />
+                <ColumnDefinition Width="auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="{Binding Message}" />
+            <TextBlock Grid.Column="1" Text="{Binding StatusInfo}" />
+        </Grid>
+    </Grid>
+</Page>

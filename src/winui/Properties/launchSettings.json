@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "ZoDream.FileTransfer (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "ZoDream.FileTransfer (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}
