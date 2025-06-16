@@ -1,4 +1,8 @@
-﻿namespace ZoDream.Shared.Net
+﻿using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
+
+namespace ZoDream.Shared.Net
 {
     public class FileMessageSocket : IMessageSocket
     {

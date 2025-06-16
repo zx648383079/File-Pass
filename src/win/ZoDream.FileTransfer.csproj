@@ -2,9 +2,9 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-	  <TargetFrameworks>net8.0-windows;net48</TargetFrameworks>
-	  <LangVersion>12</LangVersion>
-    <Nullable>enable</Nullable>
+	  <TargetFrameworks>net9.0-windows;net48</TargetFrameworks>
+	  <LangVersion>13</LangVersion>
+	  <Nullable>enable</Nullable>
     <UseWPF>true</UseWPF>
 	  <UseWindowsForms>true</UseWindowsForms>
     <ApplicationIcon>pass.ico</ApplicationIcon>

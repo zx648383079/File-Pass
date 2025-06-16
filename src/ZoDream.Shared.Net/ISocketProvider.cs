@@ -1,4 +1,6 @@
-﻿namespace ZoDream.Shared.Net
+﻿using System.Threading.Tasks;
+
+namespace ZoDream.Shared.Net
 {
     public interface ISocketProvider
     {

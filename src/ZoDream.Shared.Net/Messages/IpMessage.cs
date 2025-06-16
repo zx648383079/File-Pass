@@ -1,5 +1,4 @@
-﻿using ZoDream.FileTransfer.Models;
-using ZoDream.FileTransfer.Repositories;
+﻿using System;
 
 namespace ZoDream.Shared.Net
 {

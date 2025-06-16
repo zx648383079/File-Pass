@@ -1,4 +1,7 @@
-﻿namespace ZoDream.Shared.Net
+﻿using System;
+using System.Threading.Tasks;
+
+namespace ZoDream.Shared.Net
 {
     public interface ISocketServer: IDisposable
     {

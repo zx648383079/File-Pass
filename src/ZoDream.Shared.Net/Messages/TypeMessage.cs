@@ -1,4 +1,4 @@
-﻿using System.Net.Sockets;
+﻿using System;
 
 namespace ZoDream.Shared.Net
 {
@@ -60,7 +60,7 @@ namespace ZoDream.Shared.Net
             var hasRequest = MessageEventArg.HasRequest(type);
             if (data == null)
             {
-                return hasRequest ? new byte[] { typeByte, Convert.ToByte(isRequest) } : new byte[] { typeByte };
+                return hasRequest ? [typeByte, Convert.ToByte(isRequest)] : [typeByte];
             }
             if (hasRequest)
             {

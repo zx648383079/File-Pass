@@ -20,7 +20,7 @@ namespace ZoDream.Shared.ViewModel
 
         public event EventHandler? CanExecuteChanged;
 
-        public bool CanExecute(object parameter)
+        public bool CanExecute(object? parameter)
         {
             if (CanExecuteFun is null)
             {
@@ -29,7 +29,7 @@ namespace ZoDream.Shared.ViewModel
             return CanExecuteFun.Invoke((T)parameter);
         }
 
-        public void Execute(object parameter)
+        public void Execute(object? parameter)
         {
             ExecuteFun.Invoke((T)parameter);
         }

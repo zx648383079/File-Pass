@@ -1,4 +1,4 @@
-﻿using ZoDream.FileTransfer.Models;
+﻿using System.Threading.Tasks;
 
 namespace ZoDream.Shared.Net
 {

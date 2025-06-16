@@ -1,5 +1,10 @@
-﻿using System.Net.Sockets;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Net.Sockets;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace ZoDream.Shared.Net
 {
@@ -89,7 +94,7 @@ namespace ZoDream.Shared.Net
         {
             if (length <= 0 || length > FileChunkSize)
             {
-                return Array.Empty<byte>();
+                return [];
             }
             var buffer = new byte[length];
             try

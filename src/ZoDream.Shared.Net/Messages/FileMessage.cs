@@ -1,4 +1,6 @@
-﻿namespace ZoDream.Shared.Net
+﻿using System;
+
+namespace ZoDream.Shared.Net
 {
     public class FileMessage : StringMessage
     {
